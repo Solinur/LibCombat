@@ -1,0 +1,3 @@
+﻿24
+[*] initial release as standalone library
+[*] fixed formatting issue in log for stats
