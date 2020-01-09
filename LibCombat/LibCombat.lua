@@ -11,7 +11,7 @@ Idea: Life and Death
 ]]
 
 local lib = {}
-lib.version = 23
+lib.version = 24
 LibCombat = lib
 
 -- Basic values
@@ -43,6 +43,9 @@ local lastskilluses = {}
 local isInShadowWorld = false	-- used to prevent fight reset in Cloudrest/Sunspire when using a portal.
 
 local lastBossHealthValue = 2
+
+local majorForceAmount = 15
+local minorForceAmount = 10
 
 -- localize some functions for performance
 
@@ -785,6 +788,9 @@ local function GetPlayerBuffs(timems)
 		end
 
 		if abilityId ==	13984 then GetShadowBonus() end
+
+		if MajorForceAbility[abilityId] then data.majorForce = majorForceAmount end
+		if MinorForceAbility[abilityId] then data.minorForce = minorForceAmount end
 	end
 end
 
@@ -1365,6 +1371,7 @@ function FightHandler:UpdateGrpStats() -- called by onUpdate
 end
 
 function FightHandler:onUpdate()
+
 	--reset data
 	if reset == true or (data.inCombat == false and self.combatend>0 and (GetGameTimeMilliseconds() > (self.combatend + timeout)) ) then
 
@@ -1563,15 +1570,15 @@ end
 
 local function onMajorForceChanged( _, changeType)
 
-	if changeType == 1 then data.majorForce = 15
-	elseif changeType == 2 then data.majorForce = 0 end
+	if changeType == EFFECT_RESULT_GAINED or changeType == EFFECT_RESULT_UPDATED then data.majorForce = majorForceAmount
+	elseif changeType == EFFECT_RESULT_FADED then data.majorForce = 0 end
 
 end
 
 local function onMinorForceChanged( _, changeType)
 
-	if changeType == 1 then data.minorForce = 10
-	elseif changeType == 2 then data.minorForce = 0 end
+	if changeType == EFFECT_RESULT_GAINED or changeType == EFFECT_RESULT_UPDATED then data.minorForce = minorForceAmount
+	elseif changeType == EFFECT_RESULT_FADED then data.minorForce = 0 end
 
 end
 

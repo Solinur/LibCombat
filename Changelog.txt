@@ -1,3 +1,4 @@
 ﻿24
 [*] initial release as standalone library
 [*] fixed formatting issue in log for stats
+[*] fixed issue with crit damage values when buff is only refreshed but not applied completely new. 
