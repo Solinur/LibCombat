@@ -78,10 +78,10 @@ LIBCOMBAT_EVENT_GROUPEFFECTS_IN = 12	-- LIBCOMBAT_EVENT_GROUPEFFECTS_IN, timems,
 LIBCOMBAT_EVENT_GROUPEFFECTS_OUT = 13	-- LIBCOMBAT_EVENT_GROUPEFFECTS_OUT, timems, unitId, abilityId, changeType, effectType, stacks, sourceType, effectSlot
 LIBCOMBAT_EVENT_PLAYERSTATS = 14		-- LIBCOMBAT_EVENT_PLAYERSTATS, timems, statchange, newvalue, statId
 LIBCOMBAT_EVENT_RESOURCES = 15			-- LIBCOMBAT_EVENT_RESOURCES, timems, abilityId, powerValueChange, powerType, powerValue
-LIBCOMBAT_EVENT_MESSAGES = 16			-- LIBCOMBAT_EVENT_MESSAGES, timems, messageId, value
+LIBCOMBAT_EVENT_MESSAGES = 16			-- LIBCOMBAT_EVENT_MESSAGES, timems, combatMessage, value
 LIBCOMBAT_EVENT_DEATH = 17				-- LIBCOMBAT_EVENT_DEATH, timems, unitId, abilityId
 LIBCOMBAT_EVENT_RESURRECTION = 18		-- LIBCOMBAT_EVENT_RESURRECTION, timems, unitId, self
-LIBCOMBAT_EVENT_SKILL_TIMINGS = 19		-- LIBCOMBAT_EVENT_SKILL_TIMINGS, timems, reducedslot, abilityId, status
+LIBCOMBAT_EVENT_SKILL_TIMINGS = 19		-- LIBCOMBAT_EVENT_SKILL_TIMINGS, timems, reducedslot, abilityId, skillStatus
 LIBCOMBAT_EVENT_BOSSHP = 20				-- LIBCOMBAT_EVENT_BOSSHP, timems, bossId, currenthp, maxhp
 LIBCOMBAT_EVENT_MAX = 20
 
@@ -93,18 +93,20 @@ for i = LIBCOMBAT_EVENT_MIN, LIBCOMBAT_EVENT_MAX do
 
 end
 
--- Messages:
+-- combatMessage
 
 LIBCOMBAT_MESSAGE_COMBATSTART = 1
 LIBCOMBAT_MESSAGE_COMBATEND = 2
 LIBCOMBAT_MESSAGE_WEAPONSWAP = 3
+
+-- skillStatus
 
 LIBCOMBAT_SKILLSTATUS_INSTANT = 1
 LIBCOMBAT_SKILLSTATUS_BEGIN_DURATION = 2
 LIBCOMBAT_SKILLSTATUS_BEGIN_CHANNEL = 3
 LIBCOMBAT_SKILLSTATUS_SUCCESS = 4
 
--- Statnames
+-- statId
 
 LIBCOMBAT_STAT_MAXMAGICKA = 1
 LIBCOMBAT_STAT_SPELLPOWER = 2
@@ -2341,7 +2343,7 @@ function EventHandler:UnregisterEvents()
 	self.active = false
 end
 
-lib.Events = Events		-- debug exposure
+-- lib.Events = Events		-- debug exposure
 
 local function UnregisterAllEvents()
 
