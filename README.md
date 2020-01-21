@@ -20,7 +20,6 @@ In order to receive combat events from the library one has to register a callbac
 
 ```lua
     LibCombat:RegisterCallbackType(eventType, callback, idString)
-
     LibCombat:UnregisterCallbackType(eventType, callback, idString)
 ```
 * parameters
