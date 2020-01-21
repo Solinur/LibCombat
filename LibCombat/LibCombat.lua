@@ -2230,9 +2230,9 @@ end
 
 function lib:RegisterAllLogCallbacks(callback, name)
 
-	for i=LIBCOMBAT_EVENT_DAMAGE_OUT,LIBCOMBAT_EVENT_MAX do
+	for i = LIBCOMBAT_EVENT_DAMAGE_OUT, LIBCOMBAT_EVENT_MAX do
 
-		lib:RegisterCallbackType(i,callback,name)
+		lib:RegisterCallbackType(i, callback, name)
 
 	end
 end
@@ -2240,14 +2240,14 @@ end
 function lib:RegisterCallbackType(callbacktype, callback, name)
 
 	lib.cm:RegisterCallback(CallbackKeys[callbacktype], callback)
-	EditResource(callbacktype,true,name)
+	EditResource(callbacktype, true, name)
 
 end
 
 function lib:UnregisterCallbackType(callbacktype, callback, name)
 
 	lib.cm:UnregisterCallback(CallbackKeys[callbacktype], callback)
-	EditResource(callbacktype,false,name)
+	EditResource(callbacktype, false, name)
 
 end
 
