@@ -11,7 +11,7 @@ Idea: Life and Death
 ]]
 
 local lib = {}
-lib.version = 24
+lib.version = 25
 LibCombat = lib
 
 -- Basic values
@@ -256,15 +256,10 @@ for stringId, stringValue in pairs(strings) do
 end
 
 local BadAbility = {
-	[50011] = true,
 	[51487] = true,
 	[20546] = true,
 	[69168] = true,
-	[20667] = true,
-	[27278] = true,
 	[52515] = true,
-	[20663] = true,
-	[63510] = true,
 	[41189] = true,
 	[61898] = true, -- Minor Savagery, too spammy
 }
@@ -278,7 +273,7 @@ local CustomAbilityName = {
 
 	[75753] = zo_strformat(SI_ABILITY_NAME, GetAbilityName(75753)), -- Line-breaker (Alkosh). pin abiltiy name so it can't get overridden
 	[17906] = zo_strformat(SI_ABILITY_NAME, GetAbilityName(17906)), -- Crusher (Glyph). pin abiltiy name so it can't get overridden
-	[63003] = zo_strformat(SI_ABILITY_NAME, GetAbilityName(63003)), -- Off-Balance
+	[63003] = zo_strformat(SI_ABILITY_NAME, GetAbilityName(62988)), -- Off-Balance
 
 	[81274] = "(C) " .. zo_strformat(SI_ABILITY_NAME, GetAbilityName(81274)), -- Crown Store Poison, Rename to differentiate from normal Poison, which can apparently stack ?
 	[81275] = "(C) " .. zo_strformat(SI_ABILITY_NAME, GetAbilityName(81275)), -- Crown Store Poison, Rename to differentiate from normal Poison, which can apparently stack ?
@@ -361,15 +356,8 @@ local critbonusabilities = {
 local MajorForceAbility = {		-- All AbilityId's that cause Major Force. Used to calculate the Critical Damage Bonus stat.
 
 	[40225] = true,
-	[46533] = true,
-	[46536] = true,
-	[46539] = true,
 	[61747] = true,
 	[85154] = true,
-	[86468] = true,
-	[86472] = true,
-	[86476] = true,
-	[88891] = true,
 	[120013] = true,
 
 }
@@ -378,31 +366,15 @@ local MinorForceAbility = {		-- All AbilityId's that cause Minor Force. Used to 
 
 	[61746] = true,
 	[68595] = true,
-	[68596] = true,
-	[68597] = true,
-	[68598] = true,
 	[68628] = true,
-	[68629] = true,
-	[68630] = true,
-	[68631] = true,
 	[68632] = true,
-	[68636] = true,
-	[68638] = true,
-	[68640] = true,
 	[76564] = true,
 	[80984] = true,
 	[80986] = true,
-	[80996] = true,
-	[80998] = true,
-	[81004] = true,
-	[81006] = true,
-	[81012] = true,
-	[81014] = true,
 	[85611] = true,
 	[103521] = true,
 	[103708] = true,
 	[103712] = true,
-	[104403] = true,
 	[106861] = true,
 	[116775] = true,
 
@@ -422,8 +394,6 @@ local SpecialBuffs = {	-- buffs that the API doesn't show via EVENT_EFFECT_CHANG
 	75726,	-- Tava's Favor
 	75746,	-- Clever Alchemist
 	61870,	-- Armor Master Resistance
-	70352,	-- Armor Master Spell Resistance
-	46539,	-- Major Force
 	71107,  -- Briarheart
 
 }
