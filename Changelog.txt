@@ -1,4 +1,7 @@
-﻿25 DL: 45,830 (25.02.2020 23:11)
+﻿26 DL: 98,320 (22.03.2020 17:05)
+[*] Fixed an issue that prevented display names (@Names) to be added to unit info
+
+25 DL: 45,830 (25.02.2020 23:11)
 [*] Updated ability IDs used in a couple of places, since ZOS seemed to have removed a few.
 
 24 DL: 0

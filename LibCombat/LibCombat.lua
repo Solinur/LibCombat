@@ -11,7 +11,7 @@ Idea: Life and Death
 ]]
 
 local lib = {}
-lib.version = 25
+lib.version = 26
 LibCombat = lib
 
 -- Basic values
@@ -1874,10 +1874,12 @@ local function onGroupChange()
 
 	if data.inGroup == true then
 
-		for i = 1,GetGroupSize() do
+		for i = 1, GetGroupSize() do
 
-			local name = zo_strformat(SI_UNIT_NAME, GetUnitName("group"..i))
-			local displayname = zo_strformat(SI_UNIT_NAME, GetUnitDisplayName("group"..i))
+			local unitTag = "group"..i
+
+			local name = ZO_CachedStrFormat(SI_UNIT_NAME, GetUnitName(unitTag))
+			local displayname = ZO_CachedStrFormat(SI_UNIT_NAME, GetUnitDisplayName(unitTag))
 
 			data.groupmemberdisplaynames[name] = displayname
 		end
@@ -1888,21 +1890,21 @@ local function CheckUnit(unitName, unitId, unitType, timems)
 
 	local currentunits = currentfight.units
 
+	if currentunits[unitId] == nil then currentunits[unitId] = UnitHandler:New(unitName, unitId, unitType) end
+	local unit = currentunits[unitId]
+
 	if unitType == COMBAT_UNIT_TYPE_PLAYER then
 
 		data.playerid = unitId
 		currentfight.playerid = unitId
+		unit.displayname = data.accountname
 
 	end
 
-	if currentunits[unitId] == nil then currentunits[unitId] = UnitHandler:New(unitName, unitId, unitType) end
-
-	local unit = currentunits[unitId]
-
-	if unit.name == "Offline" or unit.name == "" then unit.name = zo_strformat(SI_UNIT_NAME,unitName) end
+	if unit.name == "Offline" or unit.name == "" then unit.name = zo_strformat(SI_UNIT_NAME, unitName) end
 
 	if unit.unitType ~= COMBAT_UNIT_TYPE_GROUP and unitType==COMBAT_UNIT_TYPE_GROUP then unit.unitType = COMBAT_UNIT_TYPE_GROUP end
-	if unit.unitType == COMBAT_UNIT_TYPE_GROUP or unit.unitType == COMBAT_UNIT_TYPE_PLAYER or unit.unitType == COMBAT_UNIT_TYPE_PLAYER_PET then unit.isFriendly = true end
+	if (unit.unitType == COMBAT_UNIT_TYPE_GROUP) or (unit.unitType == COMBAT_UNIT_TYPE_PLAYER) or (unit.unitType == COMBAT_UNIT_TYPE_PLAYER_PET) then unit.isFriendly = true end
 
 	unit.dpsstart = unit.dpsstart or timems
 	unit.dpsend = timems
@@ -1912,11 +1914,11 @@ local function CheckUnit(unitName, unitId, unitType, timems)
 
 	if unitType == COMBAT_UNIT_TYPE_GROUP then
 
-		unit.displayname = data.groupmemberdisplaynames[unitName]
+		unit.displayname = data.groupmemberdisplaynames[unit.name]
 
 		local groupdata = data.groupmembers
 
-		if groupdata then groupdata[unitName] = unitId end
+		if groupdata then groupdata[unit.name] = unitId end
 
 	end
 end
@@ -1989,8 +1991,6 @@ local function onCombatEventDmgGrp(_, _, _, _, _, _, _, _, targetName, targetTyp
 		return
 
 	end
-
-	local name = zo_strformat(SI_UNIT_NAME,(targetName or ""))
 
 	table.insert(currentfight.grplog,{targetUnitId,hitValue,"dmg"})
 end

@@ -1,7 +1,7 @@
 ﻿## Title: LibCombat
 ## APIVersion: 100030
 ## Author: Solinur/decay
-## AddOnVersion: 25
+## AddOnVersion: 26
 ## IsLibrary: true
 ## DependsOn: 
 ## OptionalDependsOn:
