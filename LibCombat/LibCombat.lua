@@ -3,6 +3,7 @@ This lib is supposed to act as an interface between the API of Eso and potential
 I extracted it from Combat Metrics, for which most of the functions are designed. I believe however that it's possible that others can use it.
 
 Todo:
+Falling Damage (also save routine!!)
 Check what events fire on death
 (re-)check events on shield absorb
 Implement tracking when players are resurrecting
@@ -13,8 +14,7 @@ Implement Debug Functions
 
 ]]
 local dx = math.ceil(GuiRoot:GetWidth()/tonumber(GetCVar("WindowedWidth"))*1000)/1000
-LIBCOMBAT_LINE_SIZE = tostring(dx)
-LIBCOMBAT_LINE_SIZE_DOUBLE = tostring(2*dx)
+LIBCOMBAT_LINE_SIZE = dx
 
 local lib = {}
 lib.version = 27
