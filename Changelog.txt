@@ -1,4 +1,12 @@
-﻿26 DL: 98,320 (22.03.2020 17:05)
+﻿27 DL: 
+[*] Reworked event registration functions (e.g. lib:RegisterForCombatEvent). The behaviour and syntax now matches event registration of the ESO API (EVENT_MANAGER:RegisterForEvent). The old functions are still supported but may be removed in the future.
+[*] LibCombat:RegisterCallbackType(callbacktype, callback, name) --> LibCombat:RegisterForCombatEvent(name, callbacktype, callback), returns: isRegistered
+[*] LibCombat:UnregisterCallbackType(callbacktype, callback, name) --> LibCombat:UnregisterForCombatEvent(name, callbacktype), returns: isUnregistered
+[*] LibCombat:RegisterAllLogCallbacks(callback, name) --> LibCombat:RegisterForLogableCombatEvents(name, callback)
+[*] Added damage and heal events to group members (LIBCOMBAT_EVENT_GROUP_DAMAGE_IN and LIBCOMBAT_EVENT_GROUP_HEAL_IN)
+[*] Small fixes
+
+26 DL: 98,320 (22.03.2020 17:05)
 [*] Fixed an issue that prevented display names (@Names) to be added to unit info
 
 25 DL: 45,830 (25.02.2020 23:11)

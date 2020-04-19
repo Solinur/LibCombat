@@ -1,10 +1,10 @@
 ﻿## Title: LibCombat
 ## APIVersion: 100030
 ## Author: Solinur/decay
-## AddOnVersion: 26
+## AddOnVersion: 27
 ## IsLibrary: true
-## DependsOn: 
-## OptionalDependsOn:
+## DependsOn: LibDebugLogger
+## OptionalDependsOn: 
 ## SavedVariables: 
 ## Description: This library handles the data collection of combat events for addons like CombatMetrics and GroupDamageShare
 
