@@ -61,6 +61,7 @@ local LIBCOMBAT_MAX_UNITCACHE_EVENTS = 30
 
 local playerActivatedTime = 10000
 local lastQueuedAbilities = {}
+local maxSkillDelay = 2000
 
 -- localize some functions for performance
 
@@ -948,8 +949,6 @@ local function UpdateSlotSkillEvents()
 
 	if not events.active then return end
 
-	events:UnregisterEvents()
-
 	SlotSkills = {}
 
 	local registeredIds = {}
@@ -980,7 +979,7 @@ local function UpdateSlotSkillEvents()
 		end
 	end
 
-	events:RegisterEvents()
+	events:Update()
 end
 
 local function GetCurrentSkillBars()
@@ -1232,7 +1231,7 @@ local lastGetNewStatsCall = 0
 
 function FightHandler:GetNewStats(timems)
 
-	em:UnregisterForUpdate("COMBATMETRICS_GETNEWSTATS")
+	em:UnregisterForUpdate("LibCombat_Stats")
 
 	timems = timems or GetGameTimeMilliseconds()
 
@@ -1240,7 +1239,7 @@ function FightHandler:GetNewStats(timems)
 
 	if lastcalldelta < 100 then
 
-		em:RegisterForUpdate("COMBATMETRICS_GETNEWSTATS", (100 - lastcalldelta), function() self:GetNewStats() end)
+		em:RegisterForUpdate("LibCombat_Stats", (100 - lastcalldelta), function() self:GetNewStats() end)
 
 		return
 
@@ -2320,8 +2319,8 @@ local function onAbilityUsed(eventCode, result, isError, abilityName, abilityGra
 		local slotFired = math.max(lasttime, lastQueuedAbilities[origId] or lasttime)
 		local skillDelay = timems - slotFired
 
-		lastSkillDelay = skillDelay < 1000 and skillDelay or nil
-		lastSkillDelayTime = skillDelay < 1000 and timems or nil
+		lastSkillDelay = skillDelay < maxSkillDelay and skillDelay or nil
+		lastSkillDelayTime = skillDelay < maxSkillDelay and timems or nil
 
 	end
 end
@@ -2482,37 +2481,39 @@ local function onFrameUpdate()
 
 		end
 
-		local skillDelay = (timems - lastSkillDelayTime) < 1000 and lastSkillDelay or nil
+		local skillDelay = lastSkillDelayTime and (timems - lastSkillDelayTime) < 2000 and lastSkillDelay or nil
 
 		lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_PERFORMANCE]), LIBCOMBAT_EVENT_PERFORMANCE, timems, frameIndex/sum, 1/max, 1/min, GetLatency(), skillDelay)
 
 		frameIndex = 1
 		currentsecond = now
 
-	end
-	
+	end	
 end
-
-local enableLogKey = lib.name .. "enable"
 
 local function enableLogging()
 
 	frameIndex = 1
 	currentsecond = GetTimeStamp()
 
-	em:RegisterForUpdate(lib.name, 0, onFrameUpdate)
-	em:UnregisterForUpdate(enableLogKey)
+	local active = em:RegisterForUpdate("LibCombat_Frames", 0, onFrameUpdate)
+
+	if active then logger:Debug("Performance Logging enabled !") end
+
+	em:UnregisterForUpdate("LibCombat_Frames_Enable")
 
 end
 
 local function onPlayerActivated2()
 
-	em:RegisterForUpdate(enableLogKey, playerActivatedTime , enableLogging)
+	logger:Debug("Enable performance logging in 10s")
+
+	em:RegisterForUpdate("LibCombat_Frames_Enable", playerActivatedTime , enableLogging)
 
 end
 
 local function onPlayerDeativated()
-	em:UnregisterForUpdate(lib.name)
+	em:UnregisterForUpdate("LibCombat_Frames")
 end
 
 local function onQueueEvent(_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, abilityId)
@@ -2621,6 +2622,38 @@ function lib:GetCurrentFight()
 	return copy
 end
 
+local registeredSkills = {}
+
+local function UpdateSkillEvents(self)
+
+	for _, skill in pairs(SlotSkills) do
+
+		local id, result, finish = unpack(skill)
+
+		if not registeredSkills[id] then 
+
+			local func = finish and onAbilityFinished or onAbilityUsed
+
+			-- Print("Skill registered: %d: %s (%s, end?: %s)", id, GetAbilityName(id), tostring(result), tostring(finish == true))
+
+			local active
+
+			if result then
+
+				active = self:RegisterEvent(EVENT_COMBAT_EVENT, func, REGISTER_FILTER_ABILITY_ID, id, REGISTER_FILTER_COMBAT_RESULT, result)
+
+			else
+
+				active = self:RegisterEvent(EVENT_COMBAT_EVENT, func, REGISTER_FILTER_ABILITY_ID, id)
+
+			end
+
+			registeredSkills[id] = active
+
+		end
+	end
+end
+
 local EventHandler = ZO_Object:Subclass()
 
 function EventHandler:New(...)
@@ -2663,6 +2696,10 @@ function EventHandler:RegisterEvent(event, callback, ...) -- convinience functio
 		["filters"] = filters }  -- remove callbacks later, probably not necessary
 
 	if active then lib.totalevents = lib.totalevents + 1 end
+
+	if data.isUIActivated and event == EVENT_PLAYER_ACTIVATED then callback(EVENT_PLAYER_ACTIVATED, false) end
+
+	return active
 end
 
 function EventHandler:UpdateEvents()
@@ -2701,9 +2738,11 @@ function EventHandler:UnregisterEvents()
 	end
 
 	self.active = false
+
+	if self.resetIds then registeredSkills = {} end
 end
 
--- lib.Events = Events		-- debug exposure
+lib.Events = Events		-- debug exposure
 
 local function UnregisterAllEvents()
 
@@ -2728,8 +2767,7 @@ Events.General = EventHandler:New(GetAllCallbackTypes()
 	,
 	function (self)
 		self:RegisterEvent(EVENT_PLAYER_COMBAT_STATE, onCombatState)
-		self:RegisterEvent(EVENT_UNIT_CREATED, onGroupChange)
-		self:RegisterEvent(EVENT_UNIT_DESTROYED, onGroupChange)
+		self:RegisterEvent(EVENT_GROUP_UPDATE, onGroupChange)
 		self:RegisterEvent(EVENT_ACTION_SLOT_ABILITY_SLOTTED, GetCurrentSkillBars)
 		self:RegisterEvent(EVENT_PLAYER_ACTIVATED, onPlayerActivated)
 		self:RegisterEvent(EVENT_EFFECT_CHANGED, onMageExplode, REGISTER_FILTER_ABILITY_ID, 50184)
@@ -3006,26 +3044,12 @@ Events.Skills = EventHandler:New(
 		self:RegisterEvent(EVENT_COMBAT_EVENT, GetCurrentSkillBarsDelayed, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_GAINED, REGISTER_FILTER_ABILITY_ID, 24804) -- Overload & Morphs
 		self:RegisterEvent(EVENT_ACTION_SLOT_UPDATED, onSlotUpdate)
 
-		for _, skill in pairs(SlotSkills) do
+		self.Update = UpdateSkillEvents
 
-			local id, result, finish = unpack(skill)
-
-			local func = finish and onAbilityFinished or onAbilityUsed
-
-			-- Print("Skill registered: %d: %s (%s, end?: %s)", id, GetAbilityName(id), tostring(result), tostring(finish == true))
-
-			if result then
-
-				self:RegisterEvent(EVENT_COMBAT_EVENT, func, REGISTER_FILTER_ABILITY_ID, id, REGISTER_FILTER_COMBAT_RESULT, result)
-
-			else
-
-				self:RegisterEvent(EVENT_COMBAT_EVENT, func, REGISTER_FILTER_ABILITY_ID, id)
-
-			end
-		end
+		UpdateSkillEvents()
 
 		self.active = true
+		self.resetIds = true
 
 	end
 )
@@ -3041,9 +3065,9 @@ Events.BossHP = EventHandler:New(
 Events.Performance = EventHandler:New(
 	{LIBCOMBAT_EVENT_PERFORMANCE},
 	function (self)
-		self:RegisterEvent(EVENT_PLAYER_ACTIVATED, onPlayerActivated2)
 		self:RegisterEvent(EVENT_PLAYER_DEACTIVATED, onPlayerDeativated)
 		self:RegisterEvent(EVENT_COMBAT_EVENT, onQueueEvent, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_QUEUED)
+		self:RegisterEvent(EVENT_PLAYER_ACTIVATED, onPlayerActivated2)
 		self.active = true
 	end
 )
@@ -3395,6 +3419,9 @@ local function Initialize()
   if data.LoadCustomizations then data.LoadCustomizations() end
 
   maxcrit = mathfloor(100/GetCriticalStrikeChance(1))
+
+  em:RegisterForEvent("LibCombatActive", EVENT_PLAYER_ACTIVATED, function() data.isUIActivated = true end)
+  em:RegisterForEvent("LibCombatActive", EVENT_PLAYER_DEACTIVATED, function() data.isUIActivated = false end)
 end
 
 Initialize()
