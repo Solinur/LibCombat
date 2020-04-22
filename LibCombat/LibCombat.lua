@@ -29,6 +29,7 @@ lib.cm = ZO_CallbackObject:New()
 
 local logger = LibDebugLogger(lib.name)
 local deathlogger = logger:Create("DoA")
+local deathrecaplogger = logger:Create("DR")
 
 --aliases
 
@@ -1507,30 +1508,35 @@ function UnitCache:Reset()
 	if #cache > 0 then
 
 		local log = self.log
-		local offset = self.nextKey - 2
+		local offset = self.nextKey
+		local length = #self.cache
 
-		for i = 1, self.length do
+		for key, value in ipairs(cache) do
 
-			local key = i + offset
-			log[i] = cache[key]
+			local logkey = (key - offset)%length + 1
+
+			log[logkey] = value
 
 		end
 	end
 
 	self.cache = nil
+	self.health = nil
+	self.stamina = nil
+	self.magicka = nil
 
 	UnitCache:New(self.unitId)
 
 	return self
 end
 
-function UnitCache:AddEvent(...)
+function UnitCache:AddEvent(timems, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType)
 
 	local nextKey = self.nextKey
 
-	self.cache[nextKey] = {..., self.health, self.stamina}
+	self.cache[nextKey] = {timems, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType, self.health, self.stamina, self.magicka}
+
 	self.nextKey = (nextKey % self.maxlength) + 1
-	self.length = #self.cache
 
 end
 
@@ -2229,7 +2235,7 @@ local function GroupCombatEventHandler(isheal, result, _, _, _, _, sourceName, s
 
 	damageType = (isheal and powerType) or damageType
 
-	GetUnitCache(targetUnitId):AddEvent(timems, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType, (overflow or 0))
+	GetUnitCache(targetUnitId):AddEvent(timems, result, sourceUnitId, targetUnitId, abilityId, hitValue + (overflow or 0), damageType)
 
 end
 
@@ -3004,6 +3010,7 @@ Events.DeathRecap = EventHandler:New(
 		}
 
 		for _, filter in ipairs(filters) do
+			self:RegisterEvent(EVENT_COMBAT_EVENT, onCombatEventGrpDmgIn, REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER, REGISTER_FILTER_COMBAT_RESULT, filter, REGISTER_FILTER_IS_ERROR, false)
 			self:RegisterEvent(EVENT_COMBAT_EVENT, onCombatEventGrpDmgIn, REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_GROUP, REGISTER_FILTER_COMBAT_RESULT, filter, REGISTER_FILTER_IS_ERROR, false)
 		end
 
@@ -3015,10 +3022,12 @@ Events.DeathRecap = EventHandler:New(
 		}
 
 		for _, filter in ipairs(filters2) do
+			self:RegisterEvent(EVENT_COMBAT_EVENT, onCombatEventGrpHealIn, REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER, REGISTER_FILTER_COMBAT_RESULT, filter, REGISTER_FILTER_IS_ERROR, false)
 			self:RegisterEvent(EVENT_COMBAT_EVENT, onCombatEventGrpHealIn, REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_GROUP, REGISTER_FILTER_COMBAT_RESULT, filter, REGISTER_FILTER_IS_ERROR, false)
 		end
 		
 		self:RegisterEvent(EVENT_POWER_UPDATE, onBaseResourceChangedGroup, REGISTER_FILTER_UNIT_TAG_PREFIX, "group")
+		self:RegisterEvent(EVENT_POWER_UPDATE, onBaseResourceChangedGroup, REGISTER_FILTER_UNIT_TAG, "player")
 
 		self.active = true
 	end
