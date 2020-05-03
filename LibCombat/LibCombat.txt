@@ -1,5 +1,5 @@
 ﻿## Title: LibCombat
-## APIVersion: 100030
+## APIVersion: 100030 100031
 ## Author: Solinur/decay
 ## AddOnVersion: 27
 ## IsLibrary: true
@@ -13,5 +13,8 @@
 ; All rights reserved.
 ; 
 ; You can read the full terms at https://account.elderscrollsonline.com/add-on-terms
+
+lang/en.lua
+lang/$(language).lua
 
 LibCombat.lua

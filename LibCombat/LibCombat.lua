@@ -29,7 +29,7 @@ lib.cm = ZO_CallbackObject:New()
 
 local logger = LibDebugLogger(lib.name)
 local deathlogger = logger:Create("DoA")
-local deathrecaplogger = logger:Create("DR")
+local debuglogger = logger:Create("DB")
 
 --aliases
 
@@ -209,76 +209,6 @@ end
 
 -- Strings
 
-local strings = {
-
-	SI_LIBCOMBAT_LOG_CRITICAL = "critically ",  -- "critically"
-	SI_LIBCOMBAT_LOG_YOU = "You", -- "you"
-	SI_LIBCOMBAT_LOG_GAINED = "gained", -- "gained"
-	SI_LIBCOMBAT_LOG_NOGAINED = "gained no", -- "gained no"
-	SI_LIBCOMBAT_LOG_LOST = "lost", -- "lost"
-
-	SI_LIBCOMBAT_LOG_DEBUFF = "Debuff",
-
-	SI_LIBCOMBAT_LOG_UNITTYPE_PLAYER = "yourself", -- "You"
-	SI_LIBCOMBAT_LOG_UNITTYPE_PET = "your pet", -- "Pet"
-	SI_LIBCOMBAT_LOG_UNITTYPE_GROUP = "a group member", -- "Groupmember"
-	SI_LIBCOMBAT_LOG_UNITTYPE_OTHER = "another player", -- "Another Player"
-
-	SI_LIBCOMBAT_LOG_IS_AT = "is at", -- "Weapon Swap"
-	SI_LIBCOMBAT_LOG_INCREASED = "increased to", -- "Weapon Swap"
-	SI_LIBCOMBAT_LOG_DECREASED = "decreased to", -- "Weapon Swap"
-
-	SI_LIBCOMBAT_LOG_ULTIMATE = "Ultimate", -- "Weapon Swap"
-	SI_LIBCOMBAT_LOG_BASEREG = "Base Regneration", -- "Weapon Swap"
-
-	SI_LIBCOMBAT_LOG_STAT_SPELL_CRIT_DONE = "Spell Critical Damage",  -- "Spell Critical Damage"
-	SI_LIBCOMBAT_LOG_STAT_WEAPON_CRIT_DONE = "Physical Critical Damage",  -- "Physical Critical Damage"
-
-	SI_LIBCOMBAT_LOG_MESSAGE1 = "Entering Combat",  -- "Entering Combat"
-	SI_LIBCOMBAT_LOG_MESSAGE2 = "Exiting Combat",  -- "Entering Combat"
-	SI_LIBCOMBAT_LOG_MESSAGE3 = "Weapon Swap",  -- "Entering Combat"
-	SI_LIBCOMBAT_LOG_MESSAGE_BAR = "Bar",  -- "Entering Combat"
-
-	SI_LIBCOMBAT_LOG_FORMAT_TARGET_NORMAL = "<<1>>|r with ",  -- i.e. "dwemer sphere with", %s = targetname. |r stops the colored text
-	SI_LIBCOMBAT_LOG_FORMAT_TARGET_SHIELD = "<<1>>s shield:|r",  -- i.e. "dwemer spheres shield:", %s = targetname. |r stops the colored text "
-	SI_LIBCOMBAT_LOG_FORMAT_TARGET_BLOCK = "<<1>>s block|r with",  -- i.e. "dwemer spheres block with", %s = targetname. |r stops the colored text
-
-	SI_LIBCOMBAT_LOG_FORMAT_TARGETSELF_NORMAL = "you|r with ",  -- i.e. "you with", |r stops the colored text
-	SI_LIBCOMBAT_LOG_FORMAT_TARGETSELF_SELF = "yourself|r with ",  -- i.e. "you with", |r stops the colored text
-	SI_LIBCOMBAT_LOG_FORMAT_TARGETSELF_SHIELD = "your shield:|r",  -- i.e. "your shield:", |r stops the colored text
-	SI_LIBCOMBAT_LOG_FORMAT_TARGETSELF_BLOCK = "your block|r with",  -- i.e. "your block", |r stops the colored text
-
-	SI_LIBCOMBAT_LOG_FORMATSTRING4 = "<<1>> |cffffffYou|r <<2>>hit |cffdddd<<3>> <<4>> for |cffffff<<5>>.",  	-- damage out, i.e. "[0.0s] You critically hit target with Light Attack for 1234.". <<1>> = timestring, <<2>> = crit,  <<3>> = targetstring,  <<4>> = ability, <<5>> = hitValue
-	SI_LIBCOMBAT_LOG_FORMATSTRING5 = "<<1>> |cffdddd<<2>>|r <<3>>hits |cffffff<<4>> <<5>> for |cffffff<<6>>.",  -- damage in, i.e. "[0.0s] Someone critically hits you with Light Attack for 1234.". <<1>> = timestring, <<2>> = sourceName,  <<3>> = crit,  <<4>> = targetstring,  <<5>> = ability, <<6>> = hitValue
-	SI_LIBCOMBAT_LOG_FORMATSTRING6 = "<<1>> |cffffffYou|r <<2>>hit |cffffff<<3>> <<4>> for |cffffff<<5>>.",  	-- damage self, i.e. "[0.0s] You critically hit yourself with Light Attack for 1234.". <<1>> = timestring, <<2>> = crit,  <<3>> = targetstring,  <<4>> = ability, <<5>> = hitValue
-
-	SI_LIBCOMBAT_LOG_FORMATSTRING7 = "<<1>> |cffffffYou|r <<2>>heal |cddffdd<<3>>|r with <<4>> for |cffffff<<5>>.",  	-- healing out, i.e. "[0.0s] You critically heal target with Mutagen for 1234.". <<1>> = timestring, <<2>> = crit,  <<3>> = targetname,  <<4>> = ability, <<5>> = hitValue
-	SI_LIBCOMBAT_LOG_FORMATSTRING8 = "<<1>> |cddffdd<<2>>|r <<3>>heals |cffffffyou|r with <<4>> for |cffffff<<5>>.",  	-- healing in, i.e. "[0.0s] Someone critically heals you with Mutagen for 1234.". <<1>> = timestring, <<2>> = sourceName, <<3>> = crit,  <<4>> = ability, <<5>> = hitValue
-	SI_LIBCOMBAT_LOG_FORMATSTRING9 = "<<1>> |cffffffYou|r <<2>>heal |cffffffyourself|r with <<3>> for |cffffff<<4>>.",  -- healing self, i.e. "[0.0s] You critically heal yourself with Mutagen for 1234.". <<1>> = timestring, <<2>> = crit,  <<3>> = ability, <<4>> = hitValue
-
-	SI_LIBCOMBAT_LOG_FORMATSTRING10 = "<<1>> |cffffff<<2>>|r <<3>> <<4>><<5>>.",  -- buff, i.e. "[0.0s] You gained Block from yourself." <<1>> = timestring, <<2>> = sourceName, <<3>> = changetype,  <<4>> = ability, <<5>> = source
-	SI_LIBCOMBAT_LOG_FORMATSTRING11 = "<<1>> |cffffff<<2>>|r <<3>> <<4>><<5>>.",  -- buff, i.e. "[0.0s] You gained Block from yourself." <<1>> = timestring, <<2>> = sourceName, <<3>> = changetype,  <<4>> = ability, <<5>> = source
-	SI_LIBCOMBAT_LOG_FORMATSTRING12 = "<<1>> |cffffff<<2>>|r <<3>> <<4>><<5>>.",  -- buff, i.e. "[0.0s] You gained Block from yourself." <<1>> = timestring, <<2>> = sourceName, <<3>> = changetype,  <<4>> = ability, <<5>> = source
-	SI_LIBCOMBAT_LOG_FORMATSTRING13 = "<<1>> |cffffff<<2>>|r <<3>> <<4>><<5>>.",  -- buff, i.e. "[0.0s] You gained Block from yourself." <<1>> = timestring, <<2>> = sourceName, <<3>> = changetype,  <<4>> = ability, <<5>> = source
-
-	SI_LIBCOMBAT_LOG_FORMATSTRING14 = "<<1>> Your <<2>> <<3>> |cffffff<<4>>|r<<5>>.",  -- buff, i.e. "[0.0s] Weaponpower increased to 1800 (+100)". <<1>> = timeString, <<2>> = stat, <<3>> = changeText,  <<4>> = value, <<5>> = changeValueText
-
-	SI_LIBCOMBAT_LOG_FORMATSTRING15 = "<<1>> |cffffffYou|r <<2>> <<3>> <<4>> <<5>>.",  -- resource, i.e. "[0.0s] You gained 200 Magicka (Base Regeneration)" <<1>> = timeString, <<2>> = changeTypeString, <<3>> = amount,  <<4>> = resource, <<5>> = ability
-
-	SI_LIBCOMBAT_LOG_FORMATSTRING20 = "<<1>> |cffffff<<2>>:|r <<3>>% HP. (<<4>>/<<5>>)",  -- resource, i.e. "[0.0s] You gained 200 Magicka (Base Regeneration)" <<1>> = timeString, <<2>> = changeTypeString, <<3>> = amount,  <<4>> = resource, <<5>> = ability
-
-	SI_LIBCOMBAT_LOG_FORMATSTRING_SKILLS1 = "<<1>> You cast <<2>>.", -- skill used, i.e. "[0.0s] You used Puncturing Sweeps. (<<1>> = timestring, <<2>> = Ability)
-	SI_LIBCOMBAT_LOG_FORMATSTRING_SKILLS2 = "<<1>> You start to cast <<2>>.", -- skill used, i.e. "[0.0s] You start to cast Solar Barrage. (<<1>> = timestring, <<2>> = Ability)
-	SI_LIBCOMBAT_LOG_FORMATSTRING_SKILLS3 = "<<1>> You start to channel <<2>>.", -- skill used, i.e. "[0.0s] You start to target Blazing Spear. (<<1>> = timestring, <<2>> = Ability)
-	SI_LIBCOMBAT_LOG_FORMATSTRING_SKILLS4 = "<<1>> You finished casting <<2>>.", -- skill used, i.e. "[0.0s] You succeeded casting Blazing Spear. (<<1>> = timestring, <<2>> = Ability)
-
-}
-
-for stringId, stringValue in pairs(strings) do
-	ZO_CreateStringId(stringId, stringValue)
-	SafeAddVersion(stringId, 1)
-end
-
 local BadAbility = {
 	[51487] = true,
 	[20546] = true,
@@ -297,7 +227,7 @@ local CustomAbilityName = {
 
 	[75753] = zo_strformat(SI_ABILITY_NAME, GetAbilityName(75753)), -- Line-breaker (Alkosh). pin abiltiy name so it can't get overridden
 	[17906] = zo_strformat(SI_ABILITY_NAME, GetAbilityName(17906)), -- Crusher (Glyph). pin abiltiy name so it can't get overridden
-	[63003] = zo_strformat(SI_ABILITY_NAME, GetAbilityName(62988)), -- Off-Balance
+	[62988] = zo_strformat(SI_ABILITY_NAME, GetAbilityName(62988)), -- Off-Balance
 
 	[81274] = "(C) " .. zo_strformat(SI_ABILITY_NAME, GetAbilityName(81274)), -- Crown Store Poison, Rename to differentiate from normal Poison, which can apparently stack ?
 	[81275] = "(C) " .. zo_strformat(SI_ABILITY_NAME, GetAbilityName(81275)), -- Crown Store Poison, Rename to differentiate from normal Poison, which can apparently stack ?
@@ -669,7 +599,7 @@ function UnitHandler:Initialize(name, unitId, unitType)
 
 	self.unitId = unitId
 	self.name = name					-- name
-	self.unitType = unitType			-- type of unit: group, pet or boss	
+	self.unitType = unitType			-- type of unit: group, pet or boss
 	self.damageOutTotal = 0
 	self.groupDamageOut  = 0
 	self.dpsstart = nil 				-- start of dps in ms
@@ -1494,7 +1424,7 @@ function UnitCache:Reset()
 
 	local unit = currentfight.units[self.unitId]
 
-	if unit then 
+	if unit then
 
 		self.name = unit.name
 		self.displayname = unit.displayname
@@ -1995,12 +1925,12 @@ local function CheckForWipe()
 
 	currentfight.isWipe = true
 
-	deathlogger:Info("=== This is a wipe ! ===")
+	deathlogger:Debug("=== This is a wipe ! ===")
 end
 
 local function OnDeathStateChanged(_, unitTag, isDead) 	-- death (for group display, also works for different zones)
 
-	deathlogger:Info("OnDeathStateChanged: %s is dead: %s", unitTag, tostring(isDead))
+	deathlogger:Debug("OnDeathStateChanged: %s is dead: %s", unitTag, tostring(isDead))
 
 	local unitId = unitTag == "player" and data.playerid or data.groupInfo.tagToId[unitTag]
 
@@ -2015,7 +1945,7 @@ local function OnDeathStateChanged(_, unitTag, isDead) 	-- death (for group disp
 
 		local lasttime = lastdeaths[unitId]
 
-		if (lasttime and lasttime - timems < 100) then return end
+		if (lasttime and lasttime - timems < 1000) then return end
 
 		local data = GetUnitCache(unitId):Reset()
 
@@ -2035,14 +1965,35 @@ local function OnPlayerReincarnated()
 
 	-- Print("OnPlayerReincarnated")
 
-	deathlogger:Info("You revived")
+	deathlogger:Debug("You revived")
 
 end
 
+
+
+local SpecialResults = {
+
+	[ACTION_RESULT_ABSORBED]		= "ACTION_RESULT_ABSORBED",
+	[ACTION_RESULT_BLADETURN]		= "ACTION_RESULT_BLADETURN",
+	[ACTION_RESULT_BLOCKED_DAMAGE]	= "ACTION_RESULT_BLOCKED_DAMAGE",
+	[ACTION_RESULT_DIED] 	    	= "ACTION_RESULT_DIED",
+	[ACTION_RESULT_DIED_XP] 	    = "ACTION_RESULT_DIED_XP",
+	[ACTION_RESULT_KILLING_BLOW] 	= "ACTION_RESULT_KILLING_BLOW",
+	[ACTION_RESULT_LINKED_CAST] 	= "ACTION_RESULT_LINKED_CAST",
+	[ACTION_RESULT_PARTIAL_RESIST] 	= "ACTION_RESULT_PARTIAL_RESIST",
+	[ACTION_RESULT_PRECISE_DAMAGE] 	= "ACTION_RESULT_PRECISE_DAMAGE",
+	[ACTION_RESULT_REFLECTED] 		= "ACTION_RESULT_REFLECTED",
+	[ACTION_RESULT_REINCARNATING] 	= "ACTION_RESULT_REINCARNATING",
+	[ACTION_RESULT_RESIST]			= "ACTION_RESULT_RESIST",
+	[ACTION_RESULT_RESURRECT] 		= "ACTION_RESULT_RESURRECT",
+	[ACTION_RESULT_WRECKING_DAMAGE]	= "ACTION_RESULT_WRECKING_DAMAGE",
+
+}
+
 local function OnDeath(_, result, _, abilityName, _, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, _, sourceUnitId, targetUnitId, abilityId)
 
-	deathlogger:Info("OnDeath: %s (%d) / %s (%d) - %s: %d (type: %d)", sourceName, sourceUnitId, targetName, targetUnitId, GetFormattedAbilityName(abilityId), hitValue or 0, damageType or 0)
-	
+	deathlogger:Debug("OnDeath (%s): %s (%d, %d) / %s (%d, %d) - %s (%d): %d (type: %d)", SpecialResults[result], sourceName, sourceUnitId, sourceType, targetName, targetUnitId, targetType, GetFormattedAbilityName(abilityId), abilityId, hitValue or 0, damageType or 0)
+
 	local timems = GetGameTimeMilliseconds()
 
 	if targetUnitId == nil or targetUnitId == 0 or data.inCombat == false then return end
@@ -2061,9 +2012,24 @@ local function OnDeath(_, result, _, abilityName, _, abilityActionSlotType, sour
 	CheckForWipe()
 end
 
+local function OnResurrect(_, result, _, abilityName, _, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, _, sourceUnitId, targetUnitId, abilityId)
+
+	deathlogger:Debug("OnResurrect (%s): %s (%d, %d) / %s (%d, %d) - %s (%d): %d (type: %d)", SpecialResults[result], sourceName, sourceUnitId, sourceType, targetName, targetUnitId, targetType, GetFormattedAbilityName(abilityId), abilityId, hitValue or 0, damageType or 0)
+
+	local timems = GetGameTimeMilliseconds()
+
+	if targetUnitId == nil or targetUnitId == 0 or data.inCombat == false then return end
+
+	local unitdata = currentfight.units[targetUnitId]
+
+	if unitdata == nil or unitdata.type ~= COMBAT_UNIT_TYPE_GROUP then return end
+
+	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_DEATH]), LIBCOMBAT_EVENT_DEATH, timems, LIBCOMBAT_STATE_ALIVE, targetUnitId)
+end
+
 local function OnResurrectResult(_, targetCharacterName, result, targetDisplayName)
 
-	deathlogger:Info("OnResurrectResult: %s", targetCharacterName)
+	deathlogger:Debug("OnResurrectResult: %s", targetCharacterName)
 
 	local timems = GetGameTimeMilliseconds()
 
@@ -2124,6 +2090,14 @@ local function onGroupChange()
 	end
 end
 
+local function onWTF(_, result, _, abilityName, _, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, _, sourceUnitId, targetUnitId, abilityId)
+
+	local resulttext = SpecialResults[result] or tostring(result)
+
+	debuglogger:Debug("onWTF (%s): %s (%d, %d) / %s (%d, %d) - %s (%d): %d (type: %d)", resulttext, sourceName, sourceUnitId, sourceType, targetName, targetUnitId, targetType, GetFormattedAbilityName(abilityId), abilityId, hitValue or 0, damageType or 0)
+
+end
+
 local function CheckUnit(unitName, unitId, unitType, timems)
 
 	local currentunits = currentfight.units
@@ -2133,11 +2107,11 @@ local function CheckUnit(unitName, unitId, unitType, timems)
 
 	if unit.name == "Offline" or unit.name == "" then unit.name = ZO_CachedStrFormat(SI_UNIT_NAME, unitName) end
 
-	if unit.unitType ~= COMBAT_UNIT_TYPE_GROUP and unitType==COMBAT_UNIT_TYPE_GROUP then 
-		
-		unit.unitType = COMBAT_UNIT_TYPE_GROUP 
+	if unit.unitType ~= COMBAT_UNIT_TYPE_GROUP and unitType==COMBAT_UNIT_TYPE_GROUP then
+
+		unit.unitType = COMBAT_UNIT_TYPE_GROUP
 		unit.isFriendly = true
-	
+
 	end
 
 	unit.dpsstart = unit.dpsstart or timems
@@ -2487,14 +2461,14 @@ local function onFrameUpdate()
 
 		end
 
-		local skillDelay = lastSkillDelayTime and (timems - lastSkillDelayTime) < 2000 and lastSkillDelay or nil
+		local skillDelay = lastSkillDelayTime and (timems - lastSkillDelayTime) < 1000 and lastSkillDelay or nil
 
 		lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_PERFORMANCE]), LIBCOMBAT_EVENT_PERFORMANCE, timems, frameIndex/sum, 1/max, 1/min, GetLatency(), skillDelay)
 
 		frameIndex = 1
 		currentsecond = now
 
-	end	
+	end
 end
 
 local function enableLogging()
@@ -2504,15 +2478,11 @@ local function enableLogging()
 
 	local active = em:RegisterForUpdate("LibCombat_Frames", 0, onFrameUpdate)
 
-	if active then logger:Debug("Performance Logging enabled !") end
-
 	em:UnregisterForUpdate("LibCombat_Frames_Enable")
 
 end
 
 local function onPlayerActivated2()
-
-	logger:Debug("Enable performance logging in 10s")
 
 	em:RegisterForUpdate("LibCombat_Frames_Enable", playerActivatedTime , enableLogging)
 
@@ -2636,7 +2606,7 @@ local function UpdateSkillEvents(self)
 
 		local id, result, finish = unpack(skill)
 
-		if not registeredSkills[id] then 
+		if not registeredSkills[id] then
 
 			local func = finish and onAbilityFinished or onAbilityUsed
 
@@ -2779,6 +2749,17 @@ Events.General = EventHandler:New(GetAllCallbackTypes()
 		self:RegisterEvent(EVENT_EFFECT_CHANGED, onMageExplode, REGISTER_FILTER_ABILITY_ID, 50184)
 		self:RegisterEvent(EVENT_EFFECT_CHANGED, onShadowWorld, REGISTER_FILTER_ABILITY_ID, 108045)
 		self:RegisterEvent(EVENT_EFFECT_CHANGED, onShadowWorld, REGISTER_FILTER_ABILITY_ID, 121216)
+
+		self:RegisterEvent(EVENT_COMBAT_EVENT, onWTF, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_ABSORBED)
+		self:RegisterEvent(EVENT_COMBAT_EVENT, onWTF, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_BLADETURN)
+		self:RegisterEvent(EVENT_COMBAT_EVENT, onWTF, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_BLOCKED_DAMAGE)
+		self:RegisterEvent(EVENT_COMBAT_EVENT, onWTF, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_DIED_XP)
+		self:RegisterEvent(EVENT_COMBAT_EVENT, onWTF, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_LINKED_CAST)
+		self:RegisterEvent(EVENT_COMBAT_EVENT, onWTF, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_PARTIAL_RESIST)
+		self:RegisterEvent(EVENT_COMBAT_EVENT, onWTF, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_PRECISE_DAMAGE)
+		self:RegisterEvent(EVENT_COMBAT_EVENT, onWTF, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_REFLECTED)
+		self:RegisterEvent(EVENT_COMBAT_EVENT, onWTF, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_RESIST)
+		self:RegisterEvent(EVENT_COMBAT_EVENT, onWTF, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_WRECKING_DAMAGE)
 
 		if lib.debug == true then self:RegisterEvent(EVENT_COMBAT_EVENT, onCustomEvent, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_GAINED_DURATION, REGISTER_FILTER_IS_ERROR, false) end
 		self.active = true
@@ -2983,6 +2964,8 @@ Events.Deaths = EventHandler:New(
 
 		self:RegisterEvent(EVENT_COMBAT_EVENT, OnDeath, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_KILLING_BLOW)
 		self:RegisterEvent(EVENT_COMBAT_EVENT, OnDeath, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_DIED)
+		self:RegisterEvent(EVENT_COMBAT_EVENT, OnResurrect, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_RESURRECT)
+		self:RegisterEvent(EVENT_COMBAT_EVENT, OnResurrect, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_REINCARNATING)
 		self:RegisterEvent(EVENT_UNIT_DEATH_STATE_CHANGED, OnDeathStateChanged, REGISTER_FILTER_UNIT_TAG_PREFIX, "group")
 		self:RegisterEvent(EVENT_UNIT_DEATH_STATE_CHANGED, OnDeathStateChanged, REGISTER_FILTER_UNIT_TAG, "player")
 		self:RegisterEvent(EVENT_PLAYER_REINCARNATED, OnPlayerReincarnated)
@@ -2998,7 +2981,7 @@ Events.Deaths = EventHandler:New(
 Events.DeathRecap = EventHandler:New(
 	{LIBCOMBAT_EVENT_DEATHRECAP},
 	function (self)
-		
+
 		local filters = {
 			ACTION_RESULT_DAMAGE,
 			ACTION_RESULT_DOT_TICK,
@@ -3025,7 +3008,7 @@ Events.DeathRecap = EventHandler:New(
 			self:RegisterEvent(EVENT_COMBAT_EVENT, onCombatEventGrpHealIn, REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER, REGISTER_FILTER_COMBAT_RESULT, filter, REGISTER_FILTER_IS_ERROR, false)
 			self:RegisterEvent(EVENT_COMBAT_EVENT, onCombatEventGrpHealIn, REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_GROUP, REGISTER_FILTER_COMBAT_RESULT, filter, REGISTER_FILTER_IS_ERROR, false)
 		end
-		
+
 		self:RegisterEvent(EVENT_POWER_UPDATE, onBaseResourceChangedGroup, REGISTER_FILTER_UNIT_TAG_PREFIX, "group")
 		self:RegisterEvent(EVENT_POWER_UPDATE, onBaseResourceChangedGroup, REGISTER_FILTER_UNIT_TAG, "player")
 
@@ -3149,7 +3132,7 @@ function lib:GetCombatLogString(fight, logline, fontsize)
 
 	local timeValue = fight.combatstart < 0 and 0 or (logline[2] - fight.combatstart)/1000
 	local timeString = stringformat("|ccccccc[%.3fs]|r", timeValue)
-	local logFormat = logtype == LIBCOMBAT_EVENT_SKILL_TIMINGS and GetString("SI_LIBCOMBAT_LOG_FORMATSTRING_SKILLS", logline[5]) or GetString("SI_LIBCOMBAT_LOG_FORMATSTRING", logtype)
+	local logFormat = GetString("SI_LIBCOMBAT_LOG_FORMATSTRING", logtype)
 
 	local units = fight.units
 
@@ -3367,6 +3350,8 @@ function lib:GetCombatLogString(fight, logline, fontsize)
 
 		local _, _, reducedslot, abilityId, status = unpack(logline)
 
+		logFormat = GetString("SI_LIBCOMBAT_LOG_FORMATSTRING_SKILLS", logline[5])
+
 		local isWeaponAttack = reducedslot%10 == 1 or reducedslot%10 == 2
 
 		local formatstring = " |cddffbb<<1>>|r"
@@ -3381,15 +3366,60 @@ function lib:GetCombatLogString(fight, logline, fontsize)
 
 	elseif logtype == LIBCOMBAT_EVENT_BOSSHP then
 
-		local _, _, unitId, currenthp, maxhp = unpack(logline)
+		local _, _, bossId, currenthp, maxhp = unpack(logline)
+
+		local unitId = fight.bosses[bossId]
 
 		local bossName = units[unitId].name
 
 		local percent = zo_round(currenthp/maxhp * 100)
 
-		color = {.7,.7,.7}
+		color = {.9,.7,.5}
 
 		text = ZO_CachedStrFormat(logFormat, timeString, bossName, percent, currenthp, maxhp)
+
+	elseif logtype == LIBCOMBAT_EVENT_PERFORMANCE then
+
+		local _, _, fps, min, max, ping, skillDelay = unpack(logline)
+
+		local skillDelayString = skillDelay and ZO_CachedStrFormat(GetString(SI_LIBCOMBAT_LOG_FORMATSTRING_SKILLDELAY), skillDelay) or ""
+
+		color = {.9,.9,.9}
+
+		local pingcolor = ping <= 50 and "99ff99" or ping <= 80 and "ccff99" or ping <= 120 and "ffff99" or ping <= 160 and "ffcc99" or "ff9999"
+		local pingString = ZO_CachedStrFormat("|c<<1>><<2>>|r", pingcolor, ping)
+
+		local fpsColor = fps >= 100 and "99ff99" or fps >= 60 and "ccff99" or fps >= 40 and "ffff99" or fps >= 25 and "ffcc99" or "ff9999"
+		local fpsString = ZO_CachedStrFormat("|c<<1>><<2>>|r", fpsColor, fps)
+
+		local minString = min < (0.5 * fps) and min < 25 and ZO_CachedStrFormat("|cff9999<<1>>|r", min) or min < (0.7 * fps) and min < 40 and ZO_CachedStrFormat("|cffddbb<<1>>|r", min) or min
+
+		text = ZO_CachedStrFormat(logFormat, timeString, fpsString, minString, max, pingString, skillDelayString)
+
+	elseif logtype == LIBCOMBAT_EVENT_DEATH then
+
+		local _, _, state, unitId, otherId = unpack(logline)
+
+		logFormat = GetString("SI_LIBCOMBAT_LOG_FORMATSTRING_DEATH", state)
+
+		local isSelf = fight.playerid == unitId
+
+		local unitString = isSelf and GetString(SI_LIBCOMBAT_LOG_YOU) or units[unitId].name
+
+		local action = ""
+		local otherString = ""
+
+		if state == 1 and otherId ~= nli then otherString = GetAbilityString(otherId, DAMAGE_TYPE_GENERIC, fontsize) end
+
+		if state > 2 then
+
+			action = GetString("SI_LIBCOMBAT_LOG_RESURRECT", isSelf and 1 or 2)
+
+		end
+
+		text = ZO_CachedStrFormat(logFormat, timeString, unitString, action, otherString)
+
+		color = {.7,.7,.7}
 
 	end
 
