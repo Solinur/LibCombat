@@ -98,9 +98,9 @@ LIBCOMBAT_EVENT_RESOURCES = 15			-- LIBCOMBAT_EVENT_RESOURCES, timems, abilityId
 LIBCOMBAT_EVENT_MESSAGES = 16			-- LIBCOMBAT_EVENT_MESSAGES, timems, combatMessage, value
 LIBCOMBAT_EVENT_DEATH = 17				-- LIBCOMBAT_EVENT_DEATH, timems, state, unitId, abilityId/unitId
 LIBCOMBAT_EVENT_UNUSED = 18				-- not used for now
-LIBCOMBAT_EVENT_SKILL_TIMINGS = 19		-- LIBCOMBAT_EVENT_SKILL_TIMINGS, timems, reducedslot, abilityId, skillStatus
+LIBCOMBAT_EVENT_SKILL_TIMINGS = 19		-- LIBCOMBAT_EVENT_SKILL_TIMINGS, timems, reducedslot, abilityId, skillStatus, skillDelay
 LIBCOMBAT_EVENT_BOSSHP = 20				-- LIBCOMBAT_EVENT_BOSSHP, timems, bossId, currenthp, maxhp
-LIBCOMBAT_EVENT_PERFORMANCE = 21		-- LIBCOMBAT_EVENT_PERFORMANCE, timems, avg, min, max, ping, skillDelay
+LIBCOMBAT_EVENT_PERFORMANCE = 21		-- LIBCOMBAT_EVENT_PERFORMANCE, timems, avg, min, max, ping
 LIBCOMBAT_EVENT_DEATHRECAP = 22			-- LIBCOMBAT_EVENT_DEATHRECAP, timems, {data}
 LIBCOMBAT_EVENT_MAX = 22
 
@@ -2246,8 +2246,6 @@ local function GetReducedSlotId(reducedslot)
 end
 
 local lastCastTimeAbility = 0
-local lastSkillDelay = 0
-local lastSkillDelayTime = 0
 local HeavyAttackCharging
 
 local function onAbilityUsed(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
@@ -2273,13 +2271,15 @@ local function onAbilityUsed(eventCode, result, isError, abilityName, abilityGra
 
 	HeavyAttackCharging = DirectHeavyAttacks[origId] and origId or nil
 
-	local status
+	local skillDelay = timems - math.max(lasttime, lastQueuedAbilities[origId] or lasttime)
+
+	skillDelay = skillDelay < maxSkillDelay and skillDelay or nil
 
 	if castTime > 0 then
 
-		status = channeled and LIBCOMBAT_SKILLSTATUS_BEGIN_CHANNEL or LIBCOMBAT_SKILLSTATUS_BEGIN_DURATION
+		local status = channeled and LIBCOMBAT_SKILLSTATUS_BEGIN_CHANNEL or LIBCOMBAT_SKILLSTATUS_BEGIN_DURATION
 
-		lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_SKILL_TIMINGS]), LIBCOMBAT_EVENT_SKILL_TIMINGS, timems, reducedslot, origId, status)
+		lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_SKILL_TIMINGS]), LIBCOMBAT_EVENT_SKILL_TIMINGS, timems, reducedslot, origId, status, skillDelay)
 
 		local convertedId = abilityConversions[origId] and abilityConversions[origId][3] or abilityId
 
@@ -2287,20 +2287,10 @@ local function onAbilityUsed(eventCode, result, isError, abilityName, abilityGra
 
 	else
 
-		status = LIBCOMBAT_SKILLSTATUS_INSTANT
+		local status = LIBCOMBAT_SKILLSTATUS_INSTANT
 
-		lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_SKILL_TIMINGS]), LIBCOMBAT_EVENT_SKILL_TIMINGS, timems, reducedslot, origId, LIBCOMBAT_SKILLSTATUS_INSTANT)
+		lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_SKILL_TIMINGS]), LIBCOMBAT_EVENT_SKILL_TIMINGS, timems, reducedslot, origId, status, skillDelay)
 		lastCastTimeAbility = 0
-
-	end
-
-	if Events.Performance.active and reducedslot%10 > 2 and not ignoredAbilities[origId] then
-
-		local slotFired = math.max(lasttime, lastQueuedAbilities[origId] or lasttime)
-		local skillDelay = timems - slotFired
-
-		lastSkillDelay = skillDelay < maxSkillDelay and skillDelay or nil
-		lastSkillDelayTime = skillDelay < maxSkillDelay and timems or nil
 
 	end
 end
@@ -2345,7 +2335,7 @@ local function onSlotUsed(_, slot)
 
 	end
 
-	if Events.Skills.active or Events.Performance.active then
+	if Events.Skills.active then
 
 		local conversion = abilityConversions[abilityId]
 
@@ -2461,9 +2451,7 @@ local function onFrameUpdate()
 
 		end
 
-		local skillDelay = lastSkillDelayTime and (timems - lastSkillDelayTime) < 1000 and lastSkillDelay or nil
-
-		lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_PERFORMANCE]), LIBCOMBAT_EVENT_PERFORMANCE, timems, frameIndex/sum, 1/max, 1/min, GetLatency(), skillDelay)
+		lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_PERFORMANCE]), LIBCOMBAT_EVENT_PERFORMANCE, timems, frameIndex/sum, 1/max, 1/min, GetLatency())
 
 		frameIndex = 1
 		currentsecond = now
@@ -3017,7 +3005,7 @@ Events.DeathRecap = EventHandler:New(
 )
 
 Events.Slots = EventHandler:New(
-	{LIBCOMBAT_EVENT_RESOURCES, LIBCOMBAT_EVENT_SKILL_TIMINGS, LIBCOMBAT_EVENT_PERFORMANCE},
+	{LIBCOMBAT_EVENT_RESOURCES, LIBCOMBAT_EVENT_SKILL_TIMINGS},
 	function (self)
 
 		self:RegisterEvent(EVENT_ACTION_SLOT_ABILITY_USED, onSlotUsed)
@@ -3028,13 +3016,14 @@ Events.Slots = EventHandler:New(
 )
 
 Events.Skills = EventHandler:New(
-	{LIBCOMBAT_EVENT_SKILL_TIMINGS, LIBCOMBAT_EVENT_PERFORMANCE},
+	{LIBCOMBAT_EVENT_SKILL_TIMINGS},
 	function (self)
 
 		self:RegisterEvent(EVENT_COMBAT_EVENT, GetCurrentSkillBarsDelayed, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_GAINED, REGISTER_FILTER_ABILITY_ID, 24785) -- Overload & Morphs
 		self:RegisterEvent(EVENT_COMBAT_EVENT, GetCurrentSkillBarsDelayed, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_GAINED, REGISTER_FILTER_ABILITY_ID, 24806) -- Overload & Morphs
 		self:RegisterEvent(EVENT_COMBAT_EVENT, GetCurrentSkillBarsDelayed, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_GAINED, REGISTER_FILTER_ABILITY_ID, 24804) -- Overload & Morphs
 		self:RegisterEvent(EVENT_ACTION_SLOT_UPDATED, onSlotUpdate)
+		self:RegisterEvent(EVENT_COMBAT_EVENT, onQueueEvent, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_QUEUED)
 
 		self.Update = UpdateSkillEvents
 
@@ -3058,7 +3047,6 @@ Events.Performance = EventHandler:New(
 	{LIBCOMBAT_EVENT_PERFORMANCE},
 	function (self)
 		self:RegisterEvent(EVENT_PLAYER_DEACTIVATED, onPlayerDeativated)
-		self:RegisterEvent(EVENT_COMBAT_EVENT, onQueueEvent, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_QUEUED)
 		self:RegisterEvent(EVENT_PLAYER_ACTIVATED, onPlayerActivated2)
 		self.active = true
 	end
@@ -3348,7 +3336,7 @@ function lib:GetCombatLogString(fight, logline, fontsize)
 
 	elseif logtype == LIBCOMBAT_EVENT_SKILL_TIMINGS then
 
-		local _, _, reducedslot, abilityId, status = unpack(logline)
+		local _, _, reducedslot, abilityId, status, skillDelay = unpack(logline)
 
 		logFormat = GetString("SI_LIBCOMBAT_LOG_FORMATSTRING_SKILLS", logline[5])
 
@@ -3359,10 +3347,12 @@ function lib:GetCombatLogString(fight, logline, fontsize)
 		if isWeaponAttack then formatstring = " |cffffff<<1>>|r" end
 
 		local name = ZO_CachedStrFormat(formatstring, GetFormattedAbilityName(abilityId))
+		
+		local skillDelayString = skillDelay and ZO_CachedStrFormat(GetString(SI_LIBCOMBAT_LOG_FORMATSTRING_SKILLDELAY), skillDelay) or ""
 
 		color = {.9,.8,.7}
 
-		text = ZO_CachedStrFormat(logFormat, timeString, name)
+		text = ZO_CachedStrFormat(logFormat, timeString, name, skillDelayString)
 
 	elseif logtype == LIBCOMBAT_EVENT_BOSSHP then
 
@@ -3380,9 +3370,7 @@ function lib:GetCombatLogString(fight, logline, fontsize)
 
 	elseif logtype == LIBCOMBAT_EVENT_PERFORMANCE then
 
-		local _, _, fps, min, max, ping, skillDelay = unpack(logline)
-
-		local skillDelayString = skillDelay and ZO_CachedStrFormat(GetString(SI_LIBCOMBAT_LOG_FORMATSTRING_SKILLDELAY), skillDelay) or ""
+		local _, _, fps, min, max, ping = unpack(logline)
 
 		color = {.9,.9,.9}
 
@@ -3394,7 +3382,7 @@ function lib:GetCombatLogString(fight, logline, fontsize)
 
 		local minString = min < (0.5 * fps) and min < 25 and ZO_CachedStrFormat("|cff9999<<1>>|r", min) or min < (0.7 * fps) and min < 40 and ZO_CachedStrFormat("|cffddbb<<1>>|r", min) or min
 
-		text = ZO_CachedStrFormat(logFormat, timeString, fpsString, minString, max, pingString, skillDelayString)
+		text = ZO_CachedStrFormat(logFormat, timeString, fpsString, minString, max, pingString)
 
 	elseif logtype == LIBCOMBAT_EVENT_DEATH then
 
