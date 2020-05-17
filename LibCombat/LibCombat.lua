@@ -10,7 +10,7 @@ Implement tracking when players are resurrecting
 implement group info function
 Remove name formatting
 work on the addon description
-Implement Debug Functions
+Add more debug Functions
 
 ]]
 local dx = math.ceil(GuiRoot:GetWidth()/tonumber(GetCVar("WindowedWidth"))*1000)/1000
@@ -27,9 +27,40 @@ lib.cm = ZO_CallbackObject:New()
 
 -- Logger
 
-local logger = LibDebugLogger(lib.name)
-local deathlogger = logger:Create("DoA")
-local debuglogger = logger:Create("DB")
+local mainlogger
+local subloggers = {}
+local LOG_LEVEL_VERBOSE = "V"
+local LOG_LEVEL_DEBUG = "D"
+local LOG_LEVEL_INFO = "I"
+local LOG_LEVEL_WARNING ="W"
+local LOG_LEVEL_ERROR = "E"
+
+if LibDebugLogger then
+
+	mainlogger = LibDebugLogger(lib.name)
+
+	LOG_LEVEL_VERBOSE = LibDebugLogger.LOG_LEVEL_VERBOSE
+	LOG_LEVEL_DEBUG = LibDebugLogger.LOG_LEVEL_DEBUG
+	LOG_LEVEL_INFO = LibDebugLogger.LOG_LEVEL_INFO
+	LOG_LEVEL_WARNING = LibDebugLogger.LOG_LEVEL_WARNING
+	LOG_LEVEL_ERROR = LibDebugLogger.LOG_LEVEL_ERROR
+
+	subloggers["DoA"] = mainlogger:Create("DoA")
+	subloggers["other"] = mainlogger:Create("other")
+	subloggers["fight"] = mainlogger:Create("fight")
+	subloggers["events"] = mainlogger:Create("events")
+
+end
+
+local function Print(category, level, ...)
+
+	if mainlogger == nil then return end
+
+	local logger = category and subloggers[category] or mainlogger
+
+	logger:Log(level, ...)
+
+end
 
 --aliases
 
@@ -83,12 +114,12 @@ LIBCOMBAT_EVENT_UNITS = 0				-- LIBCOMBAT_EVENT_UNITS, {units}
 LIBCOMBAT_EVENT_FIGHTRECAP = 1			-- LIBCOMBAT_EVENT_FIGHTRECAP, {data}
 LIBCOMBAT_EVENT_FIGHTSUMMARY = 2		-- LIBCOMBAT_EVENT_FIGHTSUMMARY, {fight}
 LIBCOMBAT_EVENT_GROUPRECAP = 3			-- LIBCOMBAT_EVENT_GROUPRECAP, groupDPSOut, groupDPSIn, groupHPS, dpstime, hpstime
-LIBCOMBAT_EVENT_DAMAGE_OUT = 4			-- LIBCOMBAT_EVENT_DAMAGE_OUT, timems, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType
-LIBCOMBAT_EVENT_DAMAGE_IN = 5			-- LIBCOMBAT_EVENT_DAMAGE_IN, timems, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType
-LIBCOMBAT_EVENT_DAMAGE_SELF = 6			-- LIBCOMBAT_EVENT_DAMAGE_SELF, timems, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType
-LIBCOMBAT_EVENT_HEAL_OUT = 7			-- LIBCOMBAT_EVENT_HEAL_OUT, timems, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType
-LIBCOMBAT_EVENT_HEAL_IN = 8				-- LIBCOMBAT_EVENT_HEAL_IN, timems, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType
-LIBCOMBAT_EVENT_HEAL_SELF = 9			-- LIBCOMBAT_EVENT_HEAL_SELF, timems, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType
+LIBCOMBAT_EVENT_DAMAGE_OUT = 4			-- LIBCOMBAT_EVENT_DAMAGE_OUT, timems, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType, overflow
+LIBCOMBAT_EVENT_DAMAGE_IN = 5			-- LIBCOMBAT_EVENT_DAMAGE_IN, timems, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType, overflow
+LIBCOMBAT_EVENT_DAMAGE_SELF = 6			-- LIBCOMBAT_EVENT_DAMAGE_SELF, timems, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType, overflow
+LIBCOMBAT_EVENT_HEAL_OUT = 7			-- LIBCOMBAT_EVENT_HEAL_OUT, timems, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType, overflow
+LIBCOMBAT_EVENT_HEAL_IN = 8				-- LIBCOMBAT_EVENT_HEAL_IN, timems, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType, overflow
+LIBCOMBAT_EVENT_HEAL_SELF = 9			-- LIBCOMBAT_EVENT_HEAL_SELF, timems, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType, overflow
 LIBCOMBAT_EVENT_EFFECTS_IN = 10			-- LIBCOMBAT_EVENT_EFFECTS_IN, timems, unitId, abilityId, changeType, effectType, stacks, sourceType, effectSlot
 LIBCOMBAT_EVENT_EFFECTS_OUT = 11		-- LIBCOMBAT_EVENT_EFFECTS_OUT, timems, unitId, abilityId, changeType, effectType, stacks, sourceType, effectSlot
 LIBCOMBAT_EVENT_GROUPEFFECTS_IN = 12	-- LIBCOMBAT_EVENT_GROUPEFFECTS_IN, timems, unitId, abilityId, changeType, effectType, stacks, sourceType, effectSlot
@@ -685,12 +716,6 @@ function FightHandler:Initialize()
 	self.bosses = {}
 end
 
-local function Print(message, ...)
-
-	if lib.debug then df("[LibCombat] %s", message:format(...)) end
-
-end
-
 local onCombatState
 
 function FightHandler:ResetFight()
@@ -733,7 +758,7 @@ local function GetShadowBonus()
 
 	data.critBonusMundus = mathfloor(13 * (1 + divines/100)) -- total mundus bonus, base is 13%
 
-	-- Print("Shadow Mundus: %d%% (Divines Bonus: %1.f%%)", data.critBonusMundus, divines)
+	Print("other", LOG_LEVEL_DEBUG , "Shadow Mundus: %d%% (Divines Bonus: %1.f%%)", data.critBonusMundus, divines)
 
 end
 
@@ -938,8 +963,6 @@ local function GetCurrentSkillBars()
 		IdToReducedSlot[convertedId] = reducedslot
 
 		if conversion and conversion[3] then IdToReducedSlot[conversion[3]] = reducedslot end
-
-		-- Print("Bar: %d, Skill: (%d) %s, Slot: %d", bar, id, GetAbilityName(id), reducedslot)
 
 	end
 
@@ -1365,24 +1388,24 @@ function FightHandler:onUpdate()
 
 		self:UpdateStats()
 
-		if false and lib.debug and (self.damageOutTotal>0 or self.healingOutTotal>0 or self.damageInTotal>0) then
+		if self.damageOutTotal>0 or self.healingOutTotal>0 or self.damageInTotal>0 then
 
-			Print("Time: %.2fs (DPS) | %.2fs (HPS) ", self.dpstime, self.hpstime)
-			Print("Dmg: %d (DPS: %d)", self.damageOutTotal, self.DPSOut)
-			Print("Heal: %d (HPS: %d)", self.healingOutTotal, self.HPSOut)
-			Print("IncDmg: %d (Shield: %d, IncDPS: %d)", self.damageInTotal, self.damageInShielded, self.DPSIn)
-			Print("IncHeal: %d (IncHPS: %d)", self.healingInTotal, self.HPSIn)
+			Print("fight", LOG_LEVEL_DEBUG, "Time: %.2fs (DPS) | %.2fs (HPS) ", self.dpstime, self.hpstime)
+			Print("fight", LOG_LEVEL_DEBUG, "Dmg: %d (DPS: %d)", self.damageOutTotal, self.DPSOut)
+			Print("fight", LOG_LEVEL_DEBUG, "Heal: %d (HPS: %d)", self.healingOutTotal, self.HPSOut)
+			Print("fight", LOG_LEVEL_DEBUG, "IncDmg: %d (Shield: %d, IncDPS: %d)", self.damageInTotal, self.damageInShielded, self.DPSIn)
+			Print("fight", LOG_LEVEL_DEBUG, "IncHeal: %d (IncHPS: %d)", self.healingInTotal, self.HPSIn)
 
 			if data.inGroup and Events.CombatGrp.active then
 
-				Print("GrpDmg: %d (DPS: %d)", self.groupDamageOut, self.groupDPSOut)
-				Print("GrpHeal: %d (HPS: %d)", self.groupHealingOut, self.groupHPS)
-				Print("GrpIncDmg: %d (IncDPS: %d)", self.groupDamageIn, self.groupDPSIn)
+				Print("fight", LOG_LEVEL_DEBUG, "GrpDmg: %d (DPS: %d)", self.groupDamageOut, self.groupDPSOut)
+				Print("fight", LOG_LEVEL_DEBUG, "GrpHeal: %d (HPS: %d)", self.groupHealingOut, self.groupHPS)
+				Print("fight", LOG_LEVEL_DEBUG, "GrpIncDmg: %d (IncDPS: %d)", self.groupDamageIn, self.groupDPSIn)
 
 			end
 		end
 
-		Print("resetting...")
+		Print("fight", LOG_LEVEL_INFO, "resetting...")
 
 		self.grplog = {}
 
@@ -1507,7 +1530,7 @@ function onCombatState(event, inCombat)  -- Detect Combat Stage, local is define
 
 	if isInShadowWorld and IsUnitDead("player") == false then -- prevent fight reset in Cloudrest when using a portal.
 
-		Print("[%.3f] Prevented combat state change due to Shadow World!", GetGameTimeMilliseconds()/1000)
+		Print("other", LOG_LEVEL_DEBUG, "Prevented combat state change due to Shadow World!")
 		return
 
 	end
@@ -1520,7 +1543,7 @@ function onCombatState(event, inCombat)  -- Detect Combat Stage, local is define
 
 		if inCombat then
 
-			Print("[%.3f] Entering combat.", GetGameTimeMilliseconds()/1000)
+			Print("fight", LOG_LEVEL_DEBUG, "Entering combat.")
 
 			lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_MESSAGES]), LIBCOMBAT_EVENT_MESSAGES, timems, LIBCOMBAT_MESSAGE_COMBATSTART, 0)
 
@@ -1528,7 +1551,7 @@ function onCombatState(event, inCombat)  -- Detect Combat Stage, local is define
 
 		else
 
-			Print("[%.3f] Leaving combat.", GetGameTimeMilliseconds()/1000)
+			Print("fight", LOG_LEVEL_DEBUG, "Leaving combat.")
 
 			currentfight:FinishFight()
 
@@ -1601,7 +1624,6 @@ end
 local function onShadowWorld( _, changeType)
 
 	isInShadowWorld = changeType == EFFECT_RESULT_GAINED
-	--Print("[%.3f] Shadow: %s", GetGameTimeMilliseconds()/1000, tostring(isInShadowWorld))
 
 end
 
@@ -1622,9 +1644,7 @@ local function BuffEventHandler(isspecial, groupeffect, _, changeType, effectSlo
 
 	local timems = GetGameTimeMilliseconds()
 
-	-- Print("[%.3f] %s %s %s (%d)", timems/1000, unitName, changeType == EFFECT_RESULT_GAINED and "got" or "lost", GetFormattedAbilityName(abilityId), abilityId)
-
-	-- Print("%d, %s, ET:%d, %d, %s", changeType, GetAbilityName(abilityId), effectType, abilityType, unitTag)
+	Print("events", LOG_LEVEL_VERBOSE, "%s %s %s (%d, ET: %d, %s)", unitName, changeType == EFFECT_RESULT_GAINED and "got" or "lost", GetFormattedAbilityName(abilityId), abilityId, abilityType, effectType, unitTag)
 
 	local eventid = groupeffect == GROUP_EFFECT_IN and LIBCOMBAT_EVENT_GROUPEFFECTS_IN or groupeffect == GROUP_EFFECT_OUT and LIBCOMBAT_EVENT_GROUPEFFECTS_OUT or stringsub(unitTag, 1, 6) == "player" and LIBCOMBAT_EVENT_EFFECTS_IN or LIBCOMBAT_EVENT_EFFECTS_OUT
 	local stacks = (isspecial and 0) or mathmax(1, stackCount)
@@ -1686,8 +1706,6 @@ local function SpecialBuffEventHandler(isdebuff, _, result, _, _, _, _, _, sourc
 	if unitName ~= data.rawPlayername then return end
 
 	local changeType = result == ACTION_RESULT_EFFECT_GAINED_DURATION and 1 or result == ACTION_RESULT_EFFECT_FADED and 2 or nil
-
-	-- Print("Custom: "..(data.CustomAbilityName[abilityId] or zo_strformat(SI_ABILITY_NAME,GetAbilityName(abilityId))).."("..(changeType==1 and "gain" or changeType==2 and "loss" or "??" )..")")
 
 	local effectType = isdebuff and BUFF_EFFECT_TYPE_DEBUFF or BUFF_EFFECT_TYPE_BUFF
 	BuffEventHandler(true, GROUP_EFFECT_NONE, _, changeType, 0, _, _, _, _, _, _, _, effectType, ABILITY_TYPE_BONUS, _, unitName, unitId, abilityId, sourceType)
@@ -1787,7 +1805,7 @@ local function onBaseResourceChanged(_,unitTag,_,powerType,powerValue,_,_)
 
 		if powerValueChange == 0 then return end
 
-		-- Print("Skill cost: %d", powerValueChange)
+		Print("events", LOG_LEVEL_DEBUG, "Skill cost: %d", powerValueChange)
 
 		aId = checkLastAbilities(powerType, powerValueChange)
 
@@ -1925,12 +1943,13 @@ local function CheckForWipe()
 
 	currentfight.isWipe = true
 
-	deathlogger:Debug("=== This is a wipe ! ===")
+	Print("DoA", LOG_LEVEL_DEBUG, "=== This is a wipe ! ===")
+
 end
 
 local function OnDeathStateChanged(_, unitTag, isDead) 	-- death (for group display, also works for different zones)
 
-	deathlogger:Debug("OnDeathStateChanged: %s is dead: %s", unitTag, tostring(isDead))
+	Print("DoA", LOG_LEVEL_DEBUG, "OnDeathStateChanged: %s is dead: %s", unitTag, tostring(isDead))
 
 	local unitId = unitTag == "player" and data.playerid or data.groupInfo.tagToId[unitTag]
 
@@ -1963,13 +1982,9 @@ end
 
 local function OnPlayerReincarnated()
 
-	-- Print("OnPlayerReincarnated")
-
-	deathlogger:Debug("You revived")
+	Print("DoA", LOG_LEVEL_DEBUG, "You revived")
 
 end
-
-
 
 local SpecialResults = {
 
@@ -1992,7 +2007,7 @@ local SpecialResults = {
 
 local function OnDeath(_, result, _, abilityName, _, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, _, sourceUnitId, targetUnitId, abilityId)
 
-	deathlogger:Debug("OnDeath (%s): %s (%d, %d) / %s (%d, %d) - %s (%d): %d (type: %d)", SpecialResults[result], sourceName, sourceUnitId, sourceType, targetName, targetUnitId, targetType, GetFormattedAbilityName(abilityId), abilityId, hitValue or 0, damageType or 0)
+	Print("DoA", LOG_LEVEL_DEBUG, "OnDeath (%s): %s (%d, %d) / %s (%d, %d) - %s (%d): %d (type: %d)", SpecialResults[result], sourceName, sourceUnitId, sourceType, targetName, targetUnitId, targetType, GetFormattedAbilityName(abilityId), abilityId, hitValue or 0, damageType or 0)
 
 	local timems = GetGameTimeMilliseconds()
 
@@ -2014,7 +2029,7 @@ end
 
 local function OnResurrect(_, result, _, abilityName, _, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, _, sourceUnitId, targetUnitId, abilityId)
 
-	deathlogger:Debug("OnResurrect (%s): %s (%d, %d) / %s (%d, %d) - %s (%d): %d (type: %d)", SpecialResults[result], sourceName, sourceUnitId, sourceType, targetName, targetUnitId, targetType, GetFormattedAbilityName(abilityId), abilityId, hitValue or 0, damageType or 0)
+	Print("DoA", LOG_LEVEL_DEBUG, "OnResurrect (%s): %s (%d, %d) / %s (%d, %d) - %s (%d): %d (type: %d)", SpecialResults[result], sourceName, sourceUnitId, sourceType, targetName, targetUnitId, targetType, GetFormattedAbilityName(abilityId), abilityId, hitValue or 0, damageType or 0)
 
 	local timems = GetGameTimeMilliseconds()
 
@@ -2029,7 +2044,7 @@ end
 
 local function OnResurrectResult(_, targetCharacterName, result, targetDisplayName)
 
-	deathlogger:Debug("OnResurrectResult: %s", targetCharacterName)
+	Print("DoA", LOG_LEVEL_DEBUG, "OnResurrectResult: %s", targetCharacterName)
 
 	local timems = GetGameTimeMilliseconds()
 
@@ -2047,7 +2062,7 @@ end
 
 local function OnResurrectRequest(_, requesterCharacterName, timeLeftToAccept, requesterDisplayName)
 
-	Print("OnResurrectRequest: %s", requesterCharacterName)
+	Print("DoA", LOG_LEVEL_DEBUG, "OnResurrectRequest: %s", requesterCharacterName)
 
 	local timems = GetGameTimeMilliseconds()
 
@@ -2094,7 +2109,7 @@ local function onWTF(_, result, _, abilityName, _, abilityActionSlotType, source
 
 	local resulttext = SpecialResults[result] or tostring(result)
 
-	debuglogger:Debug("onWTF (%s): %s (%d, %d) / %s (%d, %d) - %s (%d): %d (type: %d)", resulttext, sourceName, sourceUnitId, sourceType, targetName, targetUnitId, targetType, GetFormattedAbilityName(abilityId), abilityId, hitValue or 0, damageType or 0)
+	Print("other", LOG_LEVEL_DEBUG, "onWTF (%s): %s (%d, %d) / %s (%d, %d) - %s (%d): %d (type: %d)", resulttext, sourceName, sourceUnitId, sourceType, targetName, targetUnitId, targetType, GetFormattedAbilityName(abilityId), abilityId, hitValue or 0, damageType or 0)
 
 end
 
@@ -2180,9 +2195,9 @@ local function onCombatEventDmgGrp(_, _, _, _, _, _, _, _, targetName, targetTyp
 
 	if hitValue < 2 or targetUnitId == nil or targetType==2 then return end
 
-	if hitValue > 150000 then
+	if hitValue > 200000 then
 
-		Print("[%.3f] Big Damage Event: (%d) %s did %d damage to %s", GetGameTimeMilliseconds(), abilityId, GetFormattedAbilityName(abilityId), hitValue, tostring(targetName))
+		Print("debug", LOG_LEVEL_INFO, "Big Damage Event: (%d) %s did %d damage to %s", abilityId, GetFormattedAbilityName(abilityId), hitValue, tostring(targetName))
 
 		return
 
@@ -2267,7 +2282,7 @@ local function onAbilityUsed(eventCode, result, isError, abilityName, abilityGra
 
 	castTime = channeled and channelTime or castTime
 
-	--Print("[%.3f] Skill fired: %s (%d), Duration: %ds Target: %s", timems/1000, GetAbilityName(origId), origId, castTime/1000, tostring(targetName))
+	Print("events", LOG_LEVEL_VERBOSE, "[%.3f] Skill fired: %s (%d), Duration: %ds Target: %s", timems/1000, GetAbilityName(origId), origId, castTime/1000, tostring(targetName))
 
 	HeavyAttackCharging = DirectHeavyAttacks[origId] and origId or nil
 
@@ -2309,7 +2324,7 @@ local function onAbilityFinished(eventCode, result, isError, abilityName, abilit
 
 	if abilityId == lastCastTimeAbility then
 
-		--Print("[%.3f] Skill finished: %s (%d, R: %d)", GetGameTimeMilliseconds()/1000, GetAbilityName(origId), origId, result)
+		Print("events", LOG_LEVEL_VERBOSE ,"Skill finished: %s (%d, R: %d)", GetAbilityName(origId), origId, result)
 
 		lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_SKILL_TIMINGS]), LIBCOMBAT_EVENT_SKILL_TIMINGS, timems, reducedslot, origId, LIBCOMBAT_SKILLSTATUS_SUCCESS)
 
@@ -2598,7 +2613,7 @@ local function UpdateSkillEvents(self)
 
 			local func = finish and onAbilityFinished or onAbilityUsed
 
-			-- Print("Skill registered: %d: %s (%s, end?: %s)", id, GetAbilityName(id), tostring(result), tostring(finish == true))
+			Print("events", LOG_LEVEL_DEBUG, "Skill registered: %d: %s (%s, end?: %s)", id, GetAbilityName(id), tostring(result), tostring(finish == true))
 
 			local active
 
@@ -3397,7 +3412,7 @@ function lib:GetCombatLogString(fight, logline, fontsize)
 		local action = ""
 		local otherString = ""
 
-		if state == 1 and otherId ~= nli then otherString = GetAbilityString(otherId, DAMAGE_TYPE_GENERIC, fontsize) end
+		if state == 1 and otherId ~= nil then otherString = GetAbilityString(otherId, DAMAGE_TYPE_GENERIC, fontsize) end
 
 		if state > 2 then
 
