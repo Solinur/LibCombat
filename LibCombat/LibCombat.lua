@@ -1624,6 +1624,7 @@ end
 local function onShadowWorld( _, changeType)
 
 	isInShadowWorld = changeType == EFFECT_RESULT_GAINED
+	onBossesChanged()
 
 end
 

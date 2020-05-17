@@ -3,8 +3,7 @@
 [*] LibCombat:RegisterCallbackType(callbacktype, callback, name) --> LibCombat:RegisterForCombatEvent(name, callbacktype, callback), returns: isRegistered
 [*] LibCombat:UnregisterCallbackType(callbacktype, callback, name) --> LibCombat:UnregisterForCombatEvent(name, callbacktype), returns: isUnregistered
 [*] LibCombat:RegisterAllLogCallbacks(callback, name) --> LibCombat:RegisterForLogableCombatEvents(name, callback)
-[*] Added damage and heal events to group members (LIBCOMBAT_EVENT_GROUP_DAMAGE_IN and LIBCOMBAT_EVENT_GROUP_HEAL_IN)
-[*] Small fixes
+[*] Small fixes and performance improvements
 
 26 DL: 98,320 (22.03.2020 17:05)
 [*] Fixed an issue that prevented display names (@Names) to be added to unit info
