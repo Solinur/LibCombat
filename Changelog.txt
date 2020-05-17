@@ -1,9 +1,14 @@
-﻿27 DL: 
+﻿27 DL: 199,430  (17.05.2020 22:26)
 [*] Reworked event registration functions (e.g. lib:RegisterForCombatEvent). The behaviour and syntax now matches event registration of the ESO API (EVENT_MANAGER:RegisterForEvent). The old functions are still supported but may be removed in the future.
 [*] LibCombat:RegisterCallbackType(callbacktype, callback, name) --> LibCombat:RegisterForCombatEvent(name, callbacktype, callback), returns: isRegistered
 [*] LibCombat:UnregisterCallbackType(callbacktype, callback, name) --> LibCombat:UnregisterForCombatEvent(name, callbacktype), returns: isUnregistered
 [*] LibCombat:RegisterAllLogCallbacks(callback, name) --> LibCombat:RegisterForLogableCombatEvents(name, callback)
-[*] Small fixes and performance improvements
+[*] LibCombat now optionally depends on libdebuglogger. It is set up to handle all debug output and also saves them for later review. When it is not installed no debug output will be shown.
+[*] Small fixes and performance improvements.
+[*] Added new events for performance (ping, fps).
+[*] Added field skillDelay to LIBCOMBAT_EVENT_SKILL_TIMINGS events.
+[*] Changed boss assignment to not just check if unit is a boss on unit initialization but all the time.
+[*] Consolidated the preliminary event LIBCOMBAT_EVENT_RESURRECTION into LIBCOMBAT_EVENT_DEATH. This one is still work in progress.
 
 26 DL: 98,320 (22.03.2020 17:05)
 [*] Fixed an issue that prevented display names (@Names) to be added to unit info

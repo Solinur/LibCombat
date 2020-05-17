@@ -69,7 +69,7 @@ local em = GetEventManager()
 local _
 local reset = false
 local data = lib.data
-lib.debug = false or GetDisplayName() == "@Solinur"
+lib.debug = false --or GetDisplayName() == "@Solinur"
 local timeout = 800
 local activetimeonheals = true
 local ActiveCallbackTypes = {}
@@ -3239,8 +3239,6 @@ function lib:GetCombatLogString(fight, logline, fontsize)
 		local changeTypeString = (changeType == EFFECT_RESULT_GAINED or changeType == EFFECT_RESULT_UPDATED) and GetString(SI_LIBCOMBAT_LOG_GAINED) or changeType == EFFECT_RESULT_FADED and GetString(SI_LIBCOMBAT_LOG_LOST)
 
 		local source = UnitTypeString[sourceType] == nil and "" or ZO_CachedStrFormat(" from <<1>>", UnitTypeString[sourceType])
-
-		-- if lib.debug and slot then source = ZO_CachedStrFormat("<<1>> (<<2>>)", source, slot) end
 
 		local colorKey = effectType == BUFF_EFFECT_TYPE_DEBUFF and "debuff" or "buff"
 
