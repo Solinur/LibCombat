@@ -599,20 +599,7 @@ function UnitHandler:Initialize(name, unitId, unitType)
 
 	self.isFriendly = false
 
-	if (unitType~=COMBAT_UNIT_TYPE_PLAYER and unitType~=COMBAT_UNIT_TYPE_PLAYER_PET and unitType~=COMBAT_UNIT_TYPE_GROUP) and unitId~=nil then
-
-		local bossId = data.bossInfo[name]		-- if this is a boss, add the id (e.g. 1 for unitTag == "boss1")
-
-		if bossId then
-
-			self.bossId = bossId
-			currentfight.bosses[bossId] = unitId
-
-			self.unitTag = ZO_CachedStrFormat("boss<<1>>", bossId)
-
-		end
-
-	else
+	if unitType==COMBAT_UNIT_TYPE_PLAYER or unitType==COMBAT_UNIT_TYPE_GROUP or unitType==COMBAT_UNIT_TYPE_PLAYER_PET then
 
 		self.isFriendly = true
 
@@ -2116,6 +2103,8 @@ end
 
 local function CheckUnit(unitName, unitId, unitType, timems)
 
+	if unitId == nil then return end
+
 	local currentunits = currentfight.units
 
 	if currentunits[unitId] == nil then currentunits[unitId] = UnitHandler:New(unitName, unitId, unitType) end
@@ -2127,6 +2116,21 @@ local function CheckUnit(unitName, unitId, unitType, timems)
 
 		unit.unitType = COMBAT_UNIT_TYPE_GROUP
 		unit.isFriendly = true
+
+	end
+
+	if unit.isFriendly == false then
+
+		local bossId = data.bossInfo[unit.name]		-- if this is a boss, add the id (e.g. 1 for unitTag == "boss1")
+
+		if bossId then
+
+			unit.bossId = bossId
+			currentfight.bosses[bossId] = unitId
+
+			unit.unitTag = ZO_CachedStrFormat("boss<<1>>", bossId)
+
+		end
 
 	end
 
