@@ -3,15 +3,21 @@ This lib is supposed to act as an interface between the API of Eso and potential
 I extracted it from Combat Metrics, for which most of the functions are designed. I believe however that it's possible that others can use it.
 
 Todo:
+Falling Damage (also save routine!!)
+Check what events fire on death
+(re-)check events on shield absorb
+Implement tracking when players are resurrecting
+implement group info function
+Remove name formatting
 work on the addon description
-
-Implement Debug Functions
-Idea: Life and Death
+Add more debug Functions
 
 ]]
+local dx = math.ceil(GuiRoot:GetWidth()/tonumber(GetCVar("WindowedWidth"))*1000)/1000
+LIBCOMBAT_LINE_SIZE = dx
 
 local lib = {}
-lib.version = 26
+lib.version = 27
 LibCombat = lib
 
 -- Basic values
@@ -19,15 +25,51 @@ lib.name = "LibCombat"
 lib.data = {skillBars= {}}
 lib.cm = ZO_CallbackObject:New()
 
+-- Logger
+
+local mainlogger
+local subloggers = {}
+local LOG_LEVEL_VERBOSE = "V"
+local LOG_LEVEL_DEBUG = "D"
+local LOG_LEVEL_INFO = "I"
+local LOG_LEVEL_WARNING ="W"
+local LOG_LEVEL_ERROR = "E"
+
+if LibDebugLogger then
+
+	mainlogger = LibDebugLogger(lib.name)
+
+	LOG_LEVEL_VERBOSE = LibDebugLogger.LOG_LEVEL_VERBOSE
+	LOG_LEVEL_DEBUG = LibDebugLogger.LOG_LEVEL_DEBUG
+	LOG_LEVEL_INFO = LibDebugLogger.LOG_LEVEL_INFO
+	LOG_LEVEL_WARNING = LibDebugLogger.LOG_LEVEL_WARNING
+	LOG_LEVEL_ERROR = LibDebugLogger.LOG_LEVEL_ERROR
+
+	subloggers["DoA"] = mainlogger:Create("DoA")
+	subloggers["other"] = mainlogger:Create("other")
+	subloggers["fight"] = mainlogger:Create("fight")
+	subloggers["events"] = mainlogger:Create("events")
+
+end
+
+local function Print(category, level, ...)
+
+	if mainlogger == nil then return end
+
+	local logger = category and subloggers[category] or mainlogger
+
+	logger:Log(level, ...)
+
+end
+
 --aliases
 
 local wm = GetWindowManager()
 local em = GetEventManager()
 local _
-local db
 local reset = false
 local data = lib.data
-lib.debug = false --or GetDisplayName() == "@Solinur"
+lib.debug = false -- or GetDisplayName() == "@Solinur"
 local timeout = 800
 local activetimeonheals = true
 local ActiveCallbackTypes = {}
@@ -47,6 +89,12 @@ local lastBossHealthValue = 2
 local majorForceAmount = 15
 local minorForceAmount = 10
 
+local LIBCOMBAT_MAX_UNITCACHE_EVENTS = 30
+
+local playerActivatedTime = 10000
+local lastQueuedAbilities = {}
+local maxSkillDelay = 2000
+
 -- localize some functions for performance
 
 local stringformat = string.format
@@ -63,15 +111,15 @@ local ZO_CachedStrFormat = ZO_CachedStrFormat
 
 LIBCOMBAT_EVENT_MIN = 0
 LIBCOMBAT_EVENT_UNITS = 0				-- LIBCOMBAT_EVENT_UNITS, {units}
-LIBCOMBAT_EVENT_FIGHTRECAP = 1			-- LIBCOMBAT_EVENT_FIGHTRECAP, DPSOut, DPSIn, hps, HPSIn, healingOutTotal, dpstime, hpstime
+LIBCOMBAT_EVENT_FIGHTRECAP = 1			-- LIBCOMBAT_EVENT_FIGHTRECAP, {data}
 LIBCOMBAT_EVENT_FIGHTSUMMARY = 2		-- LIBCOMBAT_EVENT_FIGHTSUMMARY, {fight}
 LIBCOMBAT_EVENT_GROUPRECAP = 3			-- LIBCOMBAT_EVENT_GROUPRECAP, groupDPSOut, groupDPSIn, groupHPS, dpstime, hpstime
-LIBCOMBAT_EVENT_DAMAGE_OUT = 4			-- LIBCOMBAT_EVENT_DAMAGE_OUT, timems, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType
-LIBCOMBAT_EVENT_DAMAGE_IN = 5			-- LIBCOMBAT_EVENT_DAMAGE_IN, timems, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType
-LIBCOMBAT_EVENT_DAMAGE_SELF = 6			-- LIBCOMBAT_EVENT_DAMAGE_SELF, timems, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType
-LIBCOMBAT_EVENT_HEAL_OUT = 7			-- LIBCOMBAT_EVENT_HEAL_OUT, timems, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType
-LIBCOMBAT_EVENT_HEAL_IN = 8				-- LIBCOMBAT_EVENT_HEAL_IN, timems, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType
-LIBCOMBAT_EVENT_HEAL_SELF = 9			-- LIBCOMBAT_EVENT_HEAL_SELF, timems, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType
+LIBCOMBAT_EVENT_DAMAGE_OUT = 4			-- LIBCOMBAT_EVENT_DAMAGE_OUT, timems, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType, overflow
+LIBCOMBAT_EVENT_DAMAGE_IN = 5			-- LIBCOMBAT_EVENT_DAMAGE_IN, timems, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType, overflow
+LIBCOMBAT_EVENT_DAMAGE_SELF = 6			-- LIBCOMBAT_EVENT_DAMAGE_SELF, timems, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType, overflow
+LIBCOMBAT_EVENT_HEAL_OUT = 7			-- LIBCOMBAT_EVENT_HEAL_OUT, timems, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType, overflow
+LIBCOMBAT_EVENT_HEAL_IN = 8				-- LIBCOMBAT_EVENT_HEAL_IN, timems, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType, overflow
+LIBCOMBAT_EVENT_HEAL_SELF = 9			-- LIBCOMBAT_EVENT_HEAL_SELF, timems, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType, overflow
 LIBCOMBAT_EVENT_EFFECTS_IN = 10			-- LIBCOMBAT_EVENT_EFFECTS_IN, timems, unitId, abilityId, changeType, effectType, stacks, sourceType, effectSlot
 LIBCOMBAT_EVENT_EFFECTS_OUT = 11		-- LIBCOMBAT_EVENT_EFFECTS_OUT, timems, unitId, abilityId, changeType, effectType, stacks, sourceType, effectSlot
 LIBCOMBAT_EVENT_GROUPEFFECTS_IN = 12	-- LIBCOMBAT_EVENT_GROUPEFFECTS_IN, timems, unitId, abilityId, changeType, effectType, stacks, sourceType, effectSlot
@@ -79,11 +127,18 @@ LIBCOMBAT_EVENT_GROUPEFFECTS_OUT = 13	-- LIBCOMBAT_EVENT_GROUPEFFECTS_OUT, timem
 LIBCOMBAT_EVENT_PLAYERSTATS = 14		-- LIBCOMBAT_EVENT_PLAYERSTATS, timems, statchange, newvalue, statId
 LIBCOMBAT_EVENT_RESOURCES = 15			-- LIBCOMBAT_EVENT_RESOURCES, timems, abilityId, powerValueChange, powerType, powerValue
 LIBCOMBAT_EVENT_MESSAGES = 16			-- LIBCOMBAT_EVENT_MESSAGES, timems, combatMessage, value
-LIBCOMBAT_EVENT_DEATH = 17				-- LIBCOMBAT_EVENT_DEATH, timems, unitId, abilityId
-LIBCOMBAT_EVENT_RESURRECTION = 18		-- LIBCOMBAT_EVENT_RESURRECTION, timems, unitId, self
-LIBCOMBAT_EVENT_SKILL_TIMINGS = 19		-- LIBCOMBAT_EVENT_SKILL_TIMINGS, timems, reducedslot, abilityId, skillStatus
+LIBCOMBAT_EVENT_DEATH = 17				-- LIBCOMBAT_EVENT_DEATH, timems, state, unitId, abilityId/unitId
+LIBCOMBAT_EVENT_UNUSED = 18				-- not used for now
+LIBCOMBAT_EVENT_SKILL_TIMINGS = 19		-- LIBCOMBAT_EVENT_SKILL_TIMINGS, timems, reducedslot, abilityId, skillStatus, skillDelay
 LIBCOMBAT_EVENT_BOSSHP = 20				-- LIBCOMBAT_EVENT_BOSSHP, timems, bossId, currenthp, maxhp
-LIBCOMBAT_EVENT_MAX = 20
+LIBCOMBAT_EVENT_PERFORMANCE = 21		-- LIBCOMBAT_EVENT_PERFORMANCE, timems, avg, min, max, ping
+LIBCOMBAT_EVENT_DEATHRECAP = 22			-- LIBCOMBAT_EVENT_DEATHRECAP, timems, {data}
+LIBCOMBAT_EVENT_MAX = 22
+
+LIBCOMBAT_STATE_DEAD = 1
+LIBCOMBAT_STATE_ALIVE = 2
+LIBCOMBAT_STATE_RESURRECTING = 3
+LIBCOMBAT_STATE_RESURRECTED = 4
 
 local CallbackKeys = {}
 
@@ -185,76 +240,6 @@ end
 
 -- Strings
 
-local strings = {
-
-	SI_LIBCOMBAT_LOG_CRITICAL = "critically ",  -- "critically"
-	SI_LIBCOMBAT_LOG_YOU = "You", -- "you"
-	SI_LIBCOMBAT_LOG_GAINED = "gained", -- "gained"
-	SI_LIBCOMBAT_LOG_NOGAINED = "gained no", -- "gained no"
-	SI_LIBCOMBAT_LOG_LOST = "lost", -- "lost"
-
-	SI_LIBCOMBAT_LOG_DEBUFF = "Debuff",
-
-	SI_LIBCOMBAT_LOG_UNITTYPE_PLAYER = "yourself", -- "You"
-	SI_LIBCOMBAT_LOG_UNITTYPE_PET = "your pet", -- "Pet"
-	SI_LIBCOMBAT_LOG_UNITTYPE_GROUP = "a group member", -- "Groupmember"
-	SI_LIBCOMBAT_LOG_UNITTYPE_OTHER = "another player", -- "Another Player"
-
-	SI_LIBCOMBAT_LOG_IS_AT = "is at", -- "Weapon Swap"
-	SI_LIBCOMBAT_LOG_INCREASED = "increased to", -- "Weapon Swap"
-	SI_LIBCOMBAT_LOG_DECREASED = "decreased to", -- "Weapon Swap"
-
-	SI_LIBCOMBAT_LOG_ULTIMATE = "Ultimate", -- "Weapon Swap"
-	SI_LIBCOMBAT_LOG_BASEREG = "Base Regneration", -- "Weapon Swap"
-
-	SI_LIBCOMBAT_LOG_STAT_SPELL_CRIT_DONE = "Spell Critical Damage",  -- "Spell Critical Damage"
-	SI_LIBCOMBAT_LOG_STAT_WEAPON_CRIT_DONE = "Physical Critical Damage",  -- "Physical Critical Damage"
-
-	SI_LIBCOMBAT_LOG_MESSAGE1 = "Entering Combat",  -- "Entering Combat"
-	SI_LIBCOMBAT_LOG_MESSAGE2 = "Exiting Combat",  -- "Entering Combat"
-	SI_LIBCOMBAT_LOG_MESSAGE3 = "Weapon Swap",  -- "Entering Combat"
-	SI_LIBCOMBAT_LOG_MESSAGE_BAR = "Bar",  -- "Entering Combat"
-
-	SI_LIBCOMBAT_LOG_FORMAT_TARGET_NORMAL = "<<1>>|r with ",  -- i.e. "dwemer sphere with", %s = targetname. |r stops the colored text
-	SI_LIBCOMBAT_LOG_FORMAT_TARGET_SHIELD = "<<1>>s shield:|r",  -- i.e. "dwemer spheres shield:", %s = targetname. |r stops the colored text "
-	SI_LIBCOMBAT_LOG_FORMAT_TARGET_BLOCK = "<<1>>s block|r with",  -- i.e. "dwemer spheres block with", %s = targetname. |r stops the colored text
-
-	SI_LIBCOMBAT_LOG_FORMAT_TARGETSELF_NORMAL = "you|r with ",  -- i.e. "you with", |r stops the colored text
-	SI_LIBCOMBAT_LOG_FORMAT_TARGETSELF_SELF = "yourself|r with ",  -- i.e. "you with", |r stops the colored text
-	SI_LIBCOMBAT_LOG_FORMAT_TARGETSELF_SHIELD = "your shield:|r",  -- i.e. "your shield:", |r stops the colored text
-	SI_LIBCOMBAT_LOG_FORMAT_TARGETSELF_BLOCK = "your block|r with",  -- i.e. "your block", |r stops the colored text
-
-	SI_LIBCOMBAT_LOG_FORMATSTRING4 = "<<1>> |cffffffYou|r <<2>>hit |cffdddd<<3>> <<4>> for |cffffff<<5>>.",  	-- damage out, i.e. "[0.0s] You critically hit target with Light Attack for 1234.". <<1>> = timestring, <<2>> = crit,  <<3>> = targetstring,  <<4>> = ability, <<5>> = hitValue
-	SI_LIBCOMBAT_LOG_FORMATSTRING5 = "<<1>> |cffdddd<<2>>|r <<3>>hits |cffffff<<4>> <<5>> for |cffffff<<6>>.",  -- damage in, i.e. "[0.0s] Someone critically hits you with Light Attack for 1234.". <<1>> = timestring, <<2>> = sourceName,  <<3>> = crit,  <<4>> = targetstring,  <<5>> = ability, <<6>> = hitValue
-	SI_LIBCOMBAT_LOG_FORMATSTRING6 = "<<1>> |cffffffYou|r <<2>>hit |cffffff<<3>> <<4>> for |cffffff<<5>>.",  	-- damage self, i.e. "[0.0s] You critically hit yourself with Light Attack for 1234.". <<1>> = timestring, <<2>> = crit,  <<3>> = targetstring,  <<4>> = ability, <<5>> = hitValue
-
-	SI_LIBCOMBAT_LOG_FORMATSTRING7 = "<<1>> |cffffffYou|r <<2>>heal |cddffdd<<3>>|r with <<4>> for |cffffff<<5>>.",  	-- healing out, i.e. "[0.0s] You critically heal target with Mutagen for 1234.". <<1>> = timestring, <<2>> = crit,  <<3>> = targetname,  <<4>> = ability, <<5>> = hitValue
-	SI_LIBCOMBAT_LOG_FORMATSTRING8 = "<<1>> |cddffdd<<2>>|r <<3>>heals |cffffffyou|r with <<4>> for |cffffff<<5>>.",  	-- healing in, i.e. "[0.0s] Someone critically heals you with Mutagen for 1234.". <<1>> = timestring, <<2>> = sourceName, <<3>> = crit,  <<4>> = ability, <<5>> = hitValue
-	SI_LIBCOMBAT_LOG_FORMATSTRING9 = "<<1>> |cffffffYou|r <<2>>heal |cffffffyourself|r with <<3>> for |cffffff<<4>>.",  -- healing self, i.e. "[0.0s] You critically heal yourself with Mutagen for 1234.". <<1>> = timestring, <<2>> = crit,  <<3>> = ability, <<4>> = hitValue
-
-	SI_LIBCOMBAT_LOG_FORMATSTRING10 = "<<1>> |cffffff<<2>>|r <<3>> <<4>><<5>>.",  -- buff, i.e. "[0.0s] You gained Block from yourself." <<1>> = timestring, <<2>> = sourceName, <<3>> = changetype,  <<4>> = ability, <<5>> = source
-	SI_LIBCOMBAT_LOG_FORMATSTRING11 = "<<1>> |cffffff<<2>>|r <<3>> <<4>><<5>>.",  -- buff, i.e. "[0.0s] You gained Block from yourself." <<1>> = timestring, <<2>> = sourceName, <<3>> = changetype,  <<4>> = ability, <<5>> = source
-	SI_LIBCOMBAT_LOG_FORMATSTRING12 = "<<1>> |cffffff<<2>>|r <<3>> <<4>><<5>>.",  -- buff, i.e. "[0.0s] You gained Block from yourself." <<1>> = timestring, <<2>> = sourceName, <<3>> = changetype,  <<4>> = ability, <<5>> = source
-	SI_LIBCOMBAT_LOG_FORMATSTRING13 = "<<1>> |cffffff<<2>>|r <<3>> <<4>><<5>>.",  -- buff, i.e. "[0.0s] You gained Block from yourself." <<1>> = timestring, <<2>> = sourceName, <<3>> = changetype,  <<4>> = ability, <<5>> = source
-
-	SI_LIBCOMBAT_LOG_FORMATSTRING14 = "<<1>> Your <<2>> <<3>> |cffffff<<4>>|r<<5>>.",  -- buff, i.e. "[0.0s] Weaponpower increased to 1800 (+100)". <<1>> = timeString, <<2>> = stat, <<3>> = changeText,  <<4>> = value, <<5>> = changeValueText
-
-	SI_LIBCOMBAT_LOG_FORMATSTRING15 = "<<1>> |cffffffYou|r <<2>> <<3>> <<4>> <<5>>.",  -- resource, i.e. "[0.0s] You gained 200 Magicka (Base Regeneration)" <<1>> = timeString, <<2>> = changeTypeString, <<3>> = amount,  <<4>> = resource, <<5>> = ability
-
-	SI_LIBCOMBAT_LOG_FORMATSTRING20 = "<<1>> |cffffff<<2>>:|r <<3>>% HP. (<<4>>/<<5>>)",  -- resource, i.e. "[0.0s] You gained 200 Magicka (Base Regeneration)" <<1>> = timeString, <<2>> = changeTypeString, <<3>> = amount,  <<4>> = resource, <<5>> = ability
-
-	SI_LIBCOMBAT_LOG_FORMATSTRING_SKILLS1 = "<<1>> You cast <<2>>.", -- skill used, i.e. "[0.0s] You used Puncturing Sweeps. (<<1>> = timestring, <<2>> = Ability)
-	SI_LIBCOMBAT_LOG_FORMATSTRING_SKILLS2 = "<<1>> You start to cast <<2>>.", -- skill used, i.e. "[0.0s] You start to cast Solar Barrage. (<<1>> = timestring, <<2>> = Ability)
-	SI_LIBCOMBAT_LOG_FORMATSTRING_SKILLS3 = "<<1>> You start to channel <<2>>.", -- skill used, i.e. "[0.0s] You start to target Blazing Spear. (<<1>> = timestring, <<2>> = Ability)
-	SI_LIBCOMBAT_LOG_FORMATSTRING_SKILLS4 = "<<1>> You finished casting <<2>>.", -- skill used, i.e. "[0.0s] You succeeded casting Blazing Spear. (<<1>> = timestring, <<2>> = Ability)
-
-}
-
-for stringId, stringValue in pairs(strings) do
-	ZO_CreateStringId(stringId, stringValue)
-	SafeAddVersion(stringId, 1)
-end
-
 local BadAbility = {
 	[51487] = true,
 	[20546] = true,
@@ -273,7 +258,7 @@ local CustomAbilityName = {
 
 	[75753] = zo_strformat(SI_ABILITY_NAME, GetAbilityName(75753)), -- Line-breaker (Alkosh). pin abiltiy name so it can't get overridden
 	[17906] = zo_strformat(SI_ABILITY_NAME, GetAbilityName(17906)), -- Crusher (Glyph). pin abiltiy name so it can't get overridden
-	[63003] = zo_strformat(SI_ABILITY_NAME, GetAbilityName(62988)), -- Off-Balance
+	[62988] = zo_strformat(SI_ABILITY_NAME, GetAbilityName(62988)), -- Off-Balance
 
 	[81274] = "(C) " .. zo_strformat(SI_ABILITY_NAME, GetAbilityName(81274)), -- Crown Store Poison, Rename to differentiate from normal Poison, which can apparently stack ?
 	[81275] = "(C) " .. zo_strformat(SI_ABILITY_NAME, GetAbilityName(81275)), -- Crown Store Poison, Rename to differentiate from normal Poison, which can apparently stack ?
@@ -591,6 +576,13 @@ local validSkillEndResults = {
 
 }
 
+local ignoredAbilities = {
+
+    [118008] = true,    -- Mystic Syphon (currently ignores global cooldown)
+    [118763] = true,    -- Detonating Syphon (currently ignores global cooldown)
+
+}
+
 local UnitHandler = ZO_Object:Subclass()
 
 function UnitHandler:New(...)
@@ -599,31 +591,69 @@ function UnitHandler:New(...)
     return object
 end
 
-function UnitHandler:Initialize(name, id, unitType)
+function UnitHandler:Initialize(name, unitId, unitType)
+
+	name = ZO_CachedStrFormat(SI_UNIT_NAME, name)
 
 	if (unitType == nil or unitType == COMBAT_UNIT_TYPE_TARGET_DUMMY) then unitType = COMBAT_UNIT_TYPE_NONE end
 
-	if name~=nil and id~=nil and (unitType~=COMBAT_UNIT_TYPE_PLAYER or unitType~=COMBAT_UNIT_TYPE_PLAYER_PET or unitType~=COMBAT_UNIT_TYPE_GROUP) then
+	self.isFriendly = false
 
-		name = zo_strformat(SI_UNIT_NAME,(name or ""))
+	if unitType==COMBAT_UNIT_TYPE_PLAYER or unitType==COMBAT_UNIT_TYPE_GROUP or unitType==COMBAT_UNIT_TYPE_PLAYER_PET then
 
-		local bossId = data.bossnames[name]		-- if this is a boss, add the id (e.g. 1 for unitTag == "boss1")
+		self.isFriendly = true
 
-		if bossId then
-
-			self.bossId = bossId
-			currentfight.bosses[bossId] = id
-
-		end
 	end
 
+	if unitType == COMBAT_UNIT_TYPE_PLAYER then
+
+		data.playerid = unitId
+		currentfight.playerid = unitId
+		self.displayname = data.accountname
+		self.unitTag = "player"
+		self.isDead = IsUnitDeadOrReincarnating("player")
+
+	end
+
+	self.unitId = unitId
 	self.name = name					-- name
 	self.unitType = unitType			-- type of unit: group, pet or boss
-	self.isFriendly = false
 	self.damageOutTotal = 0
 	self.groupDamageOut  = 0
 	self.dpsstart = nil 				-- start of dps in ms
 	self.dpsend = nil				 	-- end of dps in ms
+
+	if self.unitType == COMBAT_UNIT_TYPE_GROUP then self:UpdateGroupData() end
+end
+
+function UnitHandler:UpdateGroupData()
+
+	local groupdata = data.groupInfo
+
+	local unitTag = groupdata.nameToTag[self.name]
+
+	self.displayname = groupdata.nameToDisplayname[self.name]
+	self.unitTag = unitTag
+
+	if unitTag then self.isDead = IsUnitDeadOrReincarnating(unitTag) end
+
+	groupdata.nameToId[self.name] = self.unitId
+
+	if unitTag then groupdata.tagToId[unitTag] = self.unitId end
+
+end
+
+function UnitHandler:GetUnitInfo()
+
+	local data = {}
+
+	data.unitId = self.unitId
+	data.name = self.name
+	data.displayname = self.displayname
+	data.unitTag = self.unitTag
+	data.unitType = self.unitType
+
+	return data
 
 end
 
@@ -636,7 +666,7 @@ function FightHandler:New(...)
 end
 
 function FightHandler:Initialize()
-	self.char = data.playername
+	self.char = ZO_CachedStrFormat(SI_UNIT_NAME, data.rawPlayername)
 	self.combatstart = 0 - timeout - 1	-- start of combat in ms
 	self.combatend = -150				-- end of combat in ms
 	self.combattime = 0 				-- total combat time
@@ -671,12 +701,6 @@ function FightHandler:Initialize()
 	self.stats = {}
 	self.playerid = data.playerid
 	self.bosses = {}
-end
-
-local function Print(message, ...)
-
-	if lib.debug then df("[LibCombat] %s", message:format(...)) end
-
 end
 
 local onCombatState
@@ -721,7 +745,7 @@ local function GetShadowBonus()
 
 	data.critBonusMundus = mathfloor(13 * (1 + divines/100)) -- total mundus bonus, base is 13%
 
-	Print("Shadow Mundus: %d%% (Divines Bonus: %1.f%%)", data.critBonusMundus, divines)
+	Print("other", LOG_LEVEL_DEBUG , "Shadow Mundus: %d%% (Divines Bonus: %1.f%%)", data.critBonusMundus, divines)
 
 end
 
@@ -868,8 +892,6 @@ local function UpdateSlotSkillEvents()
 
 	if not events.active then return end
 
-	events:UnregisterEvents()
-
 	SlotSkills = {}
 
 	local registeredIds = {}
@@ -900,7 +922,7 @@ local function UpdateSlotSkillEvents()
 		end
 	end
 
-	events:RegisterEvents()
+	events:Update()
 end
 
 local function GetCurrentSkillBars()
@@ -928,8 +950,6 @@ local function GetCurrentSkillBars()
 		IdToReducedSlot[convertedId] = reducedslot
 
 		if conversion and conversion[3] then IdToReducedSlot[conversion[3]] = reducedslot end
-
-		Print("Bar: %d, Skill: (%d) %s, Slot: %d", bar, id, GetAbilityName(id), reducedslot)
 
 	end
 
@@ -965,7 +985,7 @@ function FightHandler:PrepareFight()
 
 		local charData = self.charData
 
-		charData.name = data.playername
+		charData.name = ZO_CachedStrFormat(SI_UNIT_NAME, data.rawPlayername)
 		charData.raceId = GetUnitRaceId("player")
 		charData.gender = GetUnitGender("player")
 		charData.classId = GetUnitClassId("player")
@@ -977,7 +997,7 @@ function FightHandler:PrepareFight()
 		if DoesUnitExist("boss1") then
 
 			self.bossfight = true
-			self.bossname = zo_strformat(SI_UNIT_NAME,GetUnitName("boss1"))
+			self.bossname = zo_strformat( SI_UNIT_NAME, GetUnitName("boss1") )
 		end
 
 		GetPlayerBuffs(timems)
@@ -1003,6 +1023,9 @@ function FightHandler:PrepareFight()
 		GetCurrentSkillBars()
 
 		lastBossHealthValue = 2
+
+		self.isWipe = false
+		lastQueuedAbilities = {}
 
 	end
 
@@ -1056,6 +1079,7 @@ function FightHandler:FinishFight()
 	EffectBuffer = {}
 
 	lastskilluses = {}
+	data.lastabilities = {}
 end
 
 local function GetStat(stat) -- helper function to make code shorter
@@ -1148,7 +1172,7 @@ local lastGetNewStatsCall = 0
 
 function FightHandler:GetNewStats(timems)
 
-	em:UnregisterForUpdate("COMBATMETRICS_GETNEWSTATS")
+	em:UnregisterForUpdate("LibCombat_Stats")
 
 	timems = timems or GetGameTimeMilliseconds()
 
@@ -1156,7 +1180,7 @@ function FightHandler:GetNewStats(timems)
 
 	if lastcalldelta < 100 then
 
-		em:RegisterForUpdate("COMBATMETRICS_GETNEWSTATS", (100 - lastcalldelta), function() self:GetNewStats() end)
+		em:RegisterForUpdate("LibCombat_Stats", (100 - lastcalldelta), function() self:GetNewStats() end)
 
 		return
 
@@ -1351,24 +1375,24 @@ function FightHandler:onUpdate()
 
 		self:UpdateStats()
 
-		if false and lib.debug and (self.damageOutTotal>0 or self.healingOutTotal>0 or self.damageInTotal>0) then
+		if self.damageOutTotal>0 or self.healingOutTotal>0 or self.damageInTotal>0 then
 
-			Print("Time: %.2fs (DPS) | %.2fs (HPS) ", self.dpstime, self.hpstime)
-			Print("Dmg: %d (DPS: %d)", self.damageOutTotal, self.DPSOut)
-			Print("Heal: %d (HPS: %d)", self.healingOutTotal, self.HPSOut)
-			Print("IncDmg: %d (Shield: %d, IncDPS: %d)", self.damageInTotal, self.damageInShielded, self.DPSIn)
-			Print("IncHeal: %d (IncHPS: %d)", self.healingInTotal, self.HPSIn)
+			Print("fight", LOG_LEVEL_DEBUG, "Time: %.2fs (DPS) | %.2fs (HPS) ", self.dpstime, self.hpstime)
+			Print("fight", LOG_LEVEL_DEBUG, "Dmg: %d (DPS: %d)", self.damageOutTotal, self.DPSOut)
+			Print("fight", LOG_LEVEL_DEBUG, "Heal: %d (HPS: %d)", self.healingOutTotal, self.HPSOut)
+			Print("fight", LOG_LEVEL_DEBUG, "IncDmg: %d (Shield: %d, IncDPS: %d)", self.damageInTotal, self.damageInShielded, self.DPSIn)
+			Print("fight", LOG_LEVEL_DEBUG, "IncHeal: %d (IncHPS: %d)", self.healingInTotal, self.HPSIn)
 
 			if data.inGroup and Events.CombatGrp.active then
 
-				Print("GrpDmg: %d (DPS: %d)", self.groupDamageOut, self.groupDPSOut)
-				Print("GrpHeal: %d (HPS: %d)", self.groupHealingOut, self.groupHPS)
-				Print("GrpIncDmg: %d (IncDPS: %d)", self.groupDamageIn, self.groupDPSIn)
+				Print("fight", LOG_LEVEL_DEBUG, "GrpDmg: %d (DPS: %d)", self.groupDamageOut, self.groupDPSOut)
+				Print("fight", LOG_LEVEL_DEBUG, "GrpHeal: %d (HPS: %d)", self.groupHealingOut, self.groupHPS)
+				Print("fight", LOG_LEVEL_DEBUG, "GrpIncDmg: %d (IncDPS: %d)", self.groupDamageIn, self.groupDPSIn)
 
 			end
 		end
 
-		Print("resetting...")
+		Print("fight", LOG_LEVEL_INFO, "resetting...")
 
 		self.grplog = {}
 
@@ -1386,13 +1410,114 @@ function FightHandler:onUpdate()
 
 end
 
+local CombatEventCache = {}
+
+local UnitCache = ZO_Object:Subclass()	-- holds all recent events + info to send on death
+
+function UnitCache:New(...)
+    local object = ZO_Object.New(self)
+    object:Initialize(...)
+    return object
+end
+
+function UnitCache:Initialize(unitId)
+
+	self.nextKey = 1
+	self.maxlength = LIBCOMBAT_MAX_UNITCACHE_EVENTS
+	self.cache = {}
+	self.unitId = unitId
+
+	CombatEventCache[unitId] = self
+end
+
+function UnitCache:Reset()
+
+	local unit = currentfight.units[self.unitId]
+
+	if unit then
+
+		self.name = unit.name
+		self.displayname = unit.displayname
+		self.unitTag = unit.unitTag
+
+	end
+
+	self.log = {}
+	local cache = self.cache			-- rotate cache
+
+	if #cache > 0 then
+
+		local log = self.log
+		local offset = self.nextKey
+		local length = #self.cache
+
+		for key, value in ipairs(cache) do
+
+			local logkey = (key - offset)%length + 1
+
+			log[logkey] = value
+
+		end
+	end
+
+	self.cache = nil
+	self.health = nil
+	self.stamina = nil
+	self.magicka = nil
+
+	UnitCache:New(self.unitId)
+
+	return self
+end
+
+function UnitCache:AddEvent(timems, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType)
+
+	local nextKey = self.nextKey
+
+	self.cache[nextKey] = {timems, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType, self.health, self.stamina, self.magicka}
+
+	self.nextKey = (nextKey % self.maxlength) + 1
+
+end
+
+
+function UnitCache:UpdateResource(powerType, value, powerMax)
+
+	if powerType == POWERTYPE_HEALTH then
+
+		self.health = value
+		self.healthMax = powerMax
+
+	elseif powerType == POWERTYPE_STAMINA then
+
+		self.stamina = value
+		self.staminaMax = powerMax
+
+	elseif powerType == POWERTYPE_MAGICKA then
+
+		self.magicka = value
+		self.magickaMax = powerMax
+
+	end
+end
+
+local function GetUnitCache(unitId)
+
+	local unitCache = CombatEventCache[unitId]
+
+	if unitCache == nil then unitCache = UnitCache:New(unitId) end
+
+	return unitCache
+
+end
+
 -- Event Functions
 
 function onCombatState(event, inCombat)  -- Detect Combat Stage, local is defined above - Don't Change !!!
 
 	if isInShadowWorld and IsUnitDead("player") == false then -- prevent fight reset in Cloudrest when using a portal.
 
-		Print("[%.3f] Prevented combat state change due to Shadow World!", GetGameTimeMilliseconds()/1000)
+		Print("other", LOG_LEVEL_DEBUG, "Prevented combat state change due to Shadow World!")
 		return
 
 	end
@@ -1405,7 +1530,7 @@ function onCombatState(event, inCombat)  -- Detect Combat Stage, local is define
 
 		if inCombat then
 
-			Print("[%.3f] Entering combat.", GetGameTimeMilliseconds()/1000)
+			Print("fight", LOG_LEVEL_DEBUG, "Entering combat.")
 
 			lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_MESSAGES]), LIBCOMBAT_EVENT_MESSAGES, timems, LIBCOMBAT_MESSAGE_COMBATSTART, 0)
 
@@ -1413,7 +1538,7 @@ function onCombatState(event, inCombat)  -- Detect Combat Stage, local is define
 
 		else
 
-			Print("[%.3f] Leaving combat.", GetGameTimeMilliseconds()/1000)
+			Print("fight", LOG_LEVEL_DEBUG, "Leaving combat.")
 
 			currentfight:FinishFight()
 
@@ -1427,8 +1552,8 @@ end
 
 local function onBossesChanged(_) -- Detect Bosses
 
-	data.bosses = 0
-	data.bossnames = {}
+	data.bossInfo = {}
+	local bossdata = data.bossInfo
 
 	for i = 1, 12 do
 
@@ -1436,11 +1561,9 @@ local function onBossesChanged(_) -- Detect Bosses
 
 		if DoesUnitExist(unitTag) then
 
-			data.bosses = i
+			local name = GetUnitName(unitTag)
 
-			local name = zo_strformat(SI_UNIT_NAME, GetUnitName(unitTag))
-
-			data.bossnames[name] = i
+			bossdata[name] = i
 			currentfight.bossfight = true
 
 		elseif i >= 2 then
@@ -1451,7 +1574,7 @@ local function onBossesChanged(_) -- Detect Bosses
 	end
 end
 
--- Buffs/Dbuffs
+-- Buffs/Debuffs
 
 local GROUP_EFFECT_NONE = 0
 local GROUP_EFFECT_IN = 1
@@ -1488,7 +1611,7 @@ end
 local function onShadowWorld( _, changeType)
 
 	isInShadowWorld = changeType == EFFECT_RESULT_GAINED
-	Print("[%.3f] Shadow: %s", GetGameTimeMilliseconds()/1000, tostring(isInShadowWorld))
+	onBossesChanged()
 
 end
 
@@ -1509,9 +1632,7 @@ local function BuffEventHandler(isspecial, groupeffect, _, changeType, effectSlo
 
 	local timems = GetGameTimeMilliseconds()
 
-	-- Print("[%.3f] %s %s %s (%d)", timems/1000, unitName, changeType == EFFECT_RESULT_GAINED and "got" or "lost", GetFormattedAbilityName(abilityId), abilityId)
-
-	-- Print("%d, %s, ET:%d, %d, %s", changeType, GetAbilityName(abilityId), effectType, abilityType, unitTag)
+	Print("events", LOG_LEVEL_VERBOSE, "%s %s %s (%d, ET: %d, %s)", unitName, changeType == EFFECT_RESULT_GAINED and "got" or "lost", GetFormattedAbilityName(abilityId), abilityId, abilityType, effectType, unitTag)
 
 	local eventid = groupeffect == GROUP_EFFECT_IN and LIBCOMBAT_EVENT_GROUPEFFECTS_IN or groupeffect == GROUP_EFFECT_OUT and LIBCOMBAT_EVENT_GROUPEFFECTS_OUT or stringsub(unitTag, 1, 6) == "player" and LIBCOMBAT_EVENT_EFFECTS_IN or LIBCOMBAT_EVENT_EFFECTS_OUT
 	local stacks = (isspecial and 0) or mathmax(1, stackCount)
@@ -1570,11 +1691,9 @@ local function SpecialBuffEventHandler(isdebuff, _, result, _, _, _, _, _, sourc
 
 	if BadAbility[abilityId] == true then return end
 
-	if zo_strformat(SI_UNIT_NAME, unitName) ~= data.playername then return end
+	if unitName ~= data.rawPlayername then return end
 
 	local changeType = result == ACTION_RESULT_EFFECT_GAINED_DURATION and 1 or result == ACTION_RESULT_EFFECT_FADED and 2 or nil
-
-	-- Print("Custom: "..(data.CustomAbilityName[abilityId] or zo_strformat(SI_ABILITY_NAME,GetAbilityName(abilityId))).."("..(changeType==1 and "gain" or changeType==2 and "loss" or "??" )..")")
 
 	local effectType = isdebuff and BUFF_EFFECT_TYPE_DEBUFF or BUFF_EFFECT_TYPE_BUFF
 	BuffEventHandler(true, GROUP_EFFECT_NONE, _, changeType, 0, _, _, _, _, _, _, _, effectType, ABILITY_TYPE_BONUS, _, unitName, unitId, abilityId, sourceType)
@@ -1635,11 +1754,11 @@ local function checkLastAbilities(powerType, powerValueChange)
 
 			local ratio = powerValueChange / values[3]
 
-			-- Print("Ratio: %.3f", ratio)
-
-			local goodratio = ratio >= 0.98 and ratio <= 1.02
+			local goodratio = ratio >= 0.98 and ratio <= 1.06
 
 			if goodratio then
+
+				-- if values[3] < 0 then df("Ratio: %.3f (**%s: %d vs. %d) %d", ratio, GetFormattedAbilityName(values[2]), values[3], powerValueChange, #lastabilities-i) end
 
 				aId = values[2]
 				table.remove(lastabilities, i)
@@ -1647,6 +1766,8 @@ local function checkLastAbilities(powerType, powerValueChange)
 				break
 
 			end
+
+			-- if i == #lastabilities and values[3] < 0 then df("Ratio: %.3f (%s: %d vs. %d)", ratio, GetFormattedAbilityName(values[2]), values[3], powerValueChange) end
 		end
 	end
 
@@ -1672,7 +1793,7 @@ local function onBaseResourceChanged(_,unitTag,_,powerType,powerValue,_,_)
 
 		if powerValueChange == 0 then return end
 
-		-- Print("Skill cost: %d", powerValueChange)
+		Print("events", LOG_LEVEL_DEBUG, "Skill cost: %d", powerValueChange)
 
 		aId = checkLastAbilities(powerType, powerValueChange)
 
@@ -1749,7 +1870,7 @@ local function onResourceChanged (_, result, _, _, _, _, _, _, targetName, _, po
 
 	local lastabilities = data.lastabilities
 
-	if data.playerid == nil and zo_strformat(SI_UNIT_NAME, targetName) == data.playername then data.playerid = targetUnitId end
+	if data.playerid == nil and targetName == data.rawPlayername then data.playerid = targetUnitId end
 
 	local timems = GetGameTimeMilliseconds()
 
@@ -1784,35 +1905,97 @@ local function onWeaponSwap(_, isHotbarSwap)
 	end
 end
 
-local function OnDeathStateChanged(_, unitTag, isDead)
+local function CheckForWipe()
 
-	if not isDead or data.inCombat == false then return end
+	if not IsUnitDeadOrReincarnating("player") then return end -- maybe it's enough if player is dead on combat end? (Unless it bugs, like Sunspire ... ¯\_(ツ)_/¯)
 
-	local name = zo_strformat(SI_UNIT_NAME, GetUnitName(unitTag))
+	if data.inGroup == false then
 
-	local lasttime = lastdeaths[name]
+		currentfight.isWipe = true
+
+	elseif data.inGroup == true then
+
+		local loc = GetUnitZoneIndex("player")
+
+		for i = 1, GetGroupSize() do
+
+			local tag = ZO_CachedStrFormat("group<<1>>", i)
+
+			local unitId = data.groupInfo.tagToId[tag]
+			local unit = unitId and currentfight.units[unitId]
+
+			if unit and (not unit.isDead) and GetUnitZoneIndex(tag) == loc then return end	-- if there is a group member in the zame zone but not dead then it's not a wipe
+
+		end
+	end
+
+	currentfight.isWipe = true
+
+	Print("DoA", LOG_LEVEL_DEBUG, "=== This is a wipe ! ===")
+
+end
+
+local function OnDeathStateChanged(_, unitTag, isDead) 	-- death (for group display, also works for different zones)
+
+	Print("DoA", LOG_LEVEL_DEBUG, "OnDeathStateChanged: %s is dead: %s", unitTag, tostring(isDead))
+
+	local unitId = unitTag == "player" and data.playerid or data.groupInfo.tagToId[unitTag]
+
+	if data.inCombat == false or unitId == nil then return end
+
+	local unit = currentfight.units[unitId]
+	if unit then unit.isDead = isDead else return end
 
 	local timems = GetGameTimeMilliseconds()
 
-	local unitId = data.groupmembers[name]
+	if isDead then
 
-	if (lasttime and lasttime - timems < 100) or not unitId then return end
+		local lasttime = lastdeaths[unitId]
 
-	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_DEATH]), LIBCOMBAT_EVENT_DEATH, timems, unitId, -1)
+		if (lasttime and lasttime - timems < 1000) then return end
 
-	if isDead then Print("[%.3f] DS: %s died!", timems/1000, name ) end
+		local data = GetUnitCache(unitId):Reset()
 
-	-- death (for group display, also works for different zones)
+		lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_DEATH]), LIBCOMBAT_EVENT_DEATH, timems, LIBCOMBAT_STATE_DEAD, unitId)
+		lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_DEATHRECAP]), LIBCOMBAT_EVENT_DEATHRECAP, timems, data)
 
+		CheckForWipe()
+
+	else
+
+		lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_DEATH]), LIBCOMBAT_EVENT_DEATH, timems, LIBCOMBAT_STATE_ALIVE, unitId)
+
+	end
 end
 
 local function OnPlayerReincarnated()
 
-	Print("[%.3f] Revive!", GetGameTimeMilliseconds()/1000)
+	Print("DoA", LOG_LEVEL_DEBUG, "You revived")
 
 end
 
+local SpecialResults = {
+
+	[ACTION_RESULT_ABSORBED]		= "ACTION_RESULT_ABSORBED",
+	[ACTION_RESULT_BLADETURN]		= "ACTION_RESULT_BLADETURN",
+	[ACTION_RESULT_BLOCKED_DAMAGE]	= "ACTION_RESULT_BLOCKED_DAMAGE",
+	[ACTION_RESULT_DIED] 	    	= "ACTION_RESULT_DIED",
+	[ACTION_RESULT_DIED_XP] 	    = "ACTION_RESULT_DIED_XP",
+	[ACTION_RESULT_KILLING_BLOW] 	= "ACTION_RESULT_KILLING_BLOW",
+	[ACTION_RESULT_LINKED_CAST] 	= "ACTION_RESULT_LINKED_CAST",
+	[ACTION_RESULT_PARTIAL_RESIST] 	= "ACTION_RESULT_PARTIAL_RESIST",
+	[ACTION_RESULT_PRECISE_DAMAGE] 	= "ACTION_RESULT_PRECISE_DAMAGE",
+	[ACTION_RESULT_REFLECTED] 		= "ACTION_RESULT_REFLECTED",
+	[ACTION_RESULT_REINCARNATING] 	= "ACTION_RESULT_REINCARNATING",
+	[ACTION_RESULT_RESIST]			= "ACTION_RESULT_RESIST",
+	[ACTION_RESULT_RESURRECT] 		= "ACTION_RESULT_RESURRECT",
+	[ACTION_RESULT_WRECKING_DAMAGE]	= "ACTION_RESULT_WRECKING_DAMAGE",
+
+}
+
 local function OnDeath(_, result, _, abilityName, _, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, _, sourceUnitId, targetUnitId, abilityId)
+
+	Print("DoA", LOG_LEVEL_DEBUG, "OnDeath (%s): %s (%d, %d) / %s (%d, %d) - %s (%d): %d (type: %d)", SpecialResults[result], sourceName, sourceUnitId, sourceType, targetName, targetUnitId, targetType, GetFormattedAbilityName(abilityId), abilityId, hitValue or 0, damageType or 0)
 
 	local timems = GetGameTimeMilliseconds()
 
@@ -1822,47 +2005,62 @@ local function OnDeath(_, result, _, abilityName, _, abilityActionSlotType, sour
 
 	if unitdata == nil or unitdata.type ~= COMBAT_UNIT_TYPE_GROUP then return end
 
-	local name = unitdata.name or zo_strformat(SI_UNIT_NAME, targetName) or ""
+	lastdeaths[targetUnitId] = timems
 
-	lastdeaths[name] = timems
+	local data = GetUnitCache(targetUnitId):Reset()
 
-	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_DEATH]), LIBCOMBAT_EVENT_DEATH, timems, targetUnitId, abilityId)
+	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_DEATH]), LIBCOMBAT_EVENT_DEATH, timems, LIBCOMBAT_STATE_DEAD, targetUnitId, abilityId)
+	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_DEATHRECAP]), LIBCOMBAT_EVENT_DEATHRECAP, timems, data)
 
-	Print("[%.3f] CE: %s died! (%d - %s) (%s -> %s)", GetGameTimeMilliseconds()/1000, name, result, GetFormattedAbilityName(abilityId), tostring(sourceUnitId), tostring(targetUnitId))
+	CheckForWipe()
+end
 
+local function OnResurrect(_, result, _, abilityName, _, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, _, sourceUnitId, targetUnitId, abilityId)
+
+	Print("DoA", LOG_LEVEL_DEBUG, "OnResurrect (%s): %s (%d, %d) / %s (%d, %d) - %s (%d): %d (type: %d)", SpecialResults[result], sourceName, sourceUnitId, sourceType, targetName, targetUnitId, targetType, GetFormattedAbilityName(abilityId), abilityId, hitValue or 0, damageType or 0)
+
+	local timems = GetGameTimeMilliseconds()
+
+	if targetUnitId == nil or targetUnitId == 0 or data.inCombat == false then return end
+
+	local unitdata = currentfight.units[targetUnitId]
+
+	if unitdata == nil or unitdata.type ~= COMBAT_UNIT_TYPE_GROUP then return end
+
+	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_DEATH]), LIBCOMBAT_EVENT_DEATH, timems, LIBCOMBAT_STATE_ALIVE, targetUnitId)
 end
 
 local function OnResurrectResult(_, targetCharacterName, result, targetDisplayName)
+
+	Print("DoA", LOG_LEVEL_DEBUG, "OnResurrectResult: %s", targetCharacterName)
 
 	local timems = GetGameTimeMilliseconds()
 
 	if result ~= RESURRECT_RESULT_SUCCESS then return end
 
-	local name = zo_strformat(SI_UNIT_NAME, targetCharacterName) or ""
+	local name = ZO_CachedStrFormat(SI_UNIT_NAME, targetCharacterName) or ""
 
-	local unitId = data.groupmembers[name]
+	local unitId = data.groupInfo.nameToId[name]
 
 	if not unitId then return end
 
-	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_RESURRECTION]), LIBCOMBAT_EVENT_RESURRECTION, timems, data.playerid, unitId)
-
-	Print("[%.3f] Rezzed %s", timems/1000, targetCharacterName )
+	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_DEATH]), LIBCOMBAT_EVENT_DEATH, timems, LIBCOMBAT_STATE_RESURRECTED, unitId, data.playerid)
 
 end
 
 local function OnResurrectRequest(_, requesterCharacterName, timeLeftToAccept, requesterDisplayName)
 
+	Print("DoA", LOG_LEVEL_DEBUG, "OnResurrectRequest: %s", requesterCharacterName)
+
 	local timems = GetGameTimeMilliseconds()
 
-	local name = zo_strformat(SI_UNIT_NAME, requesterCharacterName) or ""
+	local name = ZO_CachedStrFormat(SI_UNIT_NAME, requesterCharacterName) or ""
 
-	local unitId = data.groupmembers[name]
+	local unitId = data.groupInfo.nameToId[name]
 
 	if not unitId then return end
 
-	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_RESURRECTION]), LIBCOMBAT_EVENT_RESURRECTION, timems, unitId, data.playerid)
-
-	Print("[%.3f] Rezzed by %s", timems/1000, requesterCharacterName )
+	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_DEATH]), LIBCOMBAT_EVENT_DEATH, timems, LIBCOMBAT_STATE_RESURRECTED, data.playerid, unitId)
 
 end
 
@@ -1870,7 +2068,10 @@ local function onGroupChange()
 
 	data.inGroup = IsUnitGrouped("player")
 
-	data.groupmemberdisplaynames = {}
+	local groupdata = data.groupInfo
+
+	groupdata.nameToDisplayname = {}
+	groupdata.nameToTag = {}
 
 	if data.inGroup == true then
 
@@ -1881,53 +2082,68 @@ local function onGroupChange()
 			local name = ZO_CachedStrFormat(SI_UNIT_NAME, GetUnitName(unitTag))
 			local displayname = ZO_CachedStrFormat(SI_UNIT_NAME, GetUnitDisplayName(unitTag))
 
-			data.groupmemberdisplaynames[name] = displayname
+			groupdata.nameToDisplayname[name] = displayname
+			groupdata.nameToTag[name] = unitTag
+
+			local unitId = groupdata.nameToId[name]
+			local unit = unitId and currentfight.units[unitId] or nil
+
+			if unit then unit:UpdateGroupData() end
 		end
 	end
 end
 
+local function onWTF(_, result, _, abilityName, _, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, _, sourceUnitId, targetUnitId, abilityId)
+
+	local resulttext = SpecialResults[result] or tostring(result)
+
+	Print("other", LOG_LEVEL_DEBUG, "onWTF (%s): %s (%d, %d) / %s (%d, %d) - %s (%d): %d (type: %d)", resulttext, sourceName, sourceUnitId, sourceType, targetName, targetUnitId, targetType, GetFormattedAbilityName(abilityId), abilityId, hitValue or 0, damageType or 0)
+
+end
+
 local function CheckUnit(unitName, unitId, unitType, timems)
+
+	if unitId == nil then return end
 
 	local currentunits = currentfight.units
 
 	if currentunits[unitId] == nil then currentunits[unitId] = UnitHandler:New(unitName, unitId, unitType) end
 	local unit = currentunits[unitId]
 
-	if unitType == COMBAT_UNIT_TYPE_PLAYER then
+	if unit.name == "Offline" or unit.name == "" then unit.name = ZO_CachedStrFormat(SI_UNIT_NAME, unitName) end
 
-		data.playerid = unitId
-		currentfight.playerid = unitId
-		unit.displayname = data.accountname
+	if unit.unitType ~= COMBAT_UNIT_TYPE_GROUP and unitType==COMBAT_UNIT_TYPE_GROUP then
+
+		unit.unitType = COMBAT_UNIT_TYPE_GROUP
+		unit.isFriendly = true
 
 	end
 
-	if unit.name == "Offline" or unit.name == "" then unit.name = zo_strformat(SI_UNIT_NAME, unitName) end
+	if unit.isFriendly == false then
 
-	if unit.unitType ~= COMBAT_UNIT_TYPE_GROUP and unitType==COMBAT_UNIT_TYPE_GROUP then unit.unitType = COMBAT_UNIT_TYPE_GROUP end
-	if (unit.unitType == COMBAT_UNIT_TYPE_GROUP) or (unit.unitType == COMBAT_UNIT_TYPE_PLAYER) or (unit.unitType == COMBAT_UNIT_TYPE_PLAYER_PET) then unit.isFriendly = true end
+		local bossId = data.bossInfo[unit.name]		-- if this is a boss, add the id (e.g. 1 for unitTag == "boss1")
+
+		if bossId then
+
+			unit.bossId = bossId
+			currentfight.bosses[bossId] = unitId
+
+			unit.unitTag = ZO_CachedStrFormat("boss<<1>>", bossId)
+
+		end
+
+	end
 
 	unit.dpsstart = unit.dpsstart or timems
 	unit.dpsend = timems
 
 	unit.starttime = unit.starttime or timems
 	unit.endtime = timems
-
-	if unitType == COMBAT_UNIT_TYPE_GROUP then
-
-		unit.displayname = data.groupmemberdisplaynames[unit.name]
-
-		local groupdata = data.groupmembers
-
-		if groupdata then groupdata[unit.name] = unitId end
-
-	end
 end
 
 --(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
 
 local function CombatEventHandler(isheal, _, result, _, _, _, _, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, _, sourceUnitId, targetUnitId, abilityId, overflow)  -- called by Event
-
-	-- d({eventCode=eventCode, result=result, isError=isError, abilityName=abilityName, abilityGraphic=abilityGraphic, abilityActionSlotType=abilityActionSlotType, sourceName=sourceName, sourceType=sourceType, targetName=targetName, targetType=targetType, hitValue=hitValue, powerType=powerType, damageType=damageType, log=log, sourceUnitId=sourceUnitId, targetUnitId=targetUnitId, abilityId})
 
 	if (hitValue + (overflow or 0)) < 2 or (not (sourceUnitId > 0 and targetUnitId > 0)) or (data.inCombat == false and (result==ACTION_RESULT_DOT_TICK_CRITICAL or result==ACTION_RESULT_DOT_TICK or isheal) ) or targetType==2 then return end -- only record if both unitids are valid or player is in combat or a non dot damage action happens or the target is not a pet
 	local timems = GetGameTimeMilliseconds()
@@ -1984,9 +2200,9 @@ local function onCombatEventDmgGrp(_, _, _, _, _, _, _, _, targetName, targetTyp
 
 	if hitValue < 2 or targetUnitId == nil or targetType==2 then return end
 
-	if hitValue > 150000 then
+	if hitValue > 200000 then
 
-		Print("[%.3f] Big Damage Event: (%d) %s did %d damage to %s", GetGameTimeMilliseconds(), abilityId, GetFormattedAbilityName(abilityId), hitValue, tostring(targetName))
+		Print("debug", LOG_LEVEL_INFO, "Big Damage Event: (%d) %s did %d damage to %s", abilityId, GetFormattedAbilityName(abilityId), hitValue, tostring(targetName))
 
 		return
 
@@ -2000,6 +2216,41 @@ local function onCombatEventHealGrp(_, _, _, _, _, _, _, _, _, targetType, hitVa
 	if targetType==2 or targetUnitId == nil or hitValue<2 or (data.inCombat == false and (GetGameTimeMilliseconds() - (currentfight.combatend or 0) >= 50)) then return end
 
 	table.insert(currentfight.grplog,{targetUnitId,hitValue,"heal"})
+end
+
+--(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
+
+local function GroupCombatEventHandler(isheal, result, _, _, _, _, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, _, sourceUnitId, targetUnitId, abilityId, overflow)  -- called by Event
+
+	if (hitValue + (overflow or 0)) < 2 or (not (sourceUnitId > 0 and targetUnitId > 0)) or (data.inCombat == false and (result==ACTION_RESULT_DOT_TICK_CRITICAL or result==ACTION_RESULT_DOT_TICK or isheal) ) then return end -- only record if both unitids are valid or player is in combat or a non dot damage action happens or the target is not a pet
+	local timems = GetGameTimeMilliseconds()
+
+	if currentfight.dpsstart == nil then currentfight:PrepareFight() end -- get stats before the damage event
+
+	damageType = (isheal and powerType) or damageType
+
+	GetUnitCache(targetUnitId):AddEvent(timems, result, sourceUnitId, targetUnitId, abilityId, hitValue + (overflow or 0), damageType)
+
+end
+
+local function onCombatEventGrpDmgIn(event, ...)
+
+	GroupCombatEventHandler(false, ...)
+
+end
+
+local function onCombatEventGrpHealIn(event, ...)
+
+	GroupCombatEventHandler(true, ...)
+
+end
+
+local function onBaseResourceChangedGroup(event, unitTag, powerIndex, powerType, powerValue, powerMax, powerEffectiveMax)
+
+	local unitId = unitTag == "player" and data.playerid or data.groupInfo.tagToId[unitTag]
+
+	if unitId then GetUnitCache(unitId):UpdateResource(powerType, powerValue, powerMax) end
+
 end
 
 local function GetReducedSlotId(reducedslot)
@@ -2021,10 +2272,9 @@ local function onAbilityUsed(eventCode, result, isError, abilityName, abilityGra
 
 	if Events.Skills.active ~= true or validSkillStartResults[result] ~= true then return end
 
-	local lasttime = lastskilluses[abilityId] or 0
-
 	local timems = GetGameTimeMilliseconds()
 
+	local lasttime = lastskilluses[abilityId] or 0
 	if timems - lasttime > 2000 then return end
 
 	lastskilluses[abilityId] = nil
@@ -2037,15 +2287,19 @@ local function onAbilityUsed(eventCode, result, isError, abilityName, abilityGra
 
 	castTime = channeled and channelTime or castTime
 
-	Print("[%.3f] Skill fired: %s (%d), Duration: %ds Target: %s", timems/1000, GetAbilityName(origId), origId, castTime/1000, tostring(targetName))
+	Print("events", LOG_LEVEL_VERBOSE, "[%.3f] Skill fired: %s (%d), Duration: %ds Target: %s", timems/1000, GetAbilityName(origId), origId, castTime/1000, tostring(targetName))
 
 	HeavyAttackCharging = DirectHeavyAttacks[origId] and origId or nil
+
+	local skillDelay = timems - math.max(lasttime, lastQueuedAbilities[origId] or lasttime)
+
+	skillDelay = skillDelay < maxSkillDelay and skillDelay or nil
 
 	if castTime > 0 then
 
 		local status = channeled and LIBCOMBAT_SKILLSTATUS_BEGIN_CHANNEL or LIBCOMBAT_SKILLSTATUS_BEGIN_DURATION
 
-		lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_SKILL_TIMINGS]), LIBCOMBAT_EVENT_SKILL_TIMINGS, timems, reducedslot, origId, status)
+		lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_SKILL_TIMINGS]), LIBCOMBAT_EVENT_SKILL_TIMINGS, timems, reducedslot, origId, status, skillDelay)
 
 		local convertedId = abilityConversions[origId] and abilityConversions[origId][3] or abilityId
 
@@ -2053,7 +2307,9 @@ local function onAbilityUsed(eventCode, result, isError, abilityName, abilityGra
 
 	else
 
-		lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_SKILL_TIMINGS]), LIBCOMBAT_EVENT_SKILL_TIMINGS, timems, reducedslot, origId, LIBCOMBAT_SKILLSTATUS_INSTANT)
+		local status = LIBCOMBAT_SKILLSTATUS_INSTANT
+
+		lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_SKILL_TIMINGS]), LIBCOMBAT_EVENT_SKILL_TIMINGS, timems, reducedslot, origId, status, skillDelay)
 		lastCastTimeAbility = 0
 
 	end
@@ -2073,9 +2329,7 @@ local function onAbilityFinished(eventCode, result, isError, abilityName, abilit
 
 	if abilityId == lastCastTimeAbility then
 
-		local timems = GetGameTimeMilliseconds()
-
-		Print("[%.3f] Skill finished: %s (%d, R: %d)", GetGameTimeMilliseconds()/1000, GetAbilityName(origId), origId, result)
+		Print("events", LOG_LEVEL_VERBOSE ,"Skill finished: %s (%d, R: %d)", GetAbilityName(origId), origId, result)
 
 		lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_SKILL_TIMINGS]), LIBCOMBAT_EVENT_SKILL_TIMINGS, timems, reducedslot, origId, LIBCOMBAT_SKILLSTATUS_SUCCESS)
 
@@ -2124,6 +2378,17 @@ end
 
 -- * EVENT_POWER_UPDATE (*string* _unitTag_, *luaindex* _powerIndex_, *[CombatMechanicType|#CombatMechanicType]* _powerType_, *integer* _powerValue_, *integer* _powerMax_, *integer* _powerEffectiveMax_)
 
+local tagToBossId = {} -- avoid string ops
+
+for i = 1, 12 do
+
+	local unitTag = ZO_CachedStrFormat("boss<<1>>", i)
+
+	tagToBossId[unitTag] = i
+
+end
+
+
 local function onBossHealthChanged(eventid, unitTag, _, powerType, powerValue, powerMax, powerEffectiveMax)
 
 	local timems = GetGameTimeMilliseconds()
@@ -2134,7 +2399,7 @@ local function onBossHealthChanged(eventid, unitTag, _, powerType, powerValue, p
 
 	lastBossHealthValue = BossHealthValue
 
-	local bossId = tonumber(stringmatch(unitTag, "boss(%d+)"))
+	local bossId = tagToBossId[unitTag]
 
 	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_BOSSHP]), LIBCOMBAT_EVENT_BOSSHP, timems, bossId, powerValue, powerMax)
 
@@ -2164,6 +2429,83 @@ local function onSlotUpdate(_, slotNum)
 
 end
 
+local frameIndex = 1
+local frameData = {}
+local currentsecond
+
+local size = math.floor((1/GetCVar("MinFrameTime.2") + 40)/20)*20
+
+for i = 1, size do
+
+	frameData[i] = 0
+
+end
+
+local function onFrameUpdate()
+
+	local new = GetFrameDeltaTimeSeconds()
+	local now = GetTimeStamp()
+
+	frameData[frameIndex] = new
+
+	if now == currentsecond then
+
+		frameIndex = frameIndex + 1
+
+	else
+
+		local timems = GetGameTimeMilliseconds()
+
+		local sum = 0
+		local min = 100
+		local max = 0
+
+		for k = 1, frameIndex do
+
+			local v = frameData[k]
+
+			sum = sum + v
+
+			min = math.min(v, min)
+			max = math.max(v, max)
+
+		end
+
+		lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_PERFORMANCE]), LIBCOMBAT_EVENT_PERFORMANCE, timems, frameIndex/sum, 1/max, 1/min, GetLatency())
+
+		frameIndex = 1
+		currentsecond = now
+
+	end
+end
+
+local function enableLogging()
+
+	frameIndex = 1
+	currentsecond = GetTimeStamp()
+
+	local active = em:RegisterForUpdate("LibCombat_Frames", 0, onFrameUpdate)
+
+	em:UnregisterForUpdate("LibCombat_Frames_Enable")
+
+end
+
+local function onPlayerActivated2()
+
+	em:RegisterForUpdate("LibCombat_Frames_Enable", playerActivatedTime , enableLogging)
+
+end
+
+local function onPlayerDeativated()
+	em:UnregisterForUpdate("LibCombat_Frames")
+end
+
+local function onQueueEvent(_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, abilityId)
+
+    lastQueuedAbilities[abilityId] = GetGameTimeMilliseconds()
+
+end
+
 local function UpdateEventRegistrations()
 
 	for _,Eventgroup in pairs(Events) do
@@ -2174,19 +2516,22 @@ local function UpdateEventRegistrations()
 
 end
 
-local function EditResource(callbacktype,add,name)
+local function UpdateResources(name, callbacktype, callback)
 
-	if add == true then
+	local oldCallback = ActiveCallbackTypes[callbacktype][name]
 
-		ActiveCallbackTypes[callbacktype][name] = true
+	if callback and oldCallback then
 
-	elseif add == false then
+		return false
 
-		ActiveCallbackTypes[callbacktype][name] = nil
+	else
+
+		ActiveCallbackTypes[callbacktype][name] = callback
+		UpdateEventRegistrations()
 
 	end
 
-	UpdateEventRegistrations()
+	return true, oldCallback
 end
 
 local function InitResources()
@@ -2198,26 +2543,49 @@ local function InitResources()
 	end
 end
 
-function lib:RegisterAllLogCallbacks(callback, name)
+function lib:RegisterForLogableCombatEvents(name, callback)
 
 	for i = LIBCOMBAT_EVENT_DAMAGE_OUT, LIBCOMBAT_EVENT_MAX do
 
-		lib:RegisterCallbackType(i, callback, name)
+		lib:RegisterForCombatEvent(name, i, callback)
 
 	end
 end
 
+function lib:RegisterForCombatEvent(name, callbacktype, callback)
+
+	local isRegistered = UpdateResources(name, callbacktype, callback)
+	if isRegistered then lib.cm:RegisterCallback(CallbackKeys[callbacktype], callback) end
+
+	return isRegistered
+
+end
+
+function lib:UnregisterForCombatEvent(name, callbacktype)
+
+	local isUnregistered, callback = UpdateResources(name, callbacktype)
+	lib.cm:UnregisterCallback(CallbackKeys[callbacktype], callback)
+
+	return isUnregistered
+end
+
+--- Legacy
+
+function lib:RegisterAllLogCallbacks(callback, name)
+
+	lib:RegisterForLogableCombatEvents(name, callback)
+
+end
+
 function lib:RegisterCallbackType(callbacktype, callback, name)
 
-	lib.cm:RegisterCallback(CallbackKeys[callbacktype], callback)
-	EditResource(callbacktype, true, name)
+	lib:RegisterForCombatEvent(name, callbacktype, callback)
 
 end
 
 function lib:UnregisterCallbackType(callbacktype, callback, name)
 
-	lib.cm:UnregisterCallback(CallbackKeys[callbacktype], callback)
-	EditResource(callbacktype, false, name)
+	lib:UnregisterForCombatEvent(name, callbacktype)
 
 end
 
@@ -2236,6 +2604,38 @@ function lib:GetCurrentFight()
 	end
 
 	return copy
+end
+
+local registeredSkills = {}
+
+local function UpdateSkillEvents(self)
+
+	for _, skill in pairs(SlotSkills) do
+
+		local id, result, finish = unpack(skill)
+
+		if not registeredSkills[id] then
+
+			local func = finish and onAbilityFinished or onAbilityUsed
+
+			Print("events", LOG_LEVEL_DEBUG, "Skill registered: %d: %s (%s, end?: %s)", id, GetAbilityName(id), tostring(result), tostring(finish == true))
+
+			local active
+
+			if result then
+
+				active = self:RegisterEvent(EVENT_COMBAT_EVENT, func, REGISTER_FILTER_ABILITY_ID, id, REGISTER_FILTER_COMBAT_RESULT, result)
+
+			else
+
+				active = self:RegisterEvent(EVENT_COMBAT_EVENT, func, REGISTER_FILTER_ABILITY_ID, id)
+
+			end
+
+			registeredSkills[id] = active
+
+		end
+	end
 end
 
 local EventHandler = ZO_Object:Subclass()
@@ -2270,9 +2670,20 @@ function EventHandler:RegisterEvent(event, callback, ...) -- convinience functio
 
 	end
 
-	self.data[#self.data+1] = { ["id"]=lib.totalevents, ["event"] = event, ["callback"] = callback, ["active"] = active, ["filtered"] = filtered, ["filters"] = filters }  -- remove callbacks later, probably not necessary
+	self.data[#self.data+1] = {
+
+		["id"] = lib.totalevents,
+		["event"] = event,
+		["callback"] = callback,
+		["active"] = active,
+		["filtered"] = filtered,
+		["filters"] = filters }  -- remove callbacks later, probably not necessary
 
 	if active then lib.totalevents = lib.totalevents + 1 end
+
+	if data.isUIActivated and event == EVENT_PLAYER_ACTIVATED then callback(EVENT_PLAYER_ACTIVATED, false) end
+
+	return active
 end
 
 function EventHandler:UpdateEvents()
@@ -2311,9 +2722,11 @@ function EventHandler:UnregisterEvents()
 	end
 
 	self.active = false
+
+	if self.resetIds then registeredSkills = {} end
 end
 
--- lib.Events = Events		-- debug exposure
+lib.Events = Events		-- debug exposure
 
 local function UnregisterAllEvents()
 
@@ -2338,13 +2751,23 @@ Events.General = EventHandler:New(GetAllCallbackTypes()
 	,
 	function (self)
 		self:RegisterEvent(EVENT_PLAYER_COMBAT_STATE, onCombatState)
-		self:RegisterEvent(EVENT_UNIT_CREATED, onGroupChange)
-		self:RegisterEvent(EVENT_UNIT_DESTROYED, onGroupChange)
+		self:RegisterEvent(EVENT_GROUP_UPDATE, onGroupChange)
 		self:RegisterEvent(EVENT_ACTION_SLOT_ABILITY_SLOTTED, GetCurrentSkillBars)
 		self:RegisterEvent(EVENT_PLAYER_ACTIVATED, onPlayerActivated)
 		self:RegisterEvent(EVENT_EFFECT_CHANGED, onMageExplode, REGISTER_FILTER_ABILITY_ID, 50184)
 		self:RegisterEvent(EVENT_EFFECT_CHANGED, onShadowWorld, REGISTER_FILTER_ABILITY_ID, 108045)
 		self:RegisterEvent(EVENT_EFFECT_CHANGED, onShadowWorld, REGISTER_FILTER_ABILITY_ID, 121216)
+
+		self:RegisterEvent(EVENT_COMBAT_EVENT, onWTF, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_ABSORBED)
+		self:RegisterEvent(EVENT_COMBAT_EVENT, onWTF, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_BLADETURN)
+		self:RegisterEvent(EVENT_COMBAT_EVENT, onWTF, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_BLOCKED_DAMAGE)
+		self:RegisterEvent(EVENT_COMBAT_EVENT, onWTF, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_DIED_XP)
+		self:RegisterEvent(EVENT_COMBAT_EVENT, onWTF, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_LINKED_CAST)
+		self:RegisterEvent(EVENT_COMBAT_EVENT, onWTF, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_PARTIAL_RESIST)
+		self:RegisterEvent(EVENT_COMBAT_EVENT, onWTF, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_PRECISE_DAMAGE)
+		self:RegisterEvent(EVENT_COMBAT_EVENT, onWTF, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_REFLECTED)
+		self:RegisterEvent(EVENT_COMBAT_EVENT, onWTF, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_RESIST)
+		self:RegisterEvent(EVENT_COMBAT_EVENT, onWTF, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_WRECKING_DAMAGE)
 
 		if lib.debug == true then self:RegisterEvent(EVENT_COMBAT_EVENT, onCustomEvent, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_GAINED_DURATION, REGISTER_FILTER_IS_ERROR, false) end
 		self.active = true
@@ -2520,6 +2943,7 @@ Events.Stats = EventHandler:New(
 		end
 
 		self:RegisterEvent(EVENT_EFFECT_CHANGED, onTFSChanged, REGISTER_FILTER_UNIT_TAG, "player", REGISTER_FILTER_ABILITY_ID, 51176)  -- to track TFS procs, which aren't recognized for stacks > 1 in penetration stat.
+		self.active = true
 	end
 )
 
@@ -2544,21 +2968,59 @@ Events.Messages = EventHandler:New(
 )
 
 Events.Deaths = EventHandler:New(
-	{LIBCOMBAT_EVENT_DEATH},
+	{LIBCOMBAT_EVENT_DEATH, LIBCOMBAT_EVENT_DEATHRECAP},
 	function (self)
+
 		self:RegisterEvent(EVENT_COMBAT_EVENT, OnDeath, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_KILLING_BLOW)
 		self:RegisterEvent(EVENT_COMBAT_EVENT, OnDeath, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_DIED)
+		self:RegisterEvent(EVENT_COMBAT_EVENT, OnResurrect, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_RESURRECT)
+		self:RegisterEvent(EVENT_COMBAT_EVENT, OnResurrect, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_REINCARNATING)
 		self:RegisterEvent(EVENT_UNIT_DEATH_STATE_CHANGED, OnDeathStateChanged, REGISTER_FILTER_UNIT_TAG_PREFIX, "group")
+		self:RegisterEvent(EVENT_UNIT_DEATH_STATE_CHANGED, OnDeathStateChanged, REGISTER_FILTER_UNIT_TAG, "player")
 		self:RegisterEvent(EVENT_PLAYER_REINCARNATED, OnPlayerReincarnated)
+
+		self:RegisterEvent(EVENT_RESURRECT_RESULT, OnResurrectResult)
+		self:RegisterEvent(EVENT_RESURRECT_REQUEST, OnResurrectRequest)
+
 		self.active = true
+
 	end
 )
 
-Events.Resurrections = EventHandler:New(
-	{LIBCOMBAT_EVENT_RESURRECTION},
+Events.DeathRecap = EventHandler:New(
+	{LIBCOMBAT_EVENT_DEATHRECAP},
 	function (self)
-		self:RegisterEvent(EVENT_RESURRECT_RESULT, OnResurrectResult)
-		self:RegisterEvent(EVENT_RESURRECT_REQUEST, OnResurrectRequest)
+
+		local filters = {
+			ACTION_RESULT_DAMAGE,
+			ACTION_RESULT_DOT_TICK,
+			ACTION_RESULT_BLOCKED_DAMAGE,
+			ACTION_RESULT_DAMAGE_SHIELDED,
+			ACTION_RESULT_CRITICAL_DAMAGE,
+			ACTION_RESULT_DOT_TICK_CRITICAL,
+			ACTION_RESULT_FALL_DAMAGE,
+		}
+
+		for _, filter in ipairs(filters) do
+			self:RegisterEvent(EVENT_COMBAT_EVENT, onCombatEventGrpDmgIn, REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER, REGISTER_FILTER_COMBAT_RESULT, filter, REGISTER_FILTER_IS_ERROR, false)
+			self:RegisterEvent(EVENT_COMBAT_EVENT, onCombatEventGrpDmgIn, REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_GROUP, REGISTER_FILTER_COMBAT_RESULT, filter, REGISTER_FILTER_IS_ERROR, false)
+		end
+
+		local filters2 = {
+			ACTION_RESULT_HOT_TICK,
+			ACTION_RESULT_HEAL,
+			ACTION_RESULT_CRITICAL_HEAL,
+			ACTION_RESULT_HOT_TICK_CRITICAL,
+		}
+
+		for _, filter in ipairs(filters2) do
+			self:RegisterEvent(EVENT_COMBAT_EVENT, onCombatEventGrpHealIn, REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER, REGISTER_FILTER_COMBAT_RESULT, filter, REGISTER_FILTER_IS_ERROR, false)
+			self:RegisterEvent(EVENT_COMBAT_EVENT, onCombatEventGrpHealIn, REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_GROUP, REGISTER_FILTER_COMBAT_RESULT, filter, REGISTER_FILTER_IS_ERROR, false)
+		end
+
+		self:RegisterEvent(EVENT_POWER_UPDATE, onBaseResourceChangedGroup, REGISTER_FILTER_UNIT_TAG_PREFIX, "group")
+		self:RegisterEvent(EVENT_POWER_UPDATE, onBaseResourceChangedGroup, REGISTER_FILTER_UNIT_TAG, "player")
+
 		self.active = true
 	end
 )
@@ -2570,6 +3032,7 @@ Events.Slots = EventHandler:New(
 		self:RegisterEvent(EVENT_ACTION_SLOT_ABILITY_USED, onSlotUsed)
 
 		self.active = true
+
 	end
 )
 
@@ -2581,27 +3044,14 @@ Events.Skills = EventHandler:New(
 		self:RegisterEvent(EVENT_COMBAT_EVENT, GetCurrentSkillBarsDelayed, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_GAINED, REGISTER_FILTER_ABILITY_ID, 24806) -- Overload & Morphs
 		self:RegisterEvent(EVENT_COMBAT_EVENT, GetCurrentSkillBarsDelayed, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_GAINED, REGISTER_FILTER_ABILITY_ID, 24804) -- Overload & Morphs
 		self:RegisterEvent(EVENT_ACTION_SLOT_UPDATED, onSlotUpdate)
+		self:RegisterEvent(EVENT_COMBAT_EVENT, onQueueEvent, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_QUEUED)
 
-		for _, skill in pairs(SlotSkills) do
+		self.Update = UpdateSkillEvents
 
-			local id, result, finish = unpack(skill)
-
-			local func = finish and onAbilityFinished or onAbilityUsed
-
-			-- Print("Skill registered: %d: %s (%s, end?: %s)", id, GetAbilityName(id), tostring(result), tostring(finish == true))
-
-			if result then
-
-				self:RegisterEvent(EVENT_COMBAT_EVENT, func, REGISTER_FILTER_ABILITY_ID, id, REGISTER_FILTER_COMBAT_RESULT, result)
-
-			else
-
-				self:RegisterEvent(EVENT_COMBAT_EVENT, func, REGISTER_FILTER_ABILITY_ID, id)
-
-			end
-		end
+		UpdateSkillEvents(self)
 
 		self.active = true
+		self.resetIds = true
 
 	end
 )
@@ -2610,6 +3060,15 @@ Events.BossHP = EventHandler:New(
 	{LIBCOMBAT_EVENT_BOSSHP},
 	function (self)
 		self:RegisterEvent(EVENT_POWER_UPDATE, onBossHealthChanged, REGISTER_FILTER_UNIT_TAG, "boss1", REGISTER_FILTER_POWER_TYPE, POWERTYPE_HEALTH)
+		self.active = true
+	end
+)
+
+Events.Performance = EventHandler:New(
+	{LIBCOMBAT_EVENT_PERFORMANCE},
+	function (self)
+		self:RegisterEvent(EVENT_PLAYER_DEACTIVATED, onPlayerDeativated)
+		self:RegisterEvent(EVENT_PLAYER_ACTIVATED, onPlayerActivated2)
 		self.active = true
 	end
 )
@@ -2682,7 +3141,7 @@ function lib:GetCombatLogString(fight, logline, fontsize)
 
 	local timeValue = fight.combatstart < 0 and 0 or (logline[2] - fight.combatstart)/1000
 	local timeString = stringformat("|ccccccc[%.3fs]|r", timeValue)
-	local logFormat = logtype == LIBCOMBAT_EVENT_SKILL_TIMINGS and GetString("SI_LIBCOMBAT_LOG_FORMATSTRING_SKILLS", logline[5]) or GetString("SI_LIBCOMBAT_LOG_FORMATSTRING", logtype)
+	local logFormat = GetString("SI_LIBCOMBAT_LOG_FORMATSTRING", logtype)
 
 	local units = fight.units
 
@@ -2781,8 +3240,6 @@ function lib:GetCombatLogString(fight, logline, fontsize)
 		local changeTypeString = (changeType == EFFECT_RESULT_GAINED or changeType == EFFECT_RESULT_UPDATED) and GetString(SI_LIBCOMBAT_LOG_GAINED) or changeType == EFFECT_RESULT_FADED and GetString(SI_LIBCOMBAT_LOG_LOST)
 
 		local source = UnitTypeString[sourceType] == nil and "" or ZO_CachedStrFormat(" from <<1>>", UnitTypeString[sourceType])
-
-		-- if lib.debug and slot then source = ZO_CachedStrFormat("<<1>> (<<2>>)", source, slot) end
 
 		local colorKey = effectType == BUFF_EFFECT_TYPE_DEBUFF and "debuff" or "buff"
 
@@ -2898,7 +3355,9 @@ function lib:GetCombatLogString(fight, logline, fontsize)
 
 	elseif logtype == LIBCOMBAT_EVENT_SKILL_TIMINGS then
 
-		local _, _, reducedslot, abilityId, status = unpack(logline)
+		local _, _, reducedslot, abilityId, status, skillDelay = unpack(logline)
+
+		logFormat = GetString("SI_LIBCOMBAT_LOG_FORMATSTRING_SKILLS", logline[5])
 
 		local isWeaponAttack = reducedslot%10 == 1 or reducedslot%10 == 2
 
@@ -2907,10 +3366,12 @@ function lib:GetCombatLogString(fight, logline, fontsize)
 		if isWeaponAttack then formatstring = " |cffffff<<1>>|r" end
 
 		local name = ZO_CachedStrFormat(formatstring, GetFormattedAbilityName(abilityId))
+		
+		local skillDelayString = skillDelay and ZO_CachedStrFormat(GetString(SI_LIBCOMBAT_LOG_FORMATSTRING_SKILLDELAY), skillDelay) or ""
 
 		color = {.9,.8,.7}
 
-		text = ZO_CachedStrFormat(logFormat, timeString, name)
+		text = ZO_CachedStrFormat(logFormat, timeString, name, skillDelayString)
 
 	elseif logtype == LIBCOMBAT_EVENT_BOSSHP then
 
@@ -2922,9 +3383,50 @@ function lib:GetCombatLogString(fight, logline, fontsize)
 
 		local percent = zo_round(currenthp/maxhp * 100)
 
-		color = {.7,.7,.7}
+		color = {.9,.7,.5}
 
 		text = ZO_CachedStrFormat(logFormat, timeString, bossName, percent, currenthp, maxhp)
+
+	elseif logtype == LIBCOMBAT_EVENT_PERFORMANCE then
+
+		local _, _, fps, min, max, ping = unpack(logline)
+
+		color = {.9,.9,.9}
+
+		local pingcolor = ping <= 50 and "99ff99" or ping <= 80 and "ccff99" or ping <= 120 and "ffff99" or ping <= 160 and "ffcc99" or "ff9999"
+		local pingString = ZO_CachedStrFormat("|c<<1>><<2>>|r", pingcolor, ping)
+
+		local fpsColor = fps >= 100 and "99ff99" or fps >= 60 and "ccff99" or fps >= 40 and "ffff99" or fps >= 25 and "ffcc99" or "ff9999"
+		local fpsString = ZO_CachedStrFormat("|c<<1>><<2>>|r", fpsColor, fps)
+
+		local minString = min < (0.5 * fps) and min < 25 and ZO_CachedStrFormat("|cff9999<<1>>|r", min) or min < (0.7 * fps) and min < 40 and ZO_CachedStrFormat("|cffddbb<<1>>|r", min) or min
+
+		text = ZO_CachedStrFormat(logFormat, timeString, fpsString, minString, max, pingString)
+
+	elseif logtype == LIBCOMBAT_EVENT_DEATH then
+
+		local _, _, state, unitId, otherId = unpack(logline)
+
+		logFormat = GetString("SI_LIBCOMBAT_LOG_FORMATSTRING_DEATH", state)
+
+		local isSelf = fight.playerid == unitId
+
+		local unitString = isSelf and GetString(SI_LIBCOMBAT_LOG_YOU) or units[unitId].name
+
+		local action = ""
+		local otherString = ""
+
+		if state == 1 and otherId ~= nil then otherString = GetAbilityString(otherId, DAMAGE_TYPE_GENERIC, fontsize) end
+
+		if state > 2 then
+
+			action = GetString("SI_LIBCOMBAT_LOG_RESURRECT", isSelf and 1 or 2)
+
+		end
+
+		text = ZO_CachedStrFormat(logFormat, timeString, unitString, action, otherString)
+
+		color = {.7,.7,.7}
 
 	end
 
@@ -2935,14 +3437,12 @@ local function Initialize()
 
   data.inCombat = IsUnitInCombat("player")
   data.inGroup = IsUnitGrouped("player")
-  data.playername = zo_strformat(SI_UNIT_NAME,GetUnitName("player"))
-  data.accountname = GetDisplayName()
-  data.bosses = 0
-  data.groupmembers = {}
-  data.groupmemberdisplaynames = {}
+  data.rawPlayername = GetUnitName("player")
+  data.accountname = ZO_CachedStrFormat(SI_UNIT_NAME, GetDisplayName())
+  data.bossInfo = {}
+  data.groupInfo = {nameToId = {}, tagToId = {}, nameToTag = {}, nameToDisplayname = {}}
   data.PlayerPets = {}
   data.lastabilities = {}
-  data.bossnames = {}
   data.majorForce = 0
   data.minorForce = 0
   data.critBonusMundus = 0
@@ -2965,6 +3465,9 @@ local function Initialize()
   if data.LoadCustomizations then data.LoadCustomizations() end
 
   maxcrit = mathfloor(100/GetCriticalStrikeChance(1))
+
+  em:RegisterForEvent("LibCombatActive", EVENT_PLAYER_ACTIVATED, function() data.isUIActivated = true end)
+  em:RegisterForEvent("LibCombatActive", EVENT_PLAYER_DEACTIVATED, function() data.isUIActivated = false end)
 end
 
 Initialize()
