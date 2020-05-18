@@ -1,4 +1,7 @@
-﻿27 DL: 199,430  (17.05.2020 22:26)
+﻿28 DL: 215,702  (18.05.2020 23:29)
+[*] Fixed a lua error that could happen when leaving Battleground or Cyrodil in some cases
+
+27 DL: 199,430  (17.05.2020 22:26)
 [*] Reworked event registration functions (e.g. lib:RegisterForCombatEvent). The behaviour and syntax now matches event registration of the ESO API (EVENT_MANAGER:RegisterForEvent). The old functions are still supported but may be removed in the future.
 [*] LibCombat:RegisterCallbackType(callbacktype, callback, name) --> LibCombat:RegisterForCombatEvent(name, callbacktype, callback), returns: isRegistered
 [*] LibCombat:UnregisterCallbackType(callbacktype, callback, name) --> LibCombat:UnregisterForCombatEvent(name, callbacktype), returns: isUnregistered
