@@ -69,7 +69,7 @@ local em = GetEventManager()
 local _
 local reset = false
 local data = lib.data
-lib.debug = false --or GetDisplayName() == "@Solinur"
+lib.debug = false -- or GetDisplayName() == "@Solinur"
 local timeout = 800
 local activetimeonheals = true
 local ActiveCallbackTypes = {}
@@ -2943,6 +2943,7 @@ Events.Stats = EventHandler:New(
 		end
 
 		self:RegisterEvent(EVENT_EFFECT_CHANGED, onTFSChanged, REGISTER_FILTER_UNIT_TAG, "player", REGISTER_FILTER_ABILITY_ID, 51176)  -- to track TFS procs, which aren't recognized for stacks > 1 in penetration stat.
+		self.active = true
 	end
 )
 
@@ -3047,7 +3048,7 @@ Events.Skills = EventHandler:New(
 
 		self.Update = UpdateSkillEvents
 
-		UpdateSkillEvents()
+		UpdateSkillEvents(self)
 
 		self.active = true
 		self.resetIds = true
