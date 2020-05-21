@@ -17,7 +17,7 @@ local dx = math.ceil(GuiRoot:GetWidth()/tonumber(GetCVar("WindowedWidth"))*1000)
 LIBCOMBAT_LINE_SIZE = dx
 
 local lib = {}
-lib.version = 29
+lib.version = 30
 LibCombat = lib
 
 -- Basic values
@@ -916,8 +916,9 @@ local function UpdateSlotSkillEvents()
 
 				local convertedId = convertedId or abilityId
 
-				table.insert(SlotSkills, {convertedId, result, false})
-				if convertedId2 or result2 then table.insert(SlotSkills, {(convertedId2 or abilityId), result2, true}) end
+				local data = (convertedId2 or result2) and {convertedId, result, (convertedId2 or abilityId), result2} or {convertedId, result}
+
+				table.insert(SlotSkills, data)
 			end
 		end
 	end
@@ -1793,7 +1794,7 @@ local function onBaseResourceChanged(_,unitTag,_,powerType,powerValue,_,_)
 
 		if powerValueChange == 0 then return end
 
-		Print("events", LOG_LEVEL_DEBUG, "Skill cost: %d", powerValueChange)
+		Print("events", LOG_LEVEL_VERBOSE, "Skill cost: %d", powerValueChange)
 
 		aId = checkLastAbilities(powerType, powerValueChange)
 
@@ -2612,23 +2613,27 @@ local function UpdateSkillEvents(self)
 
 	for _, skill in pairs(SlotSkills) do
 
-		local id, result, finish = unpack(skill)
+		local id, result, id2, result2 = unpack(skill)
 
 		if not registeredSkills[id] then
 
-			local func = finish and onAbilityFinished or onAbilityUsed
-
-			Print("events", LOG_LEVEL_DEBUG, "Skill registered: %d: %s (%s, end?: %s)", id, GetAbilityName(id), tostring(result), tostring(finish == true))
+			Print("events", LOG_LEVEL_DEBUG, "Skill registered: %d: %s (%s), End:  %d: %s (%s))", id, GetAbilityName(id), tostring(result), id2 or 0, GetAbilityName(id2 or 0), tostring(result2))
 
 			local active
 
 			if result then
 
-				active = self:RegisterEvent(EVENT_COMBAT_EVENT, func, REGISTER_FILTER_ABILITY_ID, id, REGISTER_FILTER_COMBAT_RESULT, result)
+				active = self:RegisterEvent(EVENT_COMBAT_EVENT, onAbilityUsed, REGISTER_FILTER_ABILITY_ID, id, REGISTER_FILTER_COMBAT_RESULT, result)
 
 			else
 
-				active = self:RegisterEvent(EVENT_COMBAT_EVENT, func, REGISTER_FILTER_ABILITY_ID, id)
+				active = self:RegisterEvent(EVENT_COMBAT_EVENT, onAbilityUsed, REGISTER_FILTER_ABILITY_ID, id)
+
+			end
+
+			if id2 and result2 then
+
+				self:RegisterEvent(EVENT_COMBAT_EVENT, onAbilityFinished, REGISTER_FILTER_ABILITY_ID, id2, REGISTER_FILTER_COMBAT_RESULT, result2) 
 
 			end
 
