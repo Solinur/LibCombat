@@ -400,6 +400,10 @@ local abilityConversions = {	-- Ability conversions for tracking skill activatio
 	[22327] = {22331, 2240, nil, nil}, --Ritual of Rebirth --> Ritual of Rebirth
 	[22314] = {22318, 2240, nil, nil}, --Hasty Prayer --> Hasty Prayer
 
+	[22259] = {26301, 2240, nil, nil}, --Ritual of Retribution --> Ritual of Retribution
+	[22265] = {26287, 2240, nil, nil}, --Cleansing Ritual --> Healing Ritual
+	[22262] = {26306, 2240, nil, nil}, --Extended Ritual --> Extended Ritual
+
 	[26209] = {26220, 2240, nil, nil}, --Restoring Aura --> Minor Magickasteal
 	[26807] = {26809, 2240, nil, nil}, --Radiant Aura --> Minor Magickasteal
 	[26821] = {29824, 16, nil, nil}, --Repentance? --> Repentance?
