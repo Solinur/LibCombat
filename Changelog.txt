@@ -1,4 +1,7 @@
-﻿29 DL: 233,394 (20.05.2020 00:53)
+﻿30 DL: 266,183 (23.05.2020) 22:53
+[*] Fixed some issues with skill timing events. (Thx @ wraith1515 for reporting)
+
+29 DL: 233,394 (20.05.2020 00:53)
 [*] Fixed a lua error that could happen when leaving Battleground or Cyrodil in some cases
 
 28 DL: 215,702 (18.05.2020 23:29)
