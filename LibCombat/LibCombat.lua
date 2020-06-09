@@ -17,7 +17,7 @@ local dx = math.ceil(GuiRoot:GetWidth()/tonumber(GetCVar("WindowedWidth"))*1000)
 LIBCOMBAT_LINE_SIZE = dx
 
 local lib = {}
-lib.version = 30
+lib.version = 31
 LibCombat = lib
 
 -- Basic values
@@ -37,7 +37,7 @@ local LOG_LEVEL_ERROR = "E"
 
 if LibDebugLogger then
 
-	mainlogger = LibDebugLogger(lib.name)
+	mainlogger = LibDebugLogger.Create(lib.name)
 
 	LOG_LEVEL_VERBOSE = LibDebugLogger.LOG_LEVEL_VERBOSE
 	LOG_LEVEL_DEBUG = LibDebugLogger.LOG_LEVEL_DEBUG
@@ -58,7 +58,7 @@ local function Print(category, level, ...)
 
 	local logger = category and subloggers[category] or mainlogger
 
-	logger:Log(level, ...)
+	if type(logger.Log)=="function" then logger:Log(level, ...) end
 
 end
 
@@ -580,10 +580,11 @@ local validSkillEndResults = {
 
 }
 
-local ignoredAbilities = {
+local ignoredAbilities = { -- Skills which ignore global cooldown
 
-    [118008] = true,    -- Mystic Syphon (currently ignores global cooldown)
-    [118763] = true,    -- Detonating Syphon (currently ignores global cooldown)
+	[132141] = true,    -- Blood Frenzy (Vampire Toggle)
+	[134160] = true,    -- Simmering Frenzy (Vampire Toggle)
+	[135841] = true,    -- Sated Fury (Vampire Toggle)
 
 }
 
@@ -2279,8 +2280,8 @@ local function onAbilityUsed(eventCode, result, isError, abilityName, abilityGra
 
 	local timems = GetGameTimeMilliseconds()
 
-	local lasttime = lastskilluses[abilityId] or 0
-	if timems - lasttime > 2000 then return end
+	local lasttime = lastskilluses[abilityId]
+	if lasttime == nil or timems - lasttime > maxSkillDelay then return end
 
 	lastskilluses[abilityId] = nil
 
@@ -2296,7 +2297,16 @@ local function onAbilityUsed(eventCode, result, isError, abilityName, abilityGra
 
 	HeavyAttackCharging = DirectHeavyAttacks[origId] and origId or nil
 
-	local skillDelay = timems - math.max(lasttime, lastQueuedAbilities[origId] or lasttime)
+	local lastQ = lastQueuedAbilities[origId]
+	lastQueuedAbilities[origId] = nil
+
+	if lastQ and lasttime then
+
+		Print("events", LOG_LEVEL_DEBUG, "%s: act: %d, Q: %d, Diff: %d", GetFormattedAbilityName(origId), timems-lasttime, timems-lastQ, lastQ - lasttime)
+
+	end
+	
+	local skillDelay = timems - math.max(lasttime, lastQ or lasttime)
 
 	skillDelay = skillDelay < maxSkillDelay and skillDelay or nil
 
