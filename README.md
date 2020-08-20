@@ -145,4 +145,4 @@ A function to return a copy of the current fight data:
 
 <!-- TODO: Return values? -->
 
-***Decay2 aka Solinur (Pact EU)***
+*Solinur (EU)*
