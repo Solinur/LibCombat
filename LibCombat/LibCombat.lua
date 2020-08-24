@@ -1506,7 +1506,7 @@ function UnitCache:ProcessDeath()
 	self.combatstart = currentfight.combatstart
 
 	self.log = {}
-	local cache = self.cache			
+	local cache = self.cache
 
 	if #cache > 0 then
 
@@ -1531,12 +1531,15 @@ function UnitCache:ProcessDeath()
 				if data[10] and data[10] > self.magickaMax then self.magickaMax = data[10] end
 				if data[11] and data[11] > self.staminaMax then self.staminaMax = data[11] end
 
-			else deleted = deleted + 1
+			else
+
+				deleted = deleted + 1
+				Print("fight", LOG_LEVEL_DEBUG , "%s: dt: %d", timems - data[1])
 
 			end
 		end
 
-		Print("other", LOG_LEVEL_INFO , "%s: cache: %d, log: %d, deleted: %d", unit and unit.name or "Unknown", #cache, #log, deleted)
+		Print("fight", LOG_LEVEL_DEBUG , "%s: cache: %d, log: %d, deleted: %d", unit and unit.name or "Unknown", #cache, #log, deleted)
 	end
 
 	self.cache = nil
@@ -1554,6 +1557,8 @@ function UnitCache:ProcessDeath()
 end
 
 function UnitCache:AddEvent(timems, result, sourceUnitId, abilityId, hitValue, damageType, overflow)
+
+	if self.unitId ~= data.playerid then Print("fight", LOG_LEVEL_DEBUG, self.unitId, abilityId, hitValue) end
 
 	local nextKey = self.nextKey
 
@@ -1688,7 +1693,7 @@ local function onAlkoshDmg(eventCode, result, isError, abilityName, abilityGraph
 
 	local fullValue = hitValue + (overflow or 0)
 
-	Print("events", LOG_LEVEL_INFO, "Alkosh Dmg: %d", fullValue)
+	Print("events", LOG_LEVEL_DEBUG, "Alkosh Dmg: %d", fullValue)
 
 	AlkoshData[targetUnitId] = fullValue
 
@@ -2068,15 +2073,15 @@ local SpecialResults = {
 
 local function OnDeath(_, result, _, abilityName, _, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, _, sourceUnitId, targetUnitId, abilityId, overflow)
 
-	Print("DoA", LOG_LEVEL_DEBUG, "OnDeath (%s): %s (%d, %d) / %s (%d, %d) - %s (%d): %d (o: %d, type: %d)", SpecialResults[result], sourceName, sourceUnitId, sourceType, targetName, targetUnitId, targetType, GetFormattedAbilityName(abilityId), abilityId, hitValue or 0, overflow or 0, damageType or 0)
-
 	local timems = GetGameTimeMilliseconds()
 
 	if targetUnitId == nil or targetUnitId == 0 then return end
-	
+
 	local unitdata = currentfight.units[targetUnitId]
 
 	if unitdata == nil or (unitdata.unitType ~= COMBAT_UNIT_TYPE_PLAYER and unitdata.unitType ~= COMBAT_UNIT_TYPE_GROUP) then return end
+
+	Print("DoA", LOG_LEVEL_DEBUG, "OnDeath (%s): %s (%d, %d) / %s (%d, %d) - %s (%d): %d (o: %d, type: %d)", SpecialResults[result], sourceName, sourceUnitId, sourceType, targetName, targetUnitId, targetType, GetFormattedAbilityName(abilityId), abilityId, hitValue or 0, overflow or 0, damageType or 0)
 
 	lastdeaths[targetUnitId] = timems
 
@@ -2292,7 +2297,7 @@ end
 
 --(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
 
-local function GroupCombatEventHandler(isheal, result, _, _, _, _, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, _, sourceUnitId, targetUnitId, abilityId, overflow)  -- called by Event
+local function GroupCombatEventHandler(isheal, result, _, abilityName, _, _, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, _, sourceUnitId, targetUnitId, abilityId, overflow)  -- called by Event
 
 	if (hitValue + (overflow or 0)) < 0 or (not (targetUnitId > 0)) or (data.inCombat == false and (result==ACTION_RESULT_DOT_TICK_CRITICAL or result==ACTION_RESULT_DOT_TICK or isheal) ) then return end -- only record if both unitids are valid or player is in combat or a non dot damage action happens
 	local timems = GetGameTimeMilliseconds()
@@ -2300,6 +2305,8 @@ local function GroupCombatEventHandler(isheal, result, _, _, _, _, sourceName, s
 	if currentfight.dpsstart == nil then currentfight:PrepareFight() end -- get stats before the damage event
 
 	damageType = (isheal and powerType) or damageType
+
+	if targetUnitId ~= data.playerid then Print("fight", LOG_LEVEL_DEBUG, targetName, abilityName, hitValue) end
 
 	GetUnitCache(targetUnitId):AddEvent(timems, result, sourceUnitId, abilityId, hitValue, damageType, overflow or 0)
 
@@ -2371,7 +2378,7 @@ local function onAbilityUsed(eventCode, result, isError, abilityName, abilityGra
 		Print("events", LOG_LEVEL_DEBUG, "%s: act: %d, Q: %d, Diff: %d", GetFormattedAbilityName(origId), timems-lasttime, timems-lastQ, lastQ - lasttime)
 
 	end
-	
+
 	local skillDelay = timems - math.max(lasttime, lastQ or lasttime)
 
 	skillDelay = skillDelay < maxSkillDelay and skillDelay or nil
@@ -2713,7 +2720,7 @@ local function UpdateSkillEvents(self)
 
 			if id2 and result2 then
 
-				self:RegisterEvent(EVENT_COMBAT_EVENT, onAbilityFinished, REGISTER_FILTER_ABILITY_ID, id2, REGISTER_FILTER_COMBAT_RESULT, result2) 
+				self:RegisterEvent(EVENT_COMBAT_EVENT, onAbilityFinished, REGISTER_FILTER_ABILITY_ID, id2, REGISTER_FILTER_COMBAT_RESULT, result2)
 
 			end
 
@@ -2858,7 +2865,7 @@ Events.General = EventHandler:New(GetAllCallbackTypes()
 			self:RegisterEvent(EVENT_COMBAT_EVENT, onWTF, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_WRECKING_DAMAGE)
 
 			self:RegisterEvent(EVENT_COMBAT_EVENT, onCustomEvent, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_GAINED_DURATION, REGISTER_FILTER_IS_ERROR, false)
-			
+
 		end
 
 		self.active = true
@@ -3461,7 +3468,7 @@ function lib:GetCombatLogString(fight, logline, fontsize)
 		if isWeaponAttack then formatstring = " |cffffff<<1>>|r" end
 
 		local name = ZO_CachedStrFormat(formatstring, GetFormattedAbilityName(abilityId))
-		
+
 		local skillDelayString = skillDelay and ZO_CachedStrFormat(GetString(SI_LIBCOMBAT_LOG_FORMATSTRING_SKILLDELAY), skillDelay) or ""
 
 		color = {.9,.8,.7}
