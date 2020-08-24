@@ -1,4 +1,9 @@
 ﻿
+32 DL: 
+[*] API Bump to Stonethorn (100032)
+[*] Added special tracking for the new Alkosh penetration debuff
+[*] Small fixes
+
 31 DL: 351.931 (09.06.2020) 23:15
 [*] Put back tracking of skill timings for Necro Siphon since it is back on GCD
 [*] Removed tracking of skill timing for Blood Frenzy and it's morphs, since they are off the GCD
