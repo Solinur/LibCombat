@@ -17,7 +17,7 @@ local dx = math.ceil(GuiRoot:GetWidth()/tonumber(GetCVar("WindowedWidth"))*1000)
 LIBCOMBAT_LINE_SIZE = dx
 
 local lib = {}
-lib.version = 32
+lib.version = 33
 LibCombat = lib
 
 -- Basic values
@@ -732,29 +732,15 @@ function lib.ResetFight()
 	currentfight:ResetFight()
 end
 
-local DivineSlots = {EQUIP_SLOT_HEAD, EQUIP_SLOT_SHOULDERS, EQUIP_SLOT_CHEST, EQUIP_SLOT_HAND, EQUIP_SLOT_WAIST, EQUIP_SLOT_LEGS, EQUIP_SLOT_FEET}
+local function GetShadowBonus(effectSlot)
 
-local function GetShadowBonus()
+	local desc = GetAbilityEffectDescription(effectSlot)
 
-	local divines = 0
+	local bonus = type(desc) == "string" and desc:gsub("^.-(%d+)%p?(%d*).-$", "%1.%2")
 
-	for i, key in pairs(DivineSlots) do
+	data.critBonusMundus = tonumber(bonus)
 
-		local trait, desc = GetItemLinkTraitInfo(GetItemLink(BAG_WORN, key, LINK_STYLE_DEFAULT))
-
-		if trait == ITEM_TRAIT_TYPE_ARMOR_DIVINES then
-
-			local bonus = desc:gsub("^.-(%d+)%p?(%d*)%s?.-$", "%1.%2")  	-- only get first argument to pass it to tonumber()
-
-			divines = (tonumber(bonus) or 0) + divines
-
-		end
-
-	end
-
-	data.critBonusMundus = mathfloor(13 * (1 + divines/100)) -- total mundus bonus, base is 13%
-
-	Print("other", LOG_LEVEL_DEBUG , "Shadow Mundus: %d%% (Divines Bonus: %1.f%%)", data.critBonusMundus, divines)
+	Print("other", LOG_LEVEL_DEBUG , "Shadow Mundus: %d%%", data.critBonusMundus)
 
 end
 
@@ -777,7 +763,7 @@ local function GetPlayerBuffs(timems)
 
 		-- buffName, timeStarted, timeEnding, buffSlot, stackCount, iconFilename, buffType, effectType, abilityType, statusEffectType, abilityId, canClickOff, castByPlayer
 
-		local _, _, endTime, buffSlot, stackCount, _, _, effectType, abilityType, _, abilityId, _, castByPlayer = GetUnitBuffInfo("player",i)
+		local _, _, endTime, effectSlot, stackCount, _, _, effectType, abilityType, _, abilityId, _, castByPlayer = GetUnitBuffInfo("player",i)
 
 		local unitType = castByPlayer and COMBAT_UNIT_TYPE_PLAYER or COMBAT_UNIT_TYPE_NONE
 
@@ -787,12 +773,12 @@ local function GetPlayerBuffs(timems)
 
 		if abilityType == 5 and endTime > 0 and (not BadAbility[abilityId]) then
 
-			lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_EFFECTS_IN]), LIBCOMBAT_EVENT_EFFECTS_IN, newtime, playerid, abilityId, EFFECT_RESULT_GAINED, effectType, stacks, unitType, buffSlot)
+			lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_EFFECTS_IN]), LIBCOMBAT_EVENT_EFFECTS_IN, newtime, playerid, abilityId, EFFECT_RESULT_GAINED, effectType, stacks, unitType, effectSlot)
 			--timems, unitId, abilityId, changeType, effectType, stacks, sourceType
 
 		end
 
-		if abilityId ==	13984 then GetShadowBonus() end
+		if abilityId ==	13984 then GetShadowBonus(effectSlot) end
 
 		if MajorForceAbility[abilityId] then data.majorForce = majorForceAmount end
 		if MinorForceAbility[abilityId] then data.minorForce = minorForceAmount end
@@ -1443,7 +1429,7 @@ function FightHandler:onUpdate()
 			if data.inGroup and Events.CombatGrp.active then
 
 				Print("fight", LOG_LEVEL_DEBUG, "GrpDmg: %d (DPS: %d)", self.groupDamageOut, self.groupDPSOut)
-				Print("fight", LOG_LEVEL_DEBUG, "GrpHeal: %d (HPS: %d)", self.groupHealingOut, self.groupHPS)
+				Print("fight", LOG_LEVEL_DEBUG, "GrpHeal: %d (HPS: %d)", self.groupHealingOut, self.groupHPSOut)
 				Print("fight", LOG_LEVEL_DEBUG, "GrpIncDmg: %d (IncDPS: %d)", self.groupDamageIn, self.groupDPSIn)
 
 			end
@@ -1511,11 +1497,13 @@ function UnitCache:ProcessDeath()
 	if #cache > 0 then
 
 		local log = self.log
-		local offset = self.nextKey
+		local offset = self.nextKey - 1
 		local length = #self.cache
 		local timems = self.timems
 
 		local deleted = 0
+
+		Print("fight", LOG_LEVEL_INFO, "offset: %d, length:%d", offset, length)
 
 		for i = 0, length - 1 do
 
@@ -1526,7 +1514,9 @@ function UnitCache:ProcessDeath()
 
 				log[#log + 1] = data
 				local sourceUnitId = data[3]
-				data[3] = (sourceUnitId and sourceUnitId>0 and currentfight.units[sourceUnitId].name) or "Unknown"
+				local unit = sourceUnitId and sourceUnitId>0 and currentfight.units[sourceUnitId] or "nil"
+
+				data[3] = (unit and unit.name) or "Unknown"
 
 				if data[10] and data[10] > self.magickaMax then self.magickaMax = data[10] end
 				if data[11] and data[11] > self.staminaMax then self.staminaMax = data[11] end
@@ -1534,7 +1524,6 @@ function UnitCache:ProcessDeath()
 			else
 
 				deleted = deleted + 1
-				Print("fight", LOG_LEVEL_DEBUG , "%s: dt: %d", timems - data[1])
 
 			end
 		end
@@ -1557,8 +1546,6 @@ function UnitCache:ProcessDeath()
 end
 
 function UnitCache:AddEvent(timems, result, sourceUnitId, abilityId, hitValue, damageType, overflow)
-
-	if self.unitId ~= data.playerid then Print("fight", LOG_LEVEL_DEBUG, self.unitId, abilityId, hitValue) end
 
 	local nextKey = self.nextKey
 
@@ -2297,9 +2284,10 @@ end
 
 --(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
 
-local function GroupCombatEventHandler(isheal, result, _, abilityName, _, _, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, _, sourceUnitId, targetUnitId, abilityId, overflow)  -- called by Event
+local function GroupCombatEventHandler(isheal, result, _, abilityName, _, _, sourceName, sourceType, targetName, _, hitValue, powerType, damageType, _, sourceUnitId, targetUnitId, abilityId, overflow)  -- called by Event
 
 	if (hitValue + (overflow or 0)) < 0 or (not (targetUnitId > 0)) or (data.inCombat == false and (result==ACTION_RESULT_DOT_TICK_CRITICAL or result==ACTION_RESULT_DOT_TICK or isheal) ) then return end -- only record if both unitids are valid or player is in combat or a non dot damage action happens
+
 	local timems = GetGameTimeMilliseconds()
 
 	if currentfight.dpsstart == nil then currentfight:PrepareFight() end -- get stats before the damage event
@@ -2314,11 +2302,25 @@ end
 
 local function onCombatEventGrpDmgIn(event, ...)
 
+	local targetUnitId = select(15, ...)
+
+	local unit = currentfight.units[targetUnitId]
+	local targetType = unit and unit.unitType or nil
+
+	if not targetType or (targetType ~= COMBAT_UNIT_TYPE_GROUP and targetType ~= COMBAT_UNIT_TYPE_PLAYER) then return end
+
 	GroupCombatEventHandler(false, ...)
 
 end
 
 local function onCombatEventGrpHealIn(event, ...)
+
+	local targetUnitId = select(15, ...)
+
+	local unit = currentfight.units[targetUnitId]
+	local targetType = unit and unit.unitType or nil
+
+	if not targetType or (targetType ~= COMBAT_UNIT_TYPE_GROUP and targetType ~= COMBAT_UNIT_TYPE_PLAYER) then return end
 
 	GroupCombatEventHandler(true, ...)
 
@@ -3104,8 +3106,7 @@ Events.DeathRecap = EventHandler:New(
 		}
 
 		for _, filter in ipairs(filters) do
-			self:RegisterEvent(EVENT_COMBAT_EVENT, onCombatEventGrpDmgIn, REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER, REGISTER_FILTER_COMBAT_RESULT, filter, REGISTER_FILTER_IS_ERROR, false)
-			self:RegisterEvent(EVENT_COMBAT_EVENT, onCombatEventGrpDmgIn, REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_GROUP, REGISTER_FILTER_COMBAT_RESULT, filter, REGISTER_FILTER_IS_ERROR, false)
+			self:RegisterEvent(EVENT_COMBAT_EVENT, onCombatEventGrpDmgIn, REGISTER_FILTER_COMBAT_RESULT, filter, REGISTER_FILTER_IS_ERROR, false)
 		end
 
 		local filters2 = {
@@ -3116,8 +3117,7 @@ Events.DeathRecap = EventHandler:New(
 		}
 
 		for _, filter in ipairs(filters2) do
-			self:RegisterEvent(EVENT_COMBAT_EVENT, onCombatEventGrpHealIn, REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER, REGISTER_FILTER_COMBAT_RESULT, filter, REGISTER_FILTER_IS_ERROR, false)
-			self:RegisterEvent(EVENT_COMBAT_EVENT, onCombatEventGrpHealIn, REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_GROUP, REGISTER_FILTER_COMBAT_RESULT, filter, REGISTER_FILTER_IS_ERROR, false)
+			self:RegisterEvent(EVENT_COMBAT_EVENT, onCombatEventGrpHealIn, REGISTER_FILTER_COMBAT_RESULT, filter, REGISTER_FILTER_IS_ERROR, false)
 		end
 
 		self:RegisterEvent(EVENT_POWER_UPDATE, onBaseResourceChangedGroup, REGISTER_FILTER_UNIT_TAG_PREFIX, "group")
@@ -3207,6 +3207,7 @@ local logColors={
 	[DAMAGE_TYPE_DROWN] 	= "|ccccccc",
 	[DAMAGE_TYPE_DISEASE] 	= "|cc48a9f",
 	[DAMAGE_TYPE_POISON] 	= "|c9fb121",
+	[DAMAGE_TYPE_BLEED] 	= "|cc20a38",
 	["heal"]				= "|c55ff55",
 	["buff"]				= "|c00cc00",
 	["debuff"]				= "|cff3333",

@@ -1,5 +1,8 @@
-﻿
-32 DL: 
+﻿33 DL: 576.257 (17.09.2020) 19:55
+[*] Corrected the calculation for critical damage values to mind the new values from shadow mundus. It will now extract the value from the same tooltip which you can see in the character window, instead of using a hard coded base value and the extracted bonus from divine pieces.
+[*] Some small fixes and changes for future use.
+
+32 DL: 491.085 (24.08.2020) 10:11
 [*] API Bump to Stonethorn (100032)
 [*] Added special tracking for the new Alkosh penetration debuff
 [*] Small fixes
