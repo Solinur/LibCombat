@@ -17,7 +17,7 @@ local dx = math.ceil(GuiRoot:GetWidth()/tonumber(GetCVar("WindowedWidth"))*1000)
 LIBCOMBAT_LINE_SIZE = dx
 
 local lib = {}
-lib.version = 34
+lib.version = 35
 LibCombat = lib
 
 -- Basic values
@@ -345,8 +345,9 @@ local critbonusabilities = {
 local MajorForceAbility = {		-- All AbilityId's that cause Major Force. Used to calculate the Critical Damage Bonus stat.
 
 	[40225] = true,
-	[61747] = true,
+	[61747] = true,	-- not used?
 	[85154] = true,
+	--[97261] = true, -- not used?
 	[120013] = true,
 
 }
@@ -1166,7 +1167,7 @@ local function onTFSChanged(_, changeType, _, _, _, _, _, stackCount, _, _, _, _
 
 	if (changeType == EFFECT_RESULT_GAINED or changeType == EFFECT_RESULT_UPDATED) and stackCount > 1 then
 
-		TFSBonus = (stackCount - 1) * 860
+		TFSBonus = (stackCount - 1) * 544
 
 	else
 

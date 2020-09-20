@@ -1,4 +1,7 @@
-﻿34 DL: 
+﻿35 DL: 613.284 (20.09.2020) 19:35
+[*] Fixed penetration values for TFS. While the penetration API function is not doing what it should either (its not tracking stacks higher than 1 at all), the wrong value was my fault. Should work fine now, I hope.
+
+34 DL: 605.035 (20.09.2020) 12:41
 [*] Reverted critical damage bonus calculation to the previous method, since the ZOS tooltip hast turned out to be inaccurate.
 [*] Physical penetration values are not working correctly when TFS is involved. The underlying API function is bugged and applies the old increase of 860 pen for every stack higher or equal than two. I will fix this if possible, but it will require some work.
 
