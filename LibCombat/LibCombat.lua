@@ -17,7 +17,7 @@ local dx = math.ceil(GuiRoot:GetWidth()/tonumber(GetCVar("WindowedWidth"))*1000)
 LIBCOMBAT_LINE_SIZE = dx
 
 local lib = {}
-lib.version = 33
+lib.version = 34
 LibCombat = lib
 
 -- Basic values
@@ -732,15 +732,29 @@ function lib.ResetFight()
 	currentfight:ResetFight()
 end
 
-local function GetShadowBonus(effectSlot)
+local DivineSlots = {EQUIP_SLOT_HEAD, EQUIP_SLOT_SHOULDERS, EQUIP_SLOT_CHEST, EQUIP_SLOT_HAND, EQUIP_SLOT_WAIST, EQUIP_SLOT_LEGS, EQUIP_SLOT_FEET}
 
-	local desc = GetAbilityEffectDescription(effectSlot)
+local function GetShadowBonus()
 
-	local bonus = type(desc) == "string" and desc:gsub("^.-(%d+)%p?(%d*).-$", "%1.%2")
+	local divines = 0
 
-	data.critBonusMundus = tonumber(bonus)
+	for _, key in pairs(DivineSlots) do
 
-	Print("other", LOG_LEVEL_DEBUG , "Shadow Mundus: %d%%", data.critBonusMundus)
+		local trait, desc = GetItemLinkTraitInfo(GetItemLink(BAG_WORN, key, LINK_STYLE_DEFAULT))
+
+		if trait == ITEM_TRAIT_TYPE_ARMOR_DIVINES then
+
+			local bonus = desc:gsub("^.-(%d+)%p?(%d*)%s?.-$", "%1.%2")  	-- only get first argument to pass it to tonumber()
+
+			divines = (tonumber(bonus) or 0) + divines
+
+		end
+
+	end
+
+	data.critBonusMundus = mathfloor(11 * (1 + divines/100)) -- total mundus bonus
+
+	Print("other", LOG_LEVEL_DEBUG, "Shadow Mundus: %d%%", data.critBonusMundus)
 
 end
 
@@ -778,7 +792,7 @@ local function GetPlayerBuffs(timems)
 
 		end
 
-		if abilityId ==	13984 then GetShadowBonus(effectSlot) end
+		if abilityId ==	13984 then GetShadowBonus() end
 
 		if MajorForceAbility[abilityId] then data.majorForce = majorForceAmount end
 		if MinorForceAbility[abilityId] then data.minorForce = minorForceAmount end
