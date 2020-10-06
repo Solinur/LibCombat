@@ -17,7 +17,7 @@ local dx = math.ceil(GuiRoot:GetWidth()/tonumber(GetCVar("WindowedWidth"))*1000)
 LIBCOMBAT_LINE_SIZE = dx
 
 local lib = {}
-lib.version = 35
+lib.version = 36
 LibCombat = lib
 
 -- Basic values
@@ -83,7 +83,7 @@ local SlotSkills = {}
 local IdToReducedSlot = {}
 local lastskilluses = {}
 local AlkoshData = {}
-local isInShadowWorld = false	-- used to prevent fight reset in Cloudrest/Sunspire when using a portal.
+local isInPortalWorld = false	-- used to prevent fight reset in Cloudrest/Sunspire when using a portal.
 
 local lastBossHealthValue = 2
 
@@ -973,7 +973,7 @@ end
 local function onPlayerActivated()
 
 	zo_callLater(GetCurrentSkillBars, 100)
-	isInShadowWorld = false
+	isInPortalWorld = false
 
 end
 
@@ -1426,10 +1426,47 @@ function FightHandler:UpdateGrpStats() -- called by onUpdate
 
 end
 
+local function getCurrentBossHP()
+
+	if BOSS_BAR.control:IsHidden() then return 0 end
+
+	local totalHealth = 0
+    local totalMaxHealth = 0
+
+    for unitTag, bossEntry in pairs(BOSS_BAR.bossHealthValues) do
+        totalHealth = totalHealth + bossEntry.health
+        totalMaxHealth = totalMaxHealth + bossEntry.maxHealth
+	end
+
+	return totalHealth/totalMaxHealth
+
+end
+
+local function IsOngoingBossfight()
+
+	if isInPortalWorld then -- prevent fight reset in Cloudrest when using a portal.
+
+		Print("other", LOG_LEVEL_DEBUG, "Prevented combat reset because player is in Portal!")
+		return true
+
+	elseif getCurrentBossHP() > 0 and getCurrentBossHP() < 1 then
+
+		Print("other", LOG_LEVEL_INFO, "Prevented combat reset because boss is still in fight!")
+		return true
+
+	else
+
+		return false
+
+	end
+end
+
 function FightHandler:onUpdate()
 
+	onCombatState(EVENT_PLAYER_COMBAT_STATE, IsUnitInCombat("player"))
+
 	--reset data
-	if reset == true or (data.inCombat == false and self.combatend>0 and (GetGameTimeMilliseconds() > (self.combatend + timeout)) ) then
+	if reset == true or (data.inCombat == false and self.combatend > 0 and (GetGameTimeMilliseconds() > (self.combatend + timeout)) ) then
 
 		reset = false
 
@@ -1463,7 +1500,7 @@ function FightHandler:onUpdate()
 
 		em:UnregisterForUpdate("LibCombat_update")
 
-	elseif data.inCombat == true then
+	elseif inCombat == true then
 
 		self:UpdateStats()
 
@@ -1611,20 +1648,13 @@ end
 
 function onCombatState(event, inCombat)  -- Detect Combat Stage, local is defined above - Don't Change !!!
 
-	if isInShadowWorld and IsUnitDead("player") == false then -- prevent fight reset in Cloudrest when using a portal.
-
-		Print("other", LOG_LEVEL_DEBUG, "Prevented combat state change due to Shadow World!")
-		return
-
-	end
-
 	if inCombat ~= data.inCombat then     -- Check if player state changed
 
 		local timems = GetGameTimeMilliseconds()
 
-		data.inCombat = inCombat or false
-
 		if inCombat then
+
+			data.inCombat = inCombat
 
 			Print("fight", LOG_LEVEL_DEBUG, "Entering combat.")
 
@@ -1634,10 +1664,19 @@ function onCombatState(event, inCombat)  -- Detect Combat Stage, local is define
 
 		else
 
+			if IsOngoingBossfight() then
+
+				Print("fight", LOG_LEVEL_INFO, "Failed: Leaving combat.")
+				return
+
+			end
+
+			data.inCombat = false
+			
 			Print("fight", LOG_LEVEL_DEBUG, "Leaving combat.")
-
+			
 			currentfight:FinishFight()
-
+			
 			if currentfight.charData == nil then return end
 
 			lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_MESSAGES]), LIBCOMBAT_EVENT_MESSAGES, timems, LIBCOMBAT_MESSAGE_COMBATEND, 0)
@@ -1680,19 +1719,9 @@ local function AddtoEffectBuffer(endTime, eventid, timems, unitId, abilityId, ..
 	end
 end
 
-local function onShadowWorld( _, changeType)
+local function onPortalWorld( _, changeType)
 
-	isInShadowWorld = changeType == EFFECT_RESULT_GAINED
-	onBossesChanged()
-
-end
-
-local function onKynesRessurection( _, changeType)
-
-	isInShadowWorld = changeType == EFFECT_RESULT_GAINED
-
-	Print("other", LOG_LEVEL_INFO, "Kynes Ressurection Event", isInShadowWorld and "start" or "end")
-
+	isInPortalWorld = changeType == EFFECT_RESULT_GAINED
 	onBossesChanged()
 
 end
@@ -2876,9 +2905,8 @@ Events.General = EventHandler:New(GetAllCallbackTypes()
 		self:RegisterEvent(EVENT_ACTION_SLOT_ABILITY_SLOTTED, GetCurrentSkillBars)
 		self:RegisterEvent(EVENT_PLAYER_ACTIVATED, onPlayerActivated)
 		self:RegisterEvent(EVENT_EFFECT_CHANGED, onMageExplode, REGISTER_FILTER_ABILITY_ID, 50184)
-		self:RegisterEvent(EVENT_EFFECT_CHANGED, onShadowWorld, REGISTER_FILTER_ABILITY_ID, 108045)
-		self:RegisterEvent(EVENT_EFFECT_CHANGED, onShadowWorld, REGISTER_FILTER_ABILITY_ID, 121216)
-		self:RegisterEvent(EVENT_EFFECT_CHANGED, onKynesRessurection, REGISTER_FILTER_ABILITY_ID, 28301)
+		self:RegisterEvent(EVENT_EFFECT_CHANGED, onPortalWorld, REGISTER_FILTER_ABILITY_ID, 108045)
+		self:RegisterEvent(EVENT_EFFECT_CHANGED, onPortalWorld, REGISTER_FILTER_ABILITY_ID, 121216)
 
 		if lib.debug == true then
 
