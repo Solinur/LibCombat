@@ -275,7 +275,6 @@ local CustomAbilityIcon = {
 
 	[0] = "esoui/art/icons/achievement_wrothgar_046.dds"
 
-
 }
 
 local AbilityNameCache = {}
@@ -1500,7 +1499,7 @@ function FightHandler:onUpdate()
 
 		em:UnregisterForUpdate("LibCombat_update")
 
-	elseif inCombat == true then
+	elseif data.inCombat == true then
 
 		self:UpdateStats()
 
