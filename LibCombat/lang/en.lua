@@ -57,10 +57,12 @@ local strings = {
 	SI_LIBCOMBAT_LOG_FORMATSTRING20 = "<<1>> <<2>>: <<3>>% HP. (<<4>>/<<5>>)",  -- boss HP, i.e. "[0.0s] Z'Maja: 98% HP. (63707822/64683864)" 	<<1>> = timeString, <<2>> = bossName, <<3>> = percent, <<4>> = currenthp, <<5>> = maxhp
 	SI_LIBCOMBAT_LOG_FORMATSTRING21 = "<<1>> FPS: <<2>> (<<3>> - <<4>>), Ping: <<5>> ms",  -- performance, i.e. "[0.0s] FPS: 80 (59 - 85), Ping: 79 ms" <<1>> = timeString, <<2>> = average FPS, <<3>> = minimum FPS, <<4>> = maximum FPS, <<5>> = ping
 
-	SI_LIBCOMBAT_LOG_FORMATSTRING_SKILLS1 = "<<1>> You cast <<2>><<3>>.", 				-- skill used, i.e. "[0.0s] You used Puncturing Sweeps (Delay: 85 ms). 			<<1>> = timestring, <<2>> = Ability, <<3>> = skill delay
-	SI_LIBCOMBAT_LOG_FORMATSTRING_SKILLS2 = "<<1>> You start to cast <<2>><<3>>.", 		-- skill used, i.e. "[0.0s] You start to cast Solar Barrage (Delay: 85 ms). 	<<1>> = timestring, <<2>> = Ability, <<3>> = skill delay
-	SI_LIBCOMBAT_LOG_FORMATSTRING_SKILLS3 = "<<1>> You start to channel <<2>><<3>>.", 	-- skill used, i.e. "[0.0s] You start to channel Blazing Spear (Delay: 85 ms). 	<<1>> = timestring, <<2>> = Ability, <<3>> = skill delay
-	SI_LIBCOMBAT_LOG_FORMATSTRING_SKILLS4 = "<<1>> You finished casting <<2>>.", 		-- skill used, i.e. "[0.0s] You finished casting Blazing Spear. 				<<1>> = timestring, <<2>> = Ability
+	SI_LIBCOMBAT_LOG_FORMATSTRING_SKILLS1 = "<<1>> You cast <<2>><<3>>.", 							-- skill used, i.e. "[0.0s] You used Puncturing Sweeps (Delay: 85 ms). 			<<1>> = timestring, <<2>> = Ability, <<3>> = skill delay
+	SI_LIBCOMBAT_LOG_FORMATSTRING_SKILLS2 = "<<1>> You start to cast <<2>><<3>>.", 					-- skill used, i.e. "[0.0s] You start to cast Solar Barrage (Delay: 85 ms). 	<<1>> = timestring, <<2>> = Ability, <<3>> = skill delay
+	SI_LIBCOMBAT_LOG_FORMATSTRING_SKILLS3 = "<<1>> You start to channel <<2>><<3>>.", 				-- skill used, i.e. "[0.0s] You start to channel Blazing Spear (Delay: 85 ms). 	<<1>> = timestring, <<2>> = Ability, <<3>> = skill delay
+	SI_LIBCOMBAT_LOG_FORMATSTRING_SKILLS4 = "<<1>> You finished casting <<2>>.", 					-- skill used, i.e. "[0.0s] You finished casting Blazing Spear. 				<<1>> = timestring, <<2>> = Ability
+	SI_LIBCOMBAT_LOG_FORMATSTRING_SKILLS5 = "<<1>> Your cast of <<2>> was registered.", 			-- skill used, i.e. "[0.0s] You finished casting Blazing Spear. 				<<1>> = timestring, <<2>> = Ability
+	SI_LIBCOMBAT_LOG_FORMATSTRING_SKILLS6 = "<<1>> Your cast of <<2>> was activated from queue.", 	-- skill used, i.e. "[0.0s] You finished casting Blazing Spear. 				<<1>> = timestring, <<2>> = Ability
 
     SI_LIBCOMBAT_LOG_FORMATSTRING_DEATH1 = "<<1>> |cffffff<<2>>|r |cff3333died|r.<<4>>",
     SI_LIBCOMBAT_LOG_FORMATSTRING_DEATH2 = "<<1>> |cffffff<<2>>|r |c00cc00ressurected|r.",

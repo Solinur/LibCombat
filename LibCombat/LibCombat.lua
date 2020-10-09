@@ -81,7 +81,8 @@ local EffectBuffer = {}
 local lastdeaths = {}
 local SlotSkills = {}
 local IdToReducedSlot = {}
-local lastskilluses = {}
+local lastAbilityActivations = {}
+local isProjectile = {}
 local AlkoshData = {}
 local isInPortalWorld = false	-- used to prevent fight reset in Cloudrest/Sunspire when using a portal.
 
@@ -97,6 +98,7 @@ local deathRecapTimePeriod = 10000
 
 local playerActivatedTime = 10000
 local lastQueuedAbilities = {}
+local usedCastTimeAbility = {}
 local maxSkillDelay = 2000
 
 -- localize some functions for performance
@@ -164,6 +166,8 @@ LIBCOMBAT_SKILLSTATUS_INSTANT = 1
 LIBCOMBAT_SKILLSTATUS_BEGIN_DURATION = 2
 LIBCOMBAT_SKILLSTATUS_BEGIN_CHANNEL = 3
 LIBCOMBAT_SKILLSTATUS_SUCCESS = 4
+LIBCOMBAT_SKILLSTATUS_REGISTERED = 5
+LIBCOMBAT_SKILLSTATUS_QUEUE = 6
 
 -- statId
 
@@ -563,10 +567,6 @@ local DirectHeavyAttacks = {	-- for special handling to detect their end
 
 local validSkillStartResults = {
 
-	[ACTION_RESULT_DAMAGE] = true, -- 1
-	[ACTION_RESULT_CRITICAL_DAMAGE] = true, -- 2
-	[ACTION_RESULT_HEAL] = true, -- 16
-	[ACTION_RESULT_CRITICAL_HEAL] = true, -- 32
 	[ACTION_RESULT_BLOCKED_DAMAGE] = true, -- 2151
 	[ACTION_RESULT_DAMAGE_SHIELDED] = true, -- 2460
 	[ACTION_RESULT_SNARED] = true, -- 2025
@@ -574,6 +574,15 @@ local validSkillStartResults = {
 	[ACTION_RESULT_EFFECT_GAINED] = true, -- 2240
 	[ACTION_RESULT_KNOCKBACK] = true, -- 2275
 	[ACTION_RESULT_IMMUNE] = true, -- 2000
+
+}
+
+local validNonProjectileSkillStartResults = {
+
+	[ACTION_RESULT_DAMAGE] = true, -- 1
+	[ACTION_RESULT_CRITICAL_DAMAGE] = true, -- 2
+	[ACTION_RESULT_HEAL] = true, -- 16
+	[ACTION_RESULT_CRITICAL_HEAL] = true, -- 32
 
 }
 
@@ -1058,6 +1067,7 @@ function FightHandler:PrepareFight()
 
 		self.isWipe = false
 		lastQueuedAbilities = {}
+		usedCastTimeAbility = {}
 		AlkoshData = {}
 
 		onBossesChanged()
@@ -1113,7 +1123,11 @@ function FightHandler:FinishFight()
 
 	EffectBuffer = {}
 
-	lastskilluses = {}
+	lastAbilityActivations = {}
+	isProjectile = {}
+
+	Print("other", LOG_LEVEL_INFO, "Number of Projectile data entries: %d", NonContiguousCount(isProjectile))
+
 	data.lastabilities = {}
 end
 
@@ -1671,11 +1685,11 @@ function onCombatState(event, inCombat)  -- Detect Combat Stage, local is define
 			end
 
 			data.inCombat = false
-			
+
 			Print("fight", LOG_LEVEL_DEBUG, "Leaving combat.")
-			
+
 			currentfight:FinishFight()
-			
+
 			if currentfight.charData == nil then return end
 
 			lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_MESSAGES]), LIBCOMBAT_EVENT_MESSAGES, timems, LIBCOMBAT_MESSAGE_COMBATEND, 0)
@@ -2401,19 +2415,18 @@ local function GetReducedSlotId(reducedslot)
 
 end
 
-local lastCastTimeAbility = 0
 local HeavyAttackCharging
 
 local function onAbilityUsed(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
 
-	if Events.Skills.active ~= true or validSkillStartResults[result] ~= true then return end
+	if Events.Skills.active ~= true or not (validSkillStartResults[result] or (validNonProjectileSkillStartResults[result] and not isProjectile[abilityId])) then return end
 
 	local timems = GetGameTimeMilliseconds()
 
-	local lasttime = lastskilluses[abilityId]
-	if lasttime == nil or timems - lasttime > maxSkillDelay then return end
+	local lasttime = lastAbilityActivations[abilityId]
+	if lasttime == nil or (timems - lasttime) > maxSkillDelay then return end
 
-	lastskilluses[abilityId] = nil
+	lastAbilityActivations[abilityId] = nil
 
 	local reducedslot = IdToReducedSlot[abilityId]
 
@@ -2436,7 +2449,7 @@ local function onAbilityUsed(eventCode, result, isError, abilityName, abilityGra
 
 	end
 
-	local skillDelay = timems - math.max(lasttime, lastQ or lasttime)
+	local skillDelay = lastQ and (timems - lastQ) or maxSkillDelay
 
 	skillDelay = skillDelay < maxSkillDelay and skillDelay or nil
 
@@ -2448,14 +2461,13 @@ local function onAbilityUsed(eventCode, result, isError, abilityName, abilityGra
 
 		local convertedId = abilityConversions[origId] and abilityConversions[origId][3] or abilityId
 
-		lastCastTimeAbility = convertedId
+		usedCastTimeAbility[convertedId] = true
 
 	else
 
 		local status = LIBCOMBAT_SKILLSTATUS_INSTANT
 
 		lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_SKILL_TIMINGS]), LIBCOMBAT_EVENT_SKILL_TIMINGS, timems, reducedslot, origId, status, skillDelay)
-		lastCastTimeAbility = 0
 
 	end
 end
@@ -2472,15 +2484,35 @@ local function onAbilityFinished(eventCode, result, isError, abilityName, abilit
 
 	if validSkillEndResults[result] ~= true and result ~= specialResult then return end
 
-	if abilityId == lastCastTimeAbility then
+	if usedCastTimeAbility[abilityId] then
 
 		Print("events", LOG_LEVEL_VERBOSE ,"Skill finished: %s (%d, R: %d)", GetAbilityName(origId), origId, result)
 
 		lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_SKILL_TIMINGS]), LIBCOMBAT_EVENT_SKILL_TIMINGS, timems, reducedslot, origId, LIBCOMBAT_SKILLSTATUS_SUCCESS)
 
-		lastCastTimeAbility = 0
-
 	end
+end
+
+local function onQueueEvent(_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, abilityId)
+
+	local timems = GetGameTimeMilliseconds()
+
+	lastQueuedAbilities[abilityId] = timems
+
+	local reducedslot = IdToReducedSlot[abilityId]
+
+	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_SKILL_TIMINGS]), LIBCOMBAT_EVENT_SKILL_TIMINGS, timems, reducedslot, abilityId, LIBCOMBAT_SKILLSTATUS_QUEUE)
+
+end
+
+local function onProjectileEvent(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
+
+	if hitValue == nil or hitValue <= 1 then return end
+
+	isProjectile[abilityId] = true
+
+	-- if IdToReducedSlot[abilityId] then isProjectile[abilityId] = true end TODO: Check if this should be limited
+
 end
 
 local function onSlotUsed(_, slot)
@@ -2513,8 +2545,12 @@ local function onSlotUsed(_, slot)
 
 		else
 
-			lastskilluses[convertedId] = timems
+			lastAbilityActivations[convertedId] = timems
 			HeavyAttackCharging = nil
+
+			local reducedslot = (data.bar - 1) * 10 + slot
+
+			lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_SKILL_TIMINGS]), LIBCOMBAT_EVENT_SKILL_TIMINGS, timems, reducedslot, abilityId, LIBCOMBAT_SKILLSTATUS_REGISTERED)
 
 		end
 	end
@@ -2643,12 +2679,6 @@ end
 
 local function onPlayerDeativated()
 	em:UnregisterForUpdate("LibCombat_Frames")
-end
-
-local function onQueueEvent(_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, abilityId)
-
-    lastQueuedAbilities[abilityId] = GetGameTimeMilliseconds()
-
 end
 
 local function UpdateEventRegistrations()
@@ -3234,6 +3264,7 @@ Events.Skills = EventHandler:New(
 		self:RegisterEvent(EVENT_COMBAT_EVENT, GetCurrentSkillBarsDelayed, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_GAINED, REGISTER_FILTER_ABILITY_ID, 24804) -- Overload & Morphs
 		self:RegisterEvent(EVENT_ACTION_SLOT_UPDATED, onSlotUpdate)
 		self:RegisterEvent(EVENT_COMBAT_EVENT, onQueueEvent, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_QUEUED)
+		self:RegisterEvent(EVENT_COMBAT_EVENT, onProjectileEvent, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_GAINED)
 
 		self.Update = UpdateSkillEvents
 
@@ -3547,17 +3578,25 @@ function lib:GetCombatLogString(fight, logline, fontsize)
 
 		local _, _, reducedslot, abilityId, status, skillDelay = unpack(logline)
 
-		logFormat = GetString("SI_LIBCOMBAT_LOG_FORMATSTRING_SKILLS", logline[5])
+		local name = ZO_CachedStrFormat(formatstring, GetFormattedAbilityName(abilityId))
+
+		if reducedslot == nil then
+
+			Print("events", LOG_LEVEL_INFO, "Invalid Slot: %s (%d), Status: %d)", GetAbilityName(abilityId), abilityId, status)
+
+			return
+
+		end
+
+		local skillDelayString = skillDelay and ZO_CachedStrFormat(GetString(SI_LIBCOMBAT_LOG_FORMATSTRING_SKILLDELAY), skillDelay) or ""
+
+		logFormat = GetString("SI_LIBCOMBAT_LOG_FORMATSTRING_SKILLS", status)
 
 		local isWeaponAttack = reducedslot%10 == 1 or reducedslot%10 == 2
 
 		local formatstring = " |cddffbb<<1>>|r"
 
 		if isWeaponAttack then formatstring = " |cffffff<<1>>|r" end
-
-		local name = ZO_CachedStrFormat(formatstring, GetFormattedAbilityName(abilityId))
-
-		local skillDelayString = skillDelay and ZO_CachedStrFormat(GetString(SI_LIBCOMBAT_LOG_FORMATSTRING_SKILLDELAY), skillDelay) or ""
 
 		color = {.9,.8,.7}
 
