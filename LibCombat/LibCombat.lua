@@ -3578,8 +3578,6 @@ function lib:GetCombatLogString(fight, logline, fontsize)
 
 		local _, _, reducedslot, abilityId, status, skillDelay = unpack(logline)
 
-		local name = ZO_CachedStrFormat(formatstring, GetFormattedAbilityName(abilityId))
-
 		if reducedslot == nil then
 
 			Print("events", LOG_LEVEL_INFO, "Invalid Slot: %s (%d), Status: %d)", GetAbilityName(abilityId), abilityId, status)
@@ -3597,6 +3595,8 @@ function lib:GetCombatLogString(fight, logline, fontsize)
 		local formatstring = " |cddffbb<<1>>|r"
 
 		if isWeaponAttack then formatstring = " |cffffff<<1>>|r" end
+
+		local name = ZO_CachedStrFormat(formatstring, GetFormattedAbilityName(abilityId))
 
 		color = {.9,.8,.7}
 
