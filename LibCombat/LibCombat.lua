@@ -2449,7 +2449,7 @@ local function onAbilityUsed(eventCode, result, isError, abilityName, abilityGra
 
 	end
 
-	local skillDelay = lastQ and (timems - lastQ) or maxSkillDelay
+	local skillDelay = timems - (lastQ or lasttime)
 
 	skillDelay = skillDelay < maxSkillDelay and skillDelay or nil
 

@@ -1,4 +1,8 @@
-﻿35 DL: 613.284 (20.09.2020) 19:35
+﻿36 DL: 684.988 (14.10.2020) 00:19
+[*] Reworked skill timing to fix several issues. Now also the input registration and queue activation will trigger a callback 
+[*] Added some code that might help in cases where combat end is not properly detected.
+
+35 DL: 613.284 (20.09.2020) 19:35
 [*] Fixed penetration values for TFS. While the penetration API function is not doing what it should either (its not tracking stacks higher than 1 at all), the wrong value was my fault. Should work fine now, I hope.
 
 34 DL: 605.035 (20.09.2020) 12:41
