@@ -2367,6 +2367,8 @@ local function GroupCombatEventHandler(isheal, result, _, abilityName, _, _, sou
 
 	GetUnitCache(targetUnitId):AddEvent(timems, result, sourceUnitId, abilityId, hitValue, damageType, overflow or 0)
 
+	if overflow and overflow > 0 and not isheal then GetUnitCache(targetUnitId):OnDeath(timems) end
+
 end
 
 local function onCombatEventGrpDmgIn(event, ...)
@@ -2419,7 +2421,7 @@ local HeavyAttackCharging
 
 local function onAbilityUsed(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
 
-	if Events.Skills.active ~= true or not (validSkillStartResults[result] or (validNonProjectileSkillStartResults[result] and not isProjectile[abilityId])) then return end
+	if Events.Skills.active ~= true or data.inCombat == false or not (validSkillStartResults[result] or (validNonProjectileSkillStartResults[result] and not isProjectile[abilityId])) then return end
 
 	local timems = GetGameTimeMilliseconds()
 
@@ -2494,6 +2496,8 @@ local function onAbilityFinished(eventCode, result, isError, abilityName, abilit
 end
 
 local function onQueueEvent(_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, abilityId)
+
+	if data.inCombat == false then return end
 
 	local timems = GetGameTimeMilliseconds()
 
