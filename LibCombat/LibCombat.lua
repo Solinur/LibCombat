@@ -2717,7 +2717,7 @@ local function UpdateResources(name, callbacktype, callback)
 	else
 
 		ActiveCallbackTypes[callbacktype][name] = callback
-		UpdateEventRegistrations()
+		zo_callLater(UpdateEventRegistrations, 0)	-- delay a frame to avoid an issue if functions get registered and deregistered within the same frame
 
 	end
 
