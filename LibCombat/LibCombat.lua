@@ -17,7 +17,7 @@ local dx = math.ceil(GuiRoot:GetWidth()/tonumber(GetCVar("WindowedWidth"))*1000)
 LIBCOMBAT_LINE_SIZE = dx
 
 local lib = {}
-lib.version = 36
+lib.version = 37
 LibCombat = lib
 
 -- Basic values

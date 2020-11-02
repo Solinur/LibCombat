@@ -1,4 +1,7 @@
-﻿36 DL: 684.988 (14.10.2020) 00:19
+﻿37 DL: 727.555 (20.10.2020) 23:47
+[*] Removed skill timing events firing when out of combat
+
+36 DL: 684.988 (14.10.2020) 00:19
 [*] Reworked skill timing to fix several issues. Now also the input registration and queue activation will trigger a callback 
 [*] Added some code that might help in cases where combat end is not properly detected.
 
