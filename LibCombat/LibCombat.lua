@@ -15,7 +15,7 @@ local dx = math.ceil(GuiRoot:GetWidth()/tonumber(GetCVar("WindowedWidth"))*1000)
 LIBCOMBAT_LINE_SIZE = dx
 
 local lib = {}
-lib.version = 37
+lib.version = 38
 LibCombat = lib
 
 -- Basic values
@@ -1205,16 +1205,18 @@ local function GetStats()
 
 	local weaponcritbonus, spellcritbonus = GetCritbonus()
 
+	local maxcrit = mathfloor(100/GetCriticalStrikeChance(1)) or 21912
+
 	return {
 		[LIBCOMBAT_STAT_MAXMAGICKA]			= GetStat(STAT_MAGICKA_MAX),
 		[LIBCOMBAT_STAT_SPELLPOWER]			= GetStat(STAT_SPELL_POWER),
-		[LIBCOMBAT_STAT_SPELLCRIT]			= GetStat(STAT_SPELL_CRITICAL),
+		[LIBCOMBAT_STAT_SPELLCRIT]			= mathmin(GetStat(STAT_SPELL_CRITICAL), maxcrit),
 		[LIBCOMBAT_STAT_SPELLCRITBONUS]		= spellcritbonus,
 		[LIBCOMBAT_STAT_SPELLPENETRATION]	= GetStat(STAT_SPELL_PENETRATION),
 
 		[LIBCOMBAT_STAT_MAXSTAMINA]			= GetStat(STAT_STAMINA_MAX),
 		[LIBCOMBAT_STAT_WEAPONPOWER]		= GetStat(STAT_POWER),
-		[LIBCOMBAT_STAT_WEAPONCRIT]			= GetStat(STAT_CRITICAL_STRIKE),
+		[LIBCOMBAT_STAT_WEAPONCRIT]			= mathmin(GetStat(STAT_CRITICAL_STRIKE), maxcrit),
 		[LIBCOMBAT_STAT_WEAPONCRITBONUS]	= weaponcritbonus,
 		[LIBCOMBAT_STAT_WEAPONPENETRATION]	= GetStat(STAT_PHYSICAL_PENETRATION) + TFSBonus,
 
@@ -1224,8 +1226,6 @@ local function GetStats()
 		[LIBCOMBAT_STAT_CRITICALRESISTANCE]	= GetStat(STAT_CRITICAL_RESISTANCE)
 	}
 end
-
-local maxcrit = 21912 -- fallback value, will be determined dynamically later
 
 local lastGetNewStatsCall = 0
 
@@ -1252,8 +1252,6 @@ function FightHandler:GetNewStats(timems)
 	local stats = self.stats
 
 	for statId, newValue in pairs(GetStats()) do
-
-		if statId == LIBCOMBAT_STAT_SPELLCRIT or statId == LIBCOMBAT_STAT_WEAPONCRIT then newValue = mathmin(newValue, maxcrit) end
 
 		local currentkey = statNamesCurrent[statId]
 		local maxkey = statNamesMax[statId]
@@ -1289,15 +1287,9 @@ function FightHandler:AddCombatEvent(timems, result, targetUnitId, value, eventi
 
 	elseif eventid == LIBCOMBAT_EVENT_DAMAGE_IN then 	--incoming dmg
 
-		if result == ACTION_RESULT_DAMAGE_SHIELDED then
+		self.damageInShielded = self.damageInShielded + (overflow or 0)
 
-			self.damageInShielded = self.damageInShielded + value
-
-		else
-
-			self.damageInTotal = self.damageInTotal + value
-
-		end
+		self.damageInTotal = self.damageInTotal + value
 
 	elseif eventid == LIBCOMBAT_EVENT_HEAL_OUT then --outgoing heal
 
@@ -2290,7 +2282,7 @@ end
 
 --(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
 
-local function CheckForShield(timems, sourceUnitId, targetUnitId, hitValue)
+local function CheckForShield(timems, sourceUnitId, targetUnitId)
 
 	for i = #DamageShieldBuffer, 1, -1 do
 		
@@ -2302,7 +2294,7 @@ local function CheckForShield(timems, sourceUnitId, targetUnitId, hitValue)
 			
 			table.remove(DamageShieldBuffer, i)
 			
-			return shieldHitValue + hitValue 
+			return shieldHitValue 
 
 		end
 	end
@@ -2313,7 +2305,7 @@ local function CombatEventHandler(isheal, _, result, _, _, _, _, sourceName, sou
 	if not (sourceUnitId > 0 and targetUnitId > 0) or (data.inCombat == false and (result==ACTION_RESULT_DOT_TICK_CRITICAL or result==ACTION_RESULT_DOT_TICK or isheal)) or targetType==2 then return end -- only record if both unitids are valid or player is in combat or a non dot damage action happens or the target is not a pet
 	local timems = GetGameTimeMilliseconds()
 
-	hitValue = CheckForShield(timems, sourceUnitId, targetUnitId, hitValue) or hitValue
+	local shieldHitValue = CheckForShield(timems, sourceUnitId, targetUnitId) or 0
 
 	if result == ACTION_RESULT_DAMAGE_SHIELDED then 
 		
@@ -2337,6 +2329,8 @@ local function CombatEventHandler(isheal, _, result, _, _, _, _, sourceName, sou
 	damageType = (isheal and powerType) or damageType
 
 	currentfight:AddCombatEvent(timems, result, targetUnitId, hitValue, eventid, overflow)
+
+	if not isheal then overflow = shieldHitValue end
 
 	lib.cm:FireCallbacks((CallbackKeys[eventid]), eventid, timems, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType, (overflow or 0))
 
@@ -3741,8 +3735,6 @@ local function Initialize()
   onBossesChanged()
 
   if data.LoadCustomizations then data.LoadCustomizations() end
-
-  maxcrit = mathfloor(100/GetCriticalStrikeChance(1))
 
   em:RegisterForEvent("LibCombatActive", EVENT_PLAYER_ACTIVATED, function() data.isUIActivated = true end)
   em:RegisterForEvent("LibCombatActive", EVENT_PLAYER_DEACTIVATED, function() data.isUIActivated = false end)
