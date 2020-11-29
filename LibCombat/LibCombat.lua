@@ -5,10 +5,8 @@ I extracted it from Combat Metrics, for which most of the functions are designed
 Todo:
 Falling Damage (also save routine!!)
 Check what events fire on death
-(re-)check events on shield absorb
 Implement tracking when players are resurrecting
 implement group info function
-Remove name formatting
 work on the addon description
 Add more debug Functions
 
@@ -100,6 +98,8 @@ local playerActivatedTime = 10000
 local lastQueuedAbilities = {}
 local usedCastTimeAbility = {}
 local maxSkillDelay = 2000
+
+local DamageShieldBuffer = {}
 
 -- localize some functions for performance
 
@@ -254,7 +254,8 @@ local BadAbility = {
 	[69168] = true,
 	[52515] = true,
 	[41189] = true,
-	[61898] = true, -- Minor Savagery, too spammy
+	-- [61898] = true, -- Minor Savagery, too spammy
+	[63601] = true, -- ESO Plus
 }
 
 local CustomAbilityName = {
@@ -398,6 +399,12 @@ local SpecialDebuffs = {   -- debuffs that the API doesn't show via EVENT_EFFECT
 
 }
 
+local SourceBuggedBuffs = {   -- buffs where ZOS messed up the source, causing CMX to falsely not track them
+
+	88401,  -- Minor Magickasteal
+
+}
+
 local abilityConversions = {	-- Ability conversions for tracking skill activations Elsweyr
 
 	[22178] = {22179, 2240, nil, nil}, --Sun Shield --> Sun Shield
@@ -500,6 +507,7 @@ local abilityConversions = {	-- Ability conversions for tracking skill activatio
 
 	[117690] = {117691, 2240, nil, nil}, --Blighted Blastbones --> Blighted Blastbones
 	[117749] = {117750, 2240, nil, nil}, --Stalking Blastbones --> Stalking Blastbones
+	[117773] = {117750, 2240, nil, nil}, --Stalking Blastbones --> Stalking Blastbones (Id when greyed out)
 
 	--[115307] = {???, nil, nil, nil}, --Expunge -->
 	[117940] = {117947, 2240, nil, nil}, --Expunge and Modify --> Expunge and Modify
@@ -788,7 +796,7 @@ local function GetPlayerBuffs(timems)
 
 		local _, _, endTime, effectSlot, stackCount, _, _, effectType, abilityType, _, abilityId, _, castByPlayer = GetUnitBuffInfo("player",i)
 
-		Print("events", LOG_LEVEL_VERBOSE, "player has the %s %dx %s (%d, ET: %d, selfcast: %s)", effectType == BUFF_EFFECT_TYPE_BUFF and "buff" or "debuff", stackCount, GetFormattedAbilityName(abilityId), abilityId, abilityType, castByPlayer)
+		Print("events", LOG_LEVEL_VERBOSE, "player has the %s %d x %s (%d, ET: %d, self: %s)", effectType == BUFF_EFFECT_TYPE_BUFF and "buff" or "debuff", stackCount, GetFormattedAbilityName(abilityId), abilityId, abilityType, tostring(castByPlayer))
 
 		local unitType = castByPlayer and COMBAT_UNIT_TYPE_PLAYER or COMBAT_UNIT_TYPE_NONE
 
@@ -796,7 +804,7 @@ local function GetPlayerBuffs(timems)
 
 		local playerid = data.playerid
 
-		if abilityType == 5 and (not BadAbility[abilityId]) then
+		if (not BadAbility[abilityId]) then
 
 			lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_EFFECTS_IN]), LIBCOMBAT_EVENT_EFFECTS_IN, newtime, playerid, abilityId, EFFECT_RESULT_GAINED, effectType, stacks, unitType, effectSlot)
 			--timems, unitId, abilityId, changeType, effectType, stacks, sourceType
@@ -1069,6 +1077,8 @@ function FightHandler:PrepareFight()
 		lastQueuedAbilities = {}
 		usedCastTimeAbility = {}
 		AlkoshData = {}
+
+		DamageShieldBuffer = {}
 
 		onBossesChanged()
 
@@ -1797,20 +1807,6 @@ local function BuffEventHandler(isspecial, groupeffect, _, changeType, effectSlo
 	end
 end
 
-local function onMajorForceChanged( _, changeType)
-
-	if changeType == EFFECT_RESULT_GAINED or changeType == EFFECT_RESULT_UPDATED then data.majorForce = majorForceAmount
-	elseif changeType == EFFECT_RESULT_FADED then data.majorForce = 0 end
-
-end
-
-local function onMinorForceChanged( _, changeType)
-
-	if changeType == EFFECT_RESULT_GAINED or changeType == EFFECT_RESULT_UPDATED then data.minorForce = minorForceAmount
-	elseif changeType == EFFECT_RESULT_FADED then data.minorForce = 0 end
-
-end
-
 local function onEffectChanged(...)
 	BuffEventHandler(false, GROUP_EFFECT_NONE, ...)		-- (isspecial, groupeffect, ...)
 end
@@ -1821,6 +1817,10 @@ end
 
 local function onGroupEffectIn(...)
 	BuffEventHandler(false, GROUP_EFFECT_IN, ...)		-- (isspecial, groupeffect, ...)
+end
+
+local function onSourceBuggedEffectChanged(eventCode, changeType, effectSlot, effectName, unitTag, beginTime, endTime, stackCount, iconName, buffType, effectType, abilityType, statusEffectType, unitName, unitId, abilityId, _)
+	BuffEventHandler(false, GROUP_EFFECT_OUT, eventCode, changeType, effectSlot, effectName, unitTag, beginTime, endTime, stackCount, iconName, buffType, effectType, abilityType, statusEffectType, unitName, unitId, abilityId, COMBAT_UNIT_TYPE_GROUP)
 end
 
 local function SpecialBuffEventHandler(isdebuff, _, result, _, _, _, _, _, sourceType, unitName, targetType, _, _, damageType, _, _, unitId, abilityId)
@@ -1854,6 +1854,20 @@ local function onSpecialDebuffEventNoSelf(...)
 	local _, _, _, _, _, _, _, sourceType, _, targetType, _, _, _, _, _, _, _ = ...
 	if sourceType == COMBAT_UNIT_TYPE_PLAYER and targetType == COMBAT_UNIT_TYPE_PLAYER then return end
 	SpecialBuffEventHandler(true, ...)		-- (isdebuff, ...)
+end
+
+local function onMajorForceChanged( _, changeType)
+
+	if changeType == EFFECT_RESULT_GAINED or changeType == EFFECT_RESULT_UPDATED then data.majorForce = majorForceAmount
+	elseif changeType == EFFECT_RESULT_FADED then data.majorForce = 0 end
+
+end
+
+local function onMinorForceChanged( _, changeType)
+
+	if changeType == EFFECT_RESULT_GAINED or changeType == EFFECT_RESULT_UPDATED then data.minorForce = minorForceAmount
+	elseif changeType == EFFECT_RESULT_FADED then data.minorForce = 0 end
+
 end
 
 local IsTypeFriendly={						-- for debug purposes, maybe one can use this to add more custom buffs.
@@ -2276,10 +2290,39 @@ end
 
 --(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
 
+local function CheckForShield(timems, sourceUnitId, targetUnitId, hitValue)
+
+	for i = #DamageShieldBuffer, 1, -1 do
+		
+		local shieldTimems, shieldSourceUnitId, shieldTargetUnitId, shieldHitValue = unpack(DamageShieldBuffer[i])
+
+		--Print("debug", LOG_LEVEL_INFO, "Eval Shield Index %d: Source: %s, Target: %s, Time: %d", i, tostring(shieldSourceUnitId == sourceUnitId), tostring(shieldTargetUnitId == targetUnitId), timems - shieldTimems)
+
+		if shieldSourceUnitId == sourceUnitId and shieldTargetUnitId == targetUnitId and timems - shieldTimems < 100 then
+			
+			table.remove(DamageShieldBuffer, i)
+			
+			return shieldHitValue + hitValue 
+
+		end
+	end
+end
+
 local function CombatEventHandler(isheal, _, result, _, _, _, _, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, _, sourceUnitId, targetUnitId, abilityId, overflow)  -- called by Event
 
-	if (hitValue + (overflow or 0)) < 2 or (not (sourceUnitId > 0 and targetUnitId > 0)) or (data.inCombat == false and (result==ACTION_RESULT_DOT_TICK_CRITICAL or result==ACTION_RESULT_DOT_TICK or isheal) ) or targetType==2 then return end -- only record if both unitids are valid or player is in combat or a non dot damage action happens or the target is not a pet
+	if not (sourceUnitId > 0 and targetUnitId > 0) or (data.inCombat == false and (result==ACTION_RESULT_DOT_TICK_CRITICAL or result==ACTION_RESULT_DOT_TICK or isheal)) or targetType==2 then return end -- only record if both unitids are valid or player is in combat or a non dot damage action happens or the target is not a pet
 	local timems = GetGameTimeMilliseconds()
+
+	hitValue = CheckForShield(timems, sourceUnitId, targetUnitId, hitValue) or hitValue
+
+	if result == ACTION_RESULT_DAMAGE_SHIELDED then 
+		
+		sourceUnitId = targetUnitId
+		sourceType = targetType
+
+	end
+
+	if (hitValue + (overflow or 0)) <= 0 then return end
 
 	CheckUnit(sourceName, sourceUnitId, sourceType, timems)
 	CheckUnit(targetName, targetUnitId, targetType, timems)
@@ -2301,6 +2344,14 @@ end
 
 local function onCombatEventDmg(...)
 	CombatEventHandler(false, ...)	-- (isheal, ...)
+end
+
+local function onCombatEventShield(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
+	
+	DamageShieldBuffer[#DamageShieldBuffer + 1] = {GetGameTimeMilliseconds(), sourceUnitId, targetUnitId, hitValue}
+
+	Print("debug", LOG_LEVEL_INFO, "Add %d Shield: %d -> %d  (%d)", hitValue, sourceUnitId, targetUnitId, #DamageShieldBuffer)
+
 end
 
 local function onCombatEventDmgIn(...)
@@ -2451,7 +2502,8 @@ local function onAbilityUsed(eventCode, result, isError, abilityName, abilityGra
 
 	end
 
-	local skillDelay = timems - (lastQ or lasttime)
+	local skillExecution = lastQ and math.max(lastQ, lasttime) or lasttime
+	local skillDelay = timems - skillExecution
 
 	skillDelay = skillDelay < maxSkillDelay and skillDelay or nil
 
@@ -2982,7 +3034,6 @@ Events.DmgOut = EventHandler:New(
 			ACTION_RESULT_DAMAGE,
 			ACTION_RESULT_DOT_TICK,
 			ACTION_RESULT_BLOCKED_DAMAGE,
-			ACTION_RESULT_DAMAGE_SHIELDED,
 			ACTION_RESULT_CRITICAL_DAMAGE,
 			ACTION_RESULT_DOT_TICK_CRITICAL,
 		}
@@ -2990,6 +3041,10 @@ Events.DmgOut = EventHandler:New(
 			self:RegisterEvent(EVENT_COMBAT_EVENT, onCombatEventDmg, REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER, 		REGISTER_FILTER_COMBAT_RESULT, filters[i], REGISTER_FILTER_IS_ERROR, false)
 			self:RegisterEvent(EVENT_COMBAT_EVENT, onCombatEventDmg, REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER_PET, 	REGISTER_FILTER_COMBAT_RESULT, filters[i], REGISTER_FILTER_IS_ERROR, false)
 		end
+
+		self:RegisterEvent(EVENT_COMBAT_EVENT, onCombatEventShield, REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER, 		REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_DAMAGE_SHIELDED, REGISTER_FILTER_IS_ERROR, false)
+		self:RegisterEvent(EVENT_COMBAT_EVENT, onCombatEventShield, REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER_PET, 	REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_DAMAGE_SHIELDED, REGISTER_FILTER_IS_ERROR, false)
+		
 		self.active = true
 	end
 )
@@ -3002,7 +3057,6 @@ Events.DmgIn = EventHandler:New(
 			ACTION_RESULT_DAMAGE,
 			ACTION_RESULT_DOT_TICK,
 			ACTION_RESULT_BLOCKED_DAMAGE,
-			ACTION_RESULT_DAMAGE_SHIELDED,
 			ACTION_RESULT_CRITICAL_DAMAGE,
 			ACTION_RESULT_DOT_TICK_CRITICAL,
 		}
@@ -3010,6 +3064,10 @@ Events.DmgIn = EventHandler:New(
 			self:RegisterEvent(EVENT_COMBAT_EVENT, onCombatEventDmgIn, REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER, 		REGISTER_FILTER_COMBAT_RESULT, filters[i], REGISTER_FILTER_IS_ERROR, false)
 			self:RegisterEvent(EVENT_COMBAT_EVENT, onCombatEventDmgIn, REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER_PET, 	REGISTER_FILTER_COMBAT_RESULT, filters[i], REGISTER_FILTER_IS_ERROR, false)
 		end
+		
+		self:RegisterEvent(EVENT_COMBAT_EVENT, onCombatEventShield, REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER, 		REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_DAMAGE_SHIELDED, REGISTER_FILTER_IS_ERROR, false)
+		self:RegisterEvent(EVENT_COMBAT_EVENT, onCombatEventShield, REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER_PET, 	REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_DAMAGE_SHIELDED, REGISTER_FILTER_IS_ERROR, false)
+
 		self.active = true
 	end
 )
@@ -3023,6 +3081,7 @@ Events.HealOut = EventHandler:New(
 			ACTION_RESULT_HEAL,
 			ACTION_RESULT_CRITICAL_HEAL,
 			ACTION_RESULT_HOT_TICK_CRITICAL,
+			ACTION_RESULT_DAMAGE_SHIELDED
 		}
 		for i=1,#filters do
 			self:RegisterEvent(EVENT_COMBAT_EVENT, onCombatEventHeal, REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER, 	REGISTER_FILTER_COMBAT_RESULT, filters[i], REGISTER_FILTER_IS_ERROR, false)
@@ -3041,6 +3100,7 @@ Events.HealIn = EventHandler:New(
 			ACTION_RESULT_HEAL,
 			ACTION_RESULT_CRITICAL_HEAL,
 			ACTION_RESULT_HOT_TICK_CRITICAL,
+			ACTION_RESULT_DAMAGE_SHIELDED
 		}
 		for i=1,#filters do
 			self:RegisterEvent(EVENT_COMBAT_EVENT, onCombatEventHealIn, REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER, 		REGISTER_FILTER_COMBAT_RESULT, filters[i], REGISTER_FILTER_IS_ERROR, false)
@@ -3067,6 +3127,7 @@ Events.CombatGrp = EventHandler:New(
 				ACTION_RESULT_HEAL,
 				ACTION_RESULT_CRITICAL_HEAL,
 				ACTION_RESULT_HOT_TICK_CRITICAL,
+				ACTION_RESULT_DAMAGE_SHIELDED
 			},
 		}
 		for k,v in pairs(filters) do
@@ -3102,6 +3163,10 @@ Events.Effects = EventHandler:New(
 
 			self:RegisterEvent(EVENT_COMBAT_EVENT, onSpecialDebuffEventNoSelf, REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_GAINED_DURATION, REGISTER_FILTER_ABILITY_ID, SpecialDebuffs[i], REGISTER_FILTER_IS_ERROR, false)
 			self:RegisterEvent(EVENT_COMBAT_EVENT, onSpecialDebuffEventNoSelf, REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_FADED, REGISTER_FILTER_ABILITY_ID, SpecialDebuffs[i], REGISTER_FILTER_IS_ERROR, false)
+		end
+
+		for i=1,#SourceBuggedBuffs do
+			self:RegisterEvent(EVENT_EFFECT_CHANGED, onSourceBuggedEffectChanged, REGISTER_FILTER_ABILITY_ID, SourceBuggedBuffs[i])
 		end
 
 		self:RegisterEvent(EVENT_COMBAT_EVENT, onAlkoshDmg, REGISTER_FILTER_ABILITY_ID, 75752, REGISTER_FILTER_IS_ERROR, false)
