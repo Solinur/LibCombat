@@ -1204,8 +1204,7 @@ end
 local function GetStats()
 
 	local weaponcritbonus, spellcritbonus = GetCritbonus()
-
-	local maxcrit = mathfloor(100/GetCriticalStrikeChance(1)) or 21912
+	local maxcrit = mathfloor(100/GetCriticalStrikeChance(1)) -- Critical Strike chance of 100%
 
 	return {
 		[LIBCOMBAT_STAT_MAXMAGICKA]			= GetStat(STAT_MAGICKA_MAX),
@@ -1998,6 +1997,7 @@ local function onBaseResourceChanged(_,unitTag,_,powerType,powerValue,_,_)
 		if powerValueChange == GetStat(STAT_HEALTH_REGEN_COMBAT) and data.playerid then
 
 			aId = 0
+
 			lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_HEAL_SELF]), LIBCOMBAT_EVENT_HEAL_SELF, timems, ACTION_RESULT_HOT_TICK, data.playerid, data.playerid, aId, powerValueChange, powerType, 0)
 			return
 
@@ -2280,8 +2280,6 @@ local function CheckUnit(unitName, unitId, unitType, timems)
 	unit.endtime = timems
 end
 
---(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
-
 local function CheckForShield(timems, sourceUnitId, targetUnitId)
 
 	for i = #DamageShieldBuffer, 1, -1 do
@@ -2300,12 +2298,17 @@ local function CheckForShield(timems, sourceUnitId, targetUnitId)
 	end
 end
 
+--(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
+
 local function CombatEventHandler(isheal, _, result, _, _, _, _, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, _, sourceUnitId, targetUnitId, abilityId, overflow)  -- called by Event
 
 	if not (sourceUnitId > 0 and targetUnitId > 0) or (data.inCombat == false and (result==ACTION_RESULT_DOT_TICK_CRITICAL or result==ACTION_RESULT_DOT_TICK or isheal)) or targetType==2 then return end -- only record if both unitids are valid or player is in combat or a non dot damage action happens or the target is not a pet
 	local timems = GetGameTimeMilliseconds()
 
 	local shieldHitValue = CheckForShield(timems, sourceUnitId, targetUnitId) or 0
+
+	CheckUnit(sourceName, sourceUnitId, sourceType, timems)
+	CheckUnit(targetName, targetUnitId, targetType, timems)
 
 	if result == ACTION_RESULT_DAMAGE_SHIELDED then 
 		
@@ -2314,10 +2317,7 @@ local function CombatEventHandler(isheal, _, result, _, _, _, _, sourceName, sou
 
 	end
 
-	if (hitValue + (overflow or 0)) <= 0 then return end
-
-	CheckUnit(sourceName, sourceUnitId, sourceType, timems)
-	CheckUnit(targetName, targetUnitId, targetType, timems)
+	if (hitValue + (overflow or 0) + shieldHitValue) <= 0 then return end
 
 	local isout = (sourceType == 1 or sourceType == 2)
 	local isin = targetType == 1
@@ -3077,10 +3077,12 @@ Events.HealOut = EventHandler:New(
 			ACTION_RESULT_HOT_TICK_CRITICAL,
 			ACTION_RESULT_DAMAGE_SHIELDED
 		}
+		--[[ -- this only catches outgoing damage events
 		for i=1,#filters do
 			self:RegisterEvent(EVENT_COMBAT_EVENT, onCombatEventHeal, REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER, 	REGISTER_FILTER_COMBAT_RESULT, filters[i], REGISTER_FILTER_IS_ERROR, false)
 			self:RegisterEvent(EVENT_COMBAT_EVENT, onCombatEventHeal, REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER_PET, REGISTER_FILTER_COMBAT_RESULT, filters[i], REGISTER_FILTER_IS_ERROR, false)
 		end
+		]]
 		self.active = true
 	end
 )
@@ -3410,54 +3412,60 @@ function lib:GetCombatLogString(fight, logline, fontsize)
 
 	if logtype == LIBCOMBAT_EVENT_DAMAGE_OUT then
 
-		local _, _, result, _, targetUnitId, abilityId, hitValue, damageType = unpack(logline)
+		local _, _, result, _, targetUnitId, abilityId, hitValue, damageType, overflow = unpack(logline)
 
 		local crit = (result == ACTION_RESULT_CRITICAL_DAMAGE or result == ACTION_RESULT_DOT_TICK_CRITICAL) and ZO_CachedStrFormat("|cFFCC99<<1>>|r", GetString(SI_LIBCOMBAT_LOG_CRITICAL)) or ""
 
 		local targetname = units[targetUnitId].name
-		local targetFormat = (result == ACTION_RESULT_DAMAGE_SHIELDED and SI_LIBCOMBAT_LOG_FORMAT_TARGET_SHIELD) or (result == ACTION_RESULT_BLOCKED_DAMAGE and SI_LIBCOMBAT_LOG_FORMAT_TARGET_BLOCK) or SI_LIBCOMBAT_LOG_FORMAT_TARGET_NORMAL
+		local targetFormat = (result == ACTION_RESULT_BLOCKED_DAMAGE and SI_LIBCOMBAT_LOG_FORMAT_TARGET_BLOCK) or SI_LIBCOMBAT_LOG_FORMAT_TARGET_NORMAL
 
 		local targetString = ZO_CachedStrFormat(GetString(targetFormat), targetname)
 
 		local ability = GetAbilityString(abilityId, damageType, fontsize)
 
+		local hitValueString = overflow > 0 and ZO_CachedStrFormat(GetString(SI_LIBCOMBAT_LOG_FORMAT_ABSORBED), hitValue, overflow) or hitValue
+
 		color = {1.0,0.6,0.6}
-		text = ZO_CachedStrFormat(logFormat, timeString, crit, targetString, ability, hitValue)
+		text = ZO_CachedStrFormat(logFormat, timeString, crit, targetString, ability, hitValueString)
 
 	elseif logtype == LIBCOMBAT_EVENT_DAMAGE_IN then
 
-		local _, _, result, sourceUnitId, _, abilityId, hitValue, damageType = unpack(logline)
+		local _, _, result, sourceUnitId, _, abilityId, hitValue, damageType, overflow = unpack(logline)
 
 		local crit = (result == ACTION_RESULT_CRITICAL_HEAL or result == ACTION_RESULT_HOT_TICK_CRITICAL) and ZO_CachedStrFormat("|cFFCC99<<1>>|r", GetString(SI_LIBCOMBAT_LOG_CRITICAL)) or ""
 
 		local sourceName = units[sourceUnitId].name
 
-		local targetFormat = (result == ACTION_RESULT_DAMAGE_SHIELDED and SI_LIBCOMBAT_LOG_FORMAT_TARGETSELF_SHIELD) or (result == ACTION_RESULT_BLOCKED_DAMAGE and SI_LIBCOMBAT_LOG_FORMAT_TARGETSELF_BLOCK) or SI_LIBCOMBAT_LOG_FORMAT_TARGETSELF_NORMAL
-		local targetString = GetString(targetFormat)
-
-		local ability = ZO_CachedStrFormat("(<<1>>)", GetAbilityString(abilityId, damageType, fontsize))
-
-		color = {0.8,0.4,0.4}
-
-		text = ZO_CachedStrFormat(logFormat, timeString, sourceName, crit, targetString, ability, hitValue)
-
-	elseif logtype == LIBCOMBAT_EVENT_DAMAGE_SELF then
-
-		local _, _, result, _, _, abilityId, hitValue, damageType = unpack(logline)
-
-		local crit = (result == ACTION_RESULT_CRITICAL_HEAL or result == ACTION_RESULT_HOT_TICK_CRITICAL) and ZO_CachedStrFormat("|cFFCC99<<1>>|r", GetString(SI_LIBCOMBAT_LOG_CRITICAL)) or ""
-
-		local targetFormat = (result == ACTION_RESULT_DAMAGE_SHIELDED and SI_LIBCOMBAT_LOG_FORMAT_TARGETSELF_SHIELD) or (result == ACTION_RESULT_BLOCKED_DAMAGE and SI_LIBCOMBAT_LOG_FORMAT_TARGETSELF_BLOCK) or SI_LIBCOMBAT_LOG_FORMAT_TARGETSELF_SELF
+		local targetFormat = (result == ACTION_RESULT_BLOCKED_DAMAGE and SI_LIBCOMBAT_LOG_FORMAT_TARGETSELF_BLOCK) or SI_LIBCOMBAT_LOG_FORMAT_TARGETSELF_NORMAL
 		local targetString = GetString(targetFormat)
 
 		local ability = GetAbilityString(abilityId, damageType, fontsize)
 
+		local hitValueString = overflow > 0 and ZO_CachedStrFormat(GetString(SI_LIBCOMBAT_LOG_FORMAT_ABSORBED), hitValue, overflow) or hitValue
+
 		color = {0.8,0.4,0.4}
-		text = ZO_CachedStrFormat(logFormat, timeString, crit, targetString, ability, hitValue)
+
+		text = ZO_CachedStrFormat(logFormat, timeString, sourceName, crit, targetString, ability, hitValueString)
+
+	elseif logtype == LIBCOMBAT_EVENT_DAMAGE_SELF then
+
+		local _, _, result, _, _, abilityId, hitValue, damageType, overflow = unpack(logline)
+
+		local crit = (result == ACTION_RESULT_CRITICAL_HEAL or result == ACTION_RESULT_HOT_TICK_CRITICAL) and ZO_CachedStrFormat("|cFFCC99<<1>>|r", GetString(SI_LIBCOMBAT_LOG_CRITICAL)) or ""
+
+		local targetFormat = (result == ACTION_RESULT_BLOCKED_DAMAGE and SI_LIBCOMBAT_LOG_FORMAT_TARGETSELF_BLOCK) or SI_LIBCOMBAT_LOG_FORMAT_TARGETSELF_SELF
+		local targetString = GetString(targetFormat)
+
+		local ability = GetAbilityString(abilityId, damageType, fontsize)
+
+		local hitValueString = overflow > 0 and ZO_CachedStrFormat(GetString(SI_LIBCOMBAT_LOG_FORMAT_ABSORBED), hitValue, overflow) or hitValue
+
+		color = {0.8,0.4,0.4}
+		text = ZO_CachedStrFormat(logFormat, timeString, crit, targetString, ability, hitValueString)
 
 	elseif logtype == LIBCOMBAT_EVENT_HEAL_OUT then
 
-		local _, _, result, _, targetUnitId, abilityId, hitValue, _ = unpack(logline)
+		local _, _, result, _, targetUnitId, abilityId, hitValue, _, overflow = unpack(logline)
 
 		local crit = (result == ACTION_RESULT_CRITICAL_HEAL or result == ACTION_RESULT_HOT_TICK_CRITICAL) and ZO_CachedStrFormat("|cFFCC99<<1>>|r", GetString(SI_LIBCOMBAT_LOG_CRITICAL)) or ""
 
@@ -3470,7 +3478,7 @@ function lib:GetCombatLogString(fight, logline, fontsize)
 
 	elseif logtype == LIBCOMBAT_EVENT_HEAL_IN then
 
-		local _, _, result, sourceUnitId, _, abilityId, hitValue, _ = unpack(logline)
+		local _, _, result, sourceUnitId, _, abilityId, hitValue, _, overflow  = unpack(logline)
 
 		local crit = (result == ACTION_RESULT_CRITICAL_HEAL or result == ACTION_RESULT_HOT_TICK_CRITICAL) and ZO_CachedStrFormat("|cFFCC99<<1>>|r", GetString(SI_LIBCOMBAT_LOG_CRITICAL)) or ""
 
@@ -3479,18 +3487,19 @@ function lib:GetCombatLogString(fight, logline, fontsize)
 		local ability = GetAbilityString(abilityId, "heal", fontsize)
 
 		color = {0.4,0.8,0.4}
+
 		text = ZO_CachedStrFormat(logFormat, timeString, sourceName, crit, ability, hitValue)
 
 	elseif logtype == LIBCOMBAT_EVENT_HEAL_SELF then
 
-		local _, _, result, _, _, abilityId, hitValue, _ = unpack(logline)
+		local _, _, result, _, _, abilityId, hitValue, _, overflow = unpack(logline)  
 
 		local crit = (result == ACTION_RESULT_CRITICAL_HEAL or result == ACTION_RESULT_HOT_TICK_CRITICAL) and ZO_CachedStrFormat("|cFFCC99<<1>>|r", GetString(SI_LIBCOMBAT_LOG_CRITICAL)) or ""
 
 		local ability = GetAbilityString(abilityId, "heal", fontsize)
 
 		color = {0.8,1.0,0.6}
-		text = ZO_CachedStrFormat(logFormat, timeString, crit, ability, hitValue)
+		text = result == ACTION_RESULT_DAMAGE_SHIELDED and ZO_CachedStrFormat(GetString(SI_LIBCOMBAT_LOG_FORMAT_HEALABSORB), timeString, ability, hitValue) or ZO_CachedStrFormat(logFormat, timeString, crit, ability, hitValue)
 
 	elseif logtype == LIBCOMBAT_EVENT_EFFECTS_IN or logtype == LIBCOMBAT_EVENT_EFFECTS_OUT or logtype == LIBCOMBAT_EVENT_GROUPEFFECTS_IN or logtype == LIBCOMBAT_EVENT_GROUPEFFECTS_OUT then
 

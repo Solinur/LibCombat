@@ -29,13 +29,14 @@ local strings = {
 	SI_LIBCOMBAT_LOG_MESSAGE_BAR = "Bar",  -- "Entering Combat"
 
 	SI_LIBCOMBAT_LOG_FORMAT_TARGET_NORMAL = "<<1>>|r with ",  -- i.e. "dwemer sphere with", %s = targetname. |r stops the colored text
-	SI_LIBCOMBAT_LOG_FORMAT_TARGET_SHIELD = "<<1>>s shield:|r",  -- i.e. "dwemer spheres shield:", %s = targetname. |r stops the colored text "
 	SI_LIBCOMBAT_LOG_FORMAT_TARGET_BLOCK = "<<1>>s block|r with",  -- i.e. "dwemer spheres block with", %s = targetname. |r stops the colored text
 
 	SI_LIBCOMBAT_LOG_FORMAT_TARGETSELF_NORMAL = "you|r with ",  -- i.e. "you with", |r stops the colored text
 	SI_LIBCOMBAT_LOG_FORMAT_TARGETSELF_SELF = "yourself|r with ",  -- i.e. "you with", |r stops the colored text
-	SI_LIBCOMBAT_LOG_FORMAT_TARGETSELF_SHIELD = "your shield:|r",  -- i.e. "your shield:", |r stops the colored text
 	SI_LIBCOMBAT_LOG_FORMAT_TARGETSELF_BLOCK = "your block|r with",  -- i.e. "your block", |r stops the colored text
+
+	SI_LIBCOMBAT_LOG_FORMAT_ABSORBED = "<<1>> (Absorbed: <<2>>)",
+	SI_LIBCOMBAT_LOG_FORMAT_HEALABSORB = "<<1>> |cffffffYour|r <<2>> absorbs |cffffff<<3>>|r damage.",  	-- absorb, i.e. "[0.0s] Your Harness Magicka absorbs 1234 damage. <<1>> = timestring, <<2>> = ability, <<3>> = hitValue
 
 	SI_LIBCOMBAT_LOG_FORMATSTRING4 = "<<1>> |cffffffYou|r <<2>>hit |cffdddd<<3>> <<4>> for |cffffff<<5>>.",  	-- damage out, i.e. "[0.0s] You critically hit target with Light Attack for 1234.". <<1>> = timestring, <<2>> = crit,  <<3>> = targetstring,  <<4>> = ability, <<5>> = hitValue
 	SI_LIBCOMBAT_LOG_FORMATSTRING5 = "<<1>> |cffdddd<<2>>|r <<3>>hits |cffffff<<4>> <<5>> for |cffffff<<6>>.",  -- damage in, i.e. "[0.0s] Someone critically hits you with Light Attack for 1234.". <<1>> = timestring, <<2>> = sourceName,  <<3>> = crit,  <<4>> = targetstring,  <<5>> = ability, <<6>> = hitValue
