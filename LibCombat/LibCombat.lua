@@ -506,6 +506,7 @@ local abilityConversions = {	-- Ability conversions for tracking skill activatio
 	[118639] = {121797, 2240, nil, nil}, --Necrotic Potency --> Necrotic Potency
 
 	[117690] = {117691, 2240, nil, nil}, --Blighted Blastbones --> Blighted Blastbones
+	[117693] = {117691, 2240, nil, nil}, --Blighted Blastbones --> Blighted Blastbones (Id when greyed out)
 	[117749] = {117750, 2240, nil, nil}, --Stalking Blastbones --> Stalking Blastbones
 	[117773] = {117750, 2240, nil, nil}, --Stalking Blastbones --> Stalking Blastbones (Id when greyed out)
 

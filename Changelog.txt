@@ -1,4 +1,10 @@
-﻿37 DL: 727.555 (20.10.2020) 23:47
+﻿38 DL: 827.056 (03.12.2020) 00:19
+[*] Changed the way damage versus absorbing shields is handled. The shield event will be shown as usual but sent with the Heal callbacks. The combat event for damage callback will now send the normal event with the proper action result and contain the shielded fraction in the overflow field.
+[*] Adjusted handling of shields in combat log string creation
+[*] Added workaround for Minor Magickasteal
+[*] Added some adjustments to skill timing after ZOS changed something again to fix LA weaving
+
+37 DL: 727.555 (20.10.2020) 23:47
 [*] Removed skill timing events firing when out of combat
 
 36 DL: 684.988 (14.10.2020) 00:19
