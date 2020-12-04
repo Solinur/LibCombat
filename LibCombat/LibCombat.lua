@@ -15,7 +15,7 @@ local dx = math.ceil(GuiRoot:GetWidth()/tonumber(GetCVar("WindowedWidth"))*1000)
 LIBCOMBAT_LINE_SIZE = dx
 
 local lib = {}
-lib.version = 39
+lib.version = 40
 LibCombat = lib
 
 -- Basic values
@@ -89,7 +89,7 @@ local isInPortalWorld = false	-- used to prevent fight reset in Cloudrest/Sunspi
 
 local lastBossHealthValue = 2
 
-local majorForceAmount = 15
+local majorForceAmount = 20
 local minorForceAmount = 10
 
 local CombatEventCache = {}

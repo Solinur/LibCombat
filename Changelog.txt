@@ -1,4 +1,7 @@
-﻿39 DL: 853.895 (04.12.2020) 21:09
+﻿40 DL: 857.823 (04.12.2020) 22:38
+[*] Fixed Major Force value since it was still set to 15% (Thx to @Wrath of Innos)
+
+39 DL: 853.895 (04.12.2020) 21:09
 [*] Fixed an issue where heals would fail to be recorded.
 [*] Removed some debug spam
 
