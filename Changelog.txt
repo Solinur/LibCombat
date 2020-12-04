@@ -1,4 +1,8 @@
-﻿38 DL: 827.056 (03.12.2020) 00:19
+﻿39 DL: 853.895 (04.12.2020) 21:09
+[*] Fixed an issue where heals would fail to be recorded.
+[*] Removed some debug spam
+
+38 DL: 827.056 (03.12.2020) 00:19
 [*] Changed the way damage versus absorbing shields is handled. The shield event will be shown as usual but sent with the Heal callbacks. The combat event for damage callback will now send the normal event with the proper action result and contain the shielded fraction in the overflow field.
 [*] Adjusted handling of shields in combat log string creation
 [*] Added workaround for Minor Magickasteal

@@ -15,7 +15,7 @@ local dx = math.ceil(GuiRoot:GetWidth()/tonumber(GetCVar("WindowedWidth"))*1000)
 LIBCOMBAT_LINE_SIZE = dx
 
 local lib = {}
-lib.version = 38
+lib.version = 39
 LibCombat = lib
 
 -- Basic values
@@ -47,6 +47,7 @@ if LibDebugLogger then
 	subloggers["other"] = mainlogger:Create("other")
 	subloggers["fight"] = mainlogger:Create("fight")
 	subloggers["events"] = mainlogger:Create("events")
+	subloggers["debug"] = mainlogger:Create("debug")
 
 end
 
@@ -55,6 +56,8 @@ local function Print(category, level, ...)
 	if mainlogger == nil then return end
 
 	local logger = category and subloggers[category] or mainlogger
+
+	if category == "debug" and lib.debug ~= true then return end
 
 	if type(logger.Log)=="function" then logger:Log(level, ...) end
 
@@ -67,7 +70,7 @@ local em = GetEventManager()
 local _
 local reset = false
 local data = lib.data
-lib.debug = false -- or GetDisplayName() == "@Solinur"
+lib.debug = false or GetDisplayName() == "@Solinur"
 local timeout = 800
 local activetimeonheals = true
 local ActiveCallbackTypes = {}
@@ -1328,7 +1331,12 @@ local function ProcessDeathRecaps()
 
 	for unitId, UnitCache in pairs(UnitDeathsToProcess) do
 
-		if timems - UnitCache.timems > 200 then UnitCache:ProcessDeath() end
+		if timems - UnitCache.timems > 200 then 
+			
+			Print("debug", LOG_LEVEL_INFO, "ProcessDeath: %s (%d)", currentfight.units[unitId].name, unitId)
+			UnitCache:ProcessDeath() 
+		
+		end
 
 	end
 
@@ -1336,11 +1344,15 @@ end
 
 local function ClearUnitCaches()
 
+	Print("debug", LOG_LEVEL_INFO, "ClearUnitCaches (%d)", NonContiguousCount(CombatEventCache))
+
 	for unitId, UnitCache in pairs(CombatEventCache) do
 
 		CombatEventCache[unitId] = nil
 
 	end
+
+	UnitDeathsToProcess = {}
 
 end
 
@@ -1396,7 +1408,11 @@ function FightHandler:UpdateGrpStats() -- called by onUpdate
 
 			local unit = self.units[unitId]
 
-			if (action=="heal" and unit and unit.isFriendly == true) then --only events of identified units are removed. The others might be identified later.
+			if unit and unit.isFriendly == false and action=="heal" then
+
+				table.remove(self.grplog,i)
+
+			elseif unit and unit.isFriendly == true and action=="heal" then --only events of identified units are removed. The others might be identified later.
 
 				self.groupHealingOut = self.groupHealingOut + value
 				table.remove(self.grplog,i)
@@ -1523,15 +1539,15 @@ function FightHandler:onUpdate()
 
 end
 
-local UnitCache = ZO_Object:Subclass()	-- holds all recent events + info to send on death
+local UnitCacheHandler = ZO_Object:Subclass()	-- holds all recent events + info to send on death
 
-function UnitCache:New(...)
+function UnitCacheHandler:New(...)
     local object = ZO_Object.New(self)
     object:Initialize(...)
     return object
 end
 
-function UnitCache:Initialize(unitId)
+function UnitCacheHandler:Initialize(unitId)
 
 	self.nextKey = 1
 	self.maxlength = maxUnitCacheEvents
@@ -1539,17 +1555,30 @@ function UnitCache:Initialize(unitId)
 	self.unitId = unitId
 
 	CombatEventCache[unitId] = self
+
+	if not lib.debug then return end
+
+	local unitname = currentfight.units[unitId] and currentfight.units[unitId].name or "Unknown"
+
+	Print("debug", LOG_LEVEL_INFO, "Init UnitCache: %s (%d)", unitname, unitId)
+
 end
 
-function UnitCache:OnDeath(timems)
+function UnitCacheHandler:OnDeath(timems)
 
 	self.timems = timems
 
-	table.insert(UnitDeathsToProcess, self.unitId, self)
+	UnitDeathsToProcess[self.unitId] = self
+
+	if not lib.debug then return end
+
+	local unitname = currentfight.units[self.unitId] and currentfight.units[self.unitId].name or "Unknown"
+
+	Print("debug", LOG_LEVEL_INFO, "UnitCacheHandler:OnDeath: %s (%d)", unitname, self.unitId)
 
 end
 
-function UnitCache:ProcessDeath()
+function UnitCacheHandler:ProcessDeath()
 
 	local unit = currentfight.units[self.unitId]
 
@@ -1572,7 +1601,7 @@ function UnitCache:ProcessDeath()
 
 		local deleted = 0
 
-		Print("fight", LOG_LEVEL_INFO, "offset: %d, length:%d", offset, length)
+		Print("debug", LOG_LEVEL_INFO, "Processing death event cache. Offset: %d, length:%d", offset, length)
 
 		for i = 0, length - 1 do
 
@@ -1583,9 +1612,9 @@ function UnitCache:ProcessDeath()
 
 				log[#log + 1] = data
 				local sourceUnitId = data[3]
-				local unit = sourceUnitId and sourceUnitId>0 and currentfight.units[sourceUnitId] or "nil"
+				local sourceUnit = sourceUnitId and sourceUnitId>0 and currentfight.units[sourceUnitId] or "nil"
 
-				data[3] = (unit and unit.name) or "Unknown"
+				data[3] = (sourceUnit and sourceUnit.name) or "Unknown"
 
 				if data[10] and data[10] > self.magickaMax then self.magickaMax = data[10] end
 				if data[11] and data[11] > self.staminaMax then self.staminaMax = data[11] end
@@ -1597,7 +1626,7 @@ function UnitCache:ProcessDeath()
 			end
 		end
 
-		Print("fight", LOG_LEVEL_VERBOSE , "%s: cache: %d, log: %d, deleted: %d", unit and unit.name or "Unknown", #cache, #log, deleted)
+		Print("debug", LOG_LEVEL_INFO , "%s: cache: %d, log: %d, deleted: %d", unit and unit.name or "Unknown", #cache, #log, deleted)
 	end
 
 	self.cache = nil
@@ -1607,14 +1636,13 @@ function UnitCache:ProcessDeath()
 	self.nextKey = nil
 	self.maxlength = nil
 
-	UnitCache:New(self.unitId)
-	UnitDeathsToProcess[self.unitId] = nil
-
 	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_DEATHRECAP]), LIBCOMBAT_EVENT_DEATHRECAP, self.timems, self)
 
+	UnitCacheHandler:New(self.unitId)
+	UnitDeathsToProcess[self.unitId] = nil
 end
 
-function UnitCache:AddEvent(timems, result, sourceUnitId, abilityId, hitValue, damageType, overflow)
+function UnitCacheHandler:AddEvent(timems, result, sourceUnitId, abilityId, hitValue, damageType, overflow)
 
 	local nextKey = self.nextKey
 
@@ -1627,7 +1655,7 @@ function UnitCache:AddEvent(timems, result, sourceUnitId, abilityId, hitValue, d
 end
 
 
-function UnitCache:UpdateResource(powerType, value, powerMax)
+function UnitCacheHandler:UpdateResource(powerType, value, powerMax)
 
 	if powerType == POWERTYPE_HEALTH then
 
@@ -1653,7 +1681,7 @@ local function GetUnitCache(unitId)
 
 	local unitCache = CombatEventCache[unitId]
 
-	if unitCache == nil then unitCache = UnitCache:New(unitId) end
+	if unitCache == nil then unitCache = UnitCacheHandler:New(unitId) end
 
 	return unitCache
 
@@ -2080,7 +2108,7 @@ end
 
 local function OnDeathStateChanged(_, unitTag, isDead) 	-- death (for group display, also works for different zones)
 
-	Print("DoA", LOG_LEVEL_DEBUG, "OnDeathStateChanged: %s is dead: %s", unitTag, tostring(isDead))
+	Print("debug", LOG_LEVEL_INFO, "OnDeathStateChanged: %s is dead: %s", unitTag, tostring(isDead))
 
 	local unitId = unitTag == "player" and data.playerid or data.groupInfo.tagToId[unitTag]
 
@@ -2144,7 +2172,7 @@ local function OnDeath(_, result, _, abilityName, _, abilityActionSlotType, sour
 
 	if unitdata == nil or (unitdata.unitType ~= COMBAT_UNIT_TYPE_PLAYER and unitdata.unitType ~= COMBAT_UNIT_TYPE_GROUP) then return end
 
-	Print("DoA", LOG_LEVEL_DEBUG, "OnDeath (%s): %s (%d, %d) / %s (%d, %d) - %s (%d): %d (o: %d, type: %d)", SpecialResults[result], sourceName, sourceUnitId, sourceType, targetName, targetUnitId, targetType, GetFormattedAbilityName(abilityId), abilityId, hitValue or 0, overflow or 0, damageType or 0)
+	Print("debug", LOG_LEVEL_INFO, "OnDeath (%s): %s (%d, %d) / %s (%d, %d) - %s (%d): %d (o: %d, type: %d)", SpecialResults[result], sourceName, sourceUnitId, sourceType, targetName, targetUnitId, targetType, GetFormattedAbilityName(abilityId), abilityId, hitValue or 0, overflow or 0, damageType or 0)
 
 	lastdeaths[targetUnitId] = timems
 
@@ -2157,7 +2185,7 @@ end
 
 local function OnResurrect(_, result, _, abilityName, _, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, _, sourceUnitId, targetUnitId, abilityId)
 
-	Print("DoA", LOG_LEVEL_DEBUG, "OnResurrect (%s): %s (%d, %d) / %s (%d, %d) - %s (%d): %d (type: %d)", SpecialResults[result], sourceName, sourceUnitId, sourceType, targetName, targetUnitId, targetType, GetFormattedAbilityName(abilityId), abilityId, hitValue or 0, damageType or 0)
+	Print("debug", LOG_LEVEL_INFO, "OnResurrect (%s): %s (%d, %d) / %s (%d, %d) - %s (%d): %d (type: %d)", SpecialResults[result], sourceName, sourceUnitId, sourceType, targetName, targetUnitId, targetType, GetFormattedAbilityName(abilityId), abilityId, hitValue or 0, damageType or 0)
 
 	local timems = GetGameTimeMilliseconds()
 
@@ -2271,7 +2299,6 @@ local function CheckUnit(unitName, unitId, unitType, timems)
 			unit.unitTag = ZO_CachedStrFormat("boss<<1>>", bossId)
 
 		end
-
 	end
 
 	unit.dpsstart = unit.dpsstart or timems
@@ -2287,7 +2314,7 @@ local function CheckForShield(timems, sourceUnitId, targetUnitId)
 		
 		local shieldTimems, shieldSourceUnitId, shieldTargetUnitId, shieldHitValue = unpack(DamageShieldBuffer[i])
 
-		--Print("debug", LOG_LEVEL_INFO, "Eval Shield Index %d: Source: %s, Target: %s, Time: %d", i, tostring(shieldSourceUnitId == sourceUnitId), tostring(shieldTargetUnitId == targetUnitId), timems - shieldTimems)
+		Print("debug", LOG_LEVEL_VERBOSE, "Eval Shield Index %d: Source: %s, Target: %s, Time: %d", i, tostring(shieldSourceUnitId == sourceUnitId), tostring(shieldTargetUnitId == targetUnitId), timems - shieldTimems)
 
 		if shieldSourceUnitId == sourceUnitId and shieldTargetUnitId == targetUnitId and timems - shieldTimems < 100 then
 			
@@ -2302,8 +2329,9 @@ end
 --(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
 
 local function CombatEventHandler(isheal, _, result, _, _, _, _, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, _, sourceUnitId, targetUnitId, abilityId, overflow)  -- called by Event
-
+	
 	if not (sourceUnitId > 0 and targetUnitId > 0) or (data.inCombat == false and (result==ACTION_RESULT_DOT_TICK_CRITICAL or result==ACTION_RESULT_DOT_TICK or isheal)) or targetType==2 then return end -- only record if both unitids are valid or player is in combat or a non dot damage action happens or the target is not a pet
+	
 	local timems = GetGameTimeMilliseconds()
 
 	local shieldHitValue = CheckForShield(timems, sourceUnitId, targetUnitId) or 0
@@ -2345,7 +2373,7 @@ local function onCombatEventShield(eventCode, result, isError, abilityName, abil
 	
 	DamageShieldBuffer[#DamageShieldBuffer + 1] = {GetGameTimeMilliseconds(), sourceUnitId, targetUnitId, hitValue}
 
-	Print("debug", LOG_LEVEL_INFO, "Add %d Shield: %d -> %d  (%d)", hitValue, sourceUnitId, targetUnitId, #DamageShieldBuffer)
+	Print("debug", LOG_LEVEL_DEBUG, "Add %d Shield: %d -> %d  (%d)", hitValue, sourceUnitId, targetUnitId, #DamageShieldBuffer)
 
 end
 
@@ -2361,7 +2389,7 @@ end
 local function onCombatEventHeal(...)
 	local _, _, _, _, _, _, _, _, _, _, hitValue, _, _, _, _, _, _, overflow = ...
 
-	if (hitValue + (overflow or 0)) < 2 or (data.inCombat == false and (GetGameTimeMilliseconds() - currentfight.combatend >= 50)) then return end				-- only record in combat, don't record pet incoming heal
+	if (hitValue + (overflow or 0)) < 2 or (data.inCombat == false and (GetGameTimeMilliseconds() - currentfight.combatend >= 50)) then return end				-- only record in combat
 
 	CombatEventHandler(true, ...)	-- (isheal, ...)
 end
@@ -2381,7 +2409,7 @@ local function onCombatEventDmgGrp(_, _, _, _, _, _, _, _, targetName, targetTyp
 
 	if hitValue > 200000 then
 
-		Print("debug", LOG_LEVEL_INFO, "Big Damage Event: (%d) %s did %d damage to %s", abilityId, GetFormattedAbilityName(abilityId), hitValue, tostring(targetName))
+		Print("debug", LOG_LEVEL_WARNING, "Big Damage Event: (%d) %s did %d damage to %s", abilityId, GetFormattedAbilityName(abilityId), hitValue, tostring(targetName))
 
 		return
 
@@ -2409,11 +2437,16 @@ local function GroupCombatEventHandler(isheal, result, _, abilityName, _, _, sou
 
 	damageType = (isheal and powerType) or damageType
 
-	if targetUnitId ~= data.playerid then Print("fight", LOG_LEVEL_DEBUG, targetName, abilityName, hitValue) end
+	if targetUnitId ~= data.playerid then Print("debug", LOG_LEVEL_DEBUG, "GroupCombatEvent: %s, %s, %d", targetName, abilityName, hitValue) end
 
 	GetUnitCache(targetUnitId):AddEvent(timems, result, sourceUnitId, abilityId, hitValue, damageType, overflow or 0)
 
-	if overflow and overflow > 0 and not isheal then GetUnitCache(targetUnitId):OnDeath(timems) end
+	if overflow and overflow > 0 and not isheal then 
+		
+		Print("debug", LOG_LEVEL_INFO, "GroupCombatEventHandler: %s has overflow damage!", targetName)
+		GetUnitCache(targetUnitId):OnDeath(timems) 
+	
+	end
 
 end
 
@@ -3076,14 +3109,13 @@ Events.HealOut = EventHandler:New(
 			ACTION_RESULT_HEAL,
 			ACTION_RESULT_CRITICAL_HEAL,
 			ACTION_RESULT_HOT_TICK_CRITICAL,
-			ACTION_RESULT_DAMAGE_SHIELDED
 		}
-		--[[ -- this only catches outgoing damage events
+		
 		for i=1,#filters do
 			self:RegisterEvent(EVENT_COMBAT_EVENT, onCombatEventHeal, REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER, 	REGISTER_FILTER_COMBAT_RESULT, filters[i], REGISTER_FILTER_IS_ERROR, false)
 			self:RegisterEvent(EVENT_COMBAT_EVENT, onCombatEventHeal, REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER_PET, REGISTER_FILTER_COMBAT_RESULT, filters[i], REGISTER_FILTER_IS_ERROR, false)
 		end
-		]]
+		
 		self.active = true
 	end
 )
