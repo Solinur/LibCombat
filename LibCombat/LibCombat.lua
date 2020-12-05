@@ -15,7 +15,7 @@ local dx = math.ceil(GuiRoot:GetWidth()/tonumber(GetCVar("WindowedWidth"))*1000)
 LIBCOMBAT_LINE_SIZE = dx
 
 local lib = {}
-lib.version = 40
+lib.version = 41
 LibCombat = lib
 
 -- Basic values
@@ -1644,6 +1644,8 @@ end
 
 function UnitCacheHandler:AddEvent(timems, result, sourceUnitId, abilityId, hitValue, damageType, overflow)
 
+	if self.health == nil then self:InitResources() end
+
 	local nextKey = self.nextKey
 
 	self.cache[nextKey] = {timems, result, sourceUnitId, abilityId, damageType, hitValue, overflow, self.health, self.healthMax, self.magicka, self.stamina}
@@ -1654,6 +1656,24 @@ function UnitCacheHandler:AddEvent(timems, result, sourceUnitId, abilityId, hitV
 
 end
 
+function UnitCacheHandler:InitResources()
+
+	local unit = currentfight.units[self.unitId]
+
+	if unit then 
+		
+		local unitTag = unit.unitTag 
+
+		self.health, self.healthMax = GetUnitPower(unitTag, POWERTYPE_HEALTH)
+
+		if unitTag == "player" then
+		
+			self.magicka = GetUnitPower(unitTag, POWERTYPE_MAGICKA)
+			self.stamina = GetUnitPower(unitTag, POWERTYPE_STAMINA)
+		
+		end	
+	end
+end
 
 function UnitCacheHandler:UpdateResource(powerType, value, powerMax)
 
