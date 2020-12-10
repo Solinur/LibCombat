@@ -439,7 +439,7 @@ local abilityConversions = {	-- Ability conversions for tracking skill activatio
 	[103665] = {103665, 2240, 103665, 2250}, --Introspection --> Introspection
 
 	[103503] = {103521, 2240, nil, nil}, --Accelerate --> Minor Force
-	[103706] = {103706, nil, 103707, 2240}, --Channeled Acceleration --> Minor Force
+	[103706] = {103706, nil, 103708, 2240}, --Channeled Acceleration --> Minor Force
 	[103710] = {103712, nil, nil, nil}, --Race Against Time --> Minor Force
 
 	[103478] = {108609, 2240, nil, nil}, --Undo --> Undo
@@ -561,9 +561,6 @@ local function SetAmbiguousSkillData(stats)
 
 	end
 end
-
-
--- if GetAPIVersion() > 100027 then abilityConversions = abilityConversions28 end
 
 local DirectHeavyAttacks = {	-- for special handling to detect their end
 
@@ -948,7 +945,7 @@ local function UpdateSlotSkillEvents()
 
 				local convertedId = convertedId or abilityId
 
-				local data = (convertedId2 or result2) and {convertedId, result, (convertedId2 or abilityId), result2} or {convertedId, result}
+				local data = (convertedId2 and result2) and {convertedId, result, convertedId2, result2} or {convertedId, result}
 
 				table.insert(SlotSkills, data)
 			end
@@ -982,7 +979,7 @@ local function GetCurrentSkillBars()
 
 		IdToReducedSlot[convertedId] = reducedslot
 
-		if conversion and conversion[3] then IdToReducedSlot[conversion[3]] = reducedslot end
+		if conversion[3] then IdToReducedSlot[conversion[3]] = reducedslot end
 
 	end
 
@@ -2584,7 +2581,7 @@ local function onAbilityFinished(eventCode, result, isError, abilityName, abilit
 
 	local specialResult = abilityConversions[origId] and abilityConversions[origId][4] or false
 
-	if validSkillEndResults[result] ~= true and result ~= specialResult then return end
+	if validSkillEndResults[result] ~= true or result ~= specialResult then return end
 
 	if usedCastTimeAbility[abilityId] then
 
