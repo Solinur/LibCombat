@@ -1,4 +1,7 @@
-﻿40 DL: 857.823 (04.12.2020) 22:38
+﻿41 DL: 857.823 (04.12.2020) 22:38
+[*] Fixed an issue where damage to shields was not properly counted. 
+
+40 DL: 857.823 (04.12.2020) 22:38
 [*] Fixed Major Force value since it was still set to 15% (Thx to @Wrath of Innos)
 
 39 DL: 853.895 (04.12.2020) 21:09

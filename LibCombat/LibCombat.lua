@@ -1281,9 +1281,9 @@ function FightHandler:AddCombatEvent(timems, result, targetUnitId, value, eventi
 
 	if eventid == LIBCOMBAT_EVENT_DAMAGE_OUT then 		--outgoing dmg
 
-		self.damageOutTotal = self.damageOutTotal + value
+		self.damageOutTotal = self.damageOutTotal + value + overflow
 
-		self.units[targetUnitId]["damageOutTotal"] = self.units[targetUnitId]["damageOutTotal"] + value
+		self.units[targetUnitId]["damageOutTotal"] = self.units[targetUnitId]["damageOutTotal"] + value + overflow
 
 		self.dpsstart = self.dpsstart or timems
 		self.dpsend = timems
