@@ -979,7 +979,7 @@ local function GetCurrentSkillBars()
 
 		IdToReducedSlot[convertedId] = reducedslot
 
-		if conversion[3] then IdToReducedSlot[conversion[3]] = reducedslot end
+		if conversion and conversion[3] then IdToReducedSlot[conversion[3]] = reducedslot end
 
 	end
 
@@ -2453,8 +2453,6 @@ local function GroupCombatEventHandler(isheal, result, _, abilityName, _, _, sou
 	if currentfight.dpsstart == nil then currentfight:PrepareFight() end -- get stats before the damage event
 
 	damageType = (isheal and powerType) or damageType
-
-	if targetUnitId ~= data.playerid then Print("debug", LOG_LEVEL_DEBUG, "GroupCombatEvent: %s, %s, %d", targetName, abilityName, hitValue) end
 
 	GetUnitCache(targetUnitId):AddEvent(timems, result, sourceUnitId, abilityId, hitValue, damageType, overflow or 0)
 

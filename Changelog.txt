@@ -1,5 +1,6 @@
-﻿41 DL: 857.823 (04.12.2020) 22:38
+﻿41 DL: 909.886 (13.12.2020) 22:14
 [*] Fixed an issue where damage to shields was not properly counted. 
+[*] Fixed an issue where resource values where sometimes missing in death recaps.
 
 40 DL: 857.823 (04.12.2020) 22:38
 [*] Fixed Major Force value since it was still set to 15% (Thx to @Wrath of Innos)
