@@ -922,6 +922,7 @@ local function UpdateSlotSkillEvents()
 	if not events.active then return end
 
 	SlotSkills = {}
+	lib.SlotSkills = SlotSkills
 
 	local registeredIds = {}
 
@@ -944,8 +945,9 @@ local function UpdateSlotSkillEvents()
 				local result2 = result2 or (castTime > 0 and ACTION_RESULT_EFFECT_GAINED) or (channeled and ACTION_RESULT_EFFECT_FADED) or nil
 
 				local convertedId = convertedId or abilityId
+				local convertedId2 = convertedId2 or abilityId
 
-				local data = (convertedId2 and result2) and {convertedId, result, convertedId2, result2} or {convertedId, result}
+				local data = result2 and {convertedId, result, convertedId2, result2} or {convertedId, result}
 
 				table.insert(SlotSkills, data)
 			end
@@ -2560,6 +2562,7 @@ local function onAbilityUsed(eventCode, result, isError, abilityName, abilityGra
 
 		usedCastTimeAbility[convertedId] = true
 
+
 	else
 
 		local status = LIBCOMBAT_SKILLSTATUS_INSTANT
@@ -2579,7 +2582,7 @@ local function onAbilityFinished(eventCode, result, isError, abilityName, abilit
 
 	local specialResult = abilityConversions[origId] and abilityConversions[origId][4] or false
 
-	if validSkillEndResults[result] ~= true or result ~= specialResult then return end
+	if validSkillEndResults[result] ~= true and result ~= specialResult then return end
 
 	if usedCastTimeAbility[abilityId] then
 
