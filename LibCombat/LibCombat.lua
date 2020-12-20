@@ -2290,8 +2290,6 @@ end
 
 local function CheckUnit(unitName, unitId, unitType, timems)
 
-	if unitId == nil then return end
-
 	local currentunits = currentfight.units
 
 	if currentunits[unitId] == nil then currentunits[unitId] = UnitHandler:New(unitName, unitId, unitType) end
@@ -2355,8 +2353,10 @@ local function CombatEventHandler(isheal, _, result, _, _, _, _, sourceName, sou
 
 	local shieldHitValue = CheckForShield(timems, sourceUnitId, targetUnitId) or 0
 
-	CheckUnit(sourceName, sourceUnitId, sourceType, timems)
-	CheckUnit(targetName, targetUnitId, targetType, timems)
+	if (hitValue + (overflow or 0) + shieldHitValue) <= 0 then return end
+
+	if sourceUnitId then CheckUnit(sourceName, sourceUnitId, sourceType, timems) end
+	if targetUnitId then CheckUnit(targetName, targetUnitId, targetType, timems) end
 
 	if result == ACTION_RESULT_DAMAGE_SHIELDED then 
 		
@@ -2364,8 +2364,6 @@ local function CombatEventHandler(isheal, _, result, _, _, _, _, sourceName, sou
 		sourceType = targetType
 
 	end
-
-	if (hitValue + (overflow or 0) + shieldHitValue) <= 0 then return end
 
 	local isout = (sourceType == 1 or sourceType == 2)
 	local isin = targetType == 1
@@ -2376,9 +2374,9 @@ local function CombatEventHandler(isheal, _, result, _, _, _, _, sourceName, sou
 
 	damageType = (isheal and powerType) or damageType
 
-	currentfight:AddCombatEvent(timems, result, targetUnitId, hitValue, eventid, overflow)
-
 	if not isheal then overflow = shieldHitValue end
+	
+	currentfight:AddCombatEvent(timems, result, targetUnitId, hitValue, eventid, overflow)
 
 	lib.cm:FireCallbacks((CallbackKeys[eventid]), eventid, timems, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType, (overflow or 0))
 
