@@ -1,4 +1,7 @@
-﻿41 DL: 909.886 (13.12.2020) 22:14
+﻿42 DL: 963.771 (25.12.2020) 21:52
+[*] Fixed an issue that could lead to inconsistent DPS numbers for a fight. 
+
+41 DL: 909.886 (13.12.2020) 22:14
 [*] Fixed an issue where damage to shields was not properly counted. 
 [*] Fixed an issue where resource values where sometimes missing in death recaps.
 
