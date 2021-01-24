@@ -104,6 +104,9 @@ local maxSkillDelay = 2000
 
 local DamageShieldBuffer = {}
 
+local registeredSkills = {}
+lib.registeredSkills = registeredSkills
+
 -- localize some functions for performance
 
 local stringformat = string.format
@@ -408,7 +411,7 @@ local SourceBuggedBuffs = {   -- buffs where ZOS messed up the source, causing C
 
 }
 
-local abilityConversions = {	-- Ability conversions for tracking skill activations Elsweyr
+local abilityConversions = {	-- Ability conversions for tracking skill activations
 
 	[22178] = {22179, 2240, nil, nil}, --Sun Shield --> Sun Shield
 	[22182] = {22183, 2240, nil, nil}, --Radiant Ward --> Radiant Ward
@@ -528,6 +531,23 @@ local abilityConversions = {	-- Ability conversions for tracking skill activatio
 	[40317] = {126898, 2240, nil, nil}, --Consuming Trap --> Consuming Trap
 
 }
+
+local abilityAdditions = { -- Abilities to register additionally because they change in fight
+
+	[61902] = 61907,    -- Grim Focus --> Assasins Will
+	[61919] = 61930,    -- Merciless Resolve --> Assasins Will
+	[61927] = 61932,    -- Relentless Focus --> Assasins Scourge
+	[46324] = 114716,  	-- Crystal Fragments Proc
+
+}
+
+local abilityAdditionsReverse = {}
+
+for k,v in pairs(abilityAdditions) do
+
+	abilityAdditionsReverse[v] = k
+
+end
 
 local function SetAmbiguousSkillData(stats)
 
@@ -915,6 +935,25 @@ local function PurgeEffectBuffer(timems)
 	end
 end
 
+local function GetSkillRegistrationData(abilityId)
+
+	local channeled, castTime = GetAbilityCastInfo(abilityId)
+
+	local convertedId, result, convertedId2, result2 = unpack(abilityConversions[abilityId] or {})
+
+	local result = result or (castTime > 0 and ACTION_RESULT_BEGIN) or nil
+
+	local result2 = result2 or (castTime > 0 and ACTION_RESULT_EFFECT_GAINED) or (channeled and ACTION_RESULT_EFFECT_FADED) or nil
+
+	local convertedId = convertedId or abilityId
+	local convertedId2 = convertedId2 or abilityId
+
+	local data = result2 and {convertedId, result, convertedId2, result2} or {convertedId, result}
+
+	return data
+
+end
+
 local function UpdateSlotSkillEvents()
 
 	local events = Events.Skills
@@ -922,7 +961,6 @@ local function UpdateSlotSkillEvents()
 	if not events.active then return end
 
 	SlotSkills = {}
-	lib.SlotSkills = SlotSkills
 
 	local registeredIds = {}
 
@@ -936,20 +974,9 @@ local function UpdateSlotSkillEvents()
 
 				registeredIds[abilityId] = true
 
-				local channeled, castTime = GetAbilityCastInfo(abilityId)
+				table.insert(SlotSkills, GetSkillRegistrationData(abilityId))
 
-				local convertedId, result, convertedId2, result2 = unpack(abilityConversions[abilityId] or {})
-
-				local result = result or (castTime > 0 and ACTION_RESULT_BEGIN) or nil
-
-				local result2 = result2 or (castTime > 0 and ACTION_RESULT_EFFECT_GAINED) or (channeled and ACTION_RESULT_EFFECT_FADED) or nil
-
-				local convertedId = convertedId or abilityId
-				local convertedId2 = convertedId2 or abilityId
-
-				local data = result2 and {convertedId, result, convertedId2, result2} or {convertedId, result}
-
-				table.insert(SlotSkills, data)
+				if abilityAdditions[abilityId] then table.insert(SlotSkills, GetSkillRegistrationData(abilityAdditions[abilityId])) end
 			end
 		end
 	end
@@ -1519,7 +1546,7 @@ function FightHandler:onUpdate()
 			end
 		end
 
-		Print("fight", LOG_LEVEL_INFO, "resetting...")
+		Print("fight", LOG_LEVEL_DEBUG, "resetting...")
 
 		self.grplog = {}
 
@@ -2524,7 +2551,7 @@ local function onAbilityUsed(eventCode, result, isError, abilityName, abilityGra
 
 	lastAbilityActivations[abilityId] = nil
 
-	local reducedslot = IdToReducedSlot[abilityId]
+	local reducedslot = IdToReducedSlot[abilityId] or (abilityAdditionsReverse[abilityId] and IdToReducedSlot[abilityAdditionsReverse[abilityId]]) or nil
 
 	local origId = GetReducedSlotId(reducedslot)
 
@@ -2574,17 +2601,17 @@ local function onAbilityFinished(eventCode, result, isError, abilityName, abilit
 
 	local timems = GetGameTimeMilliseconds()
 
-	local reducedslot = IdToReducedSlot[abilityId]
+	local reducedslot = IdToReducedSlot[abilityId] or (abilityAdditionsReverse[abilityId] and IdToReducedSlot[abilityAdditionsReverse[abilityId]]) or nil
 
 	local origId = GetReducedSlotId(reducedslot)
 
 	local specialResult = abilityConversions[origId] and abilityConversions[origId][4] or false
 
-	if validSkillEndResults[result] ~= true and result ~= specialResult then return end
+	if (validSkillEndResults[result] ~= true and result ~= specialResult) or (abilityId == 46324 and hitValue > 1) then return end
 
 	if usedCastTimeAbility[abilityId] then
 
-		Print("events", LOG_LEVEL_VERBOSE ,"Skill finished: %s (%d, R: %d)", GetAbilityName(origId), origId, result)
+		Print("events", LOG_LEVEL_INFO ,"Skill finished: %s (%d, R: %d)", GetAbilityName(origId), origId, result)
 
 		lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_SKILL_TIMINGS]), LIBCOMBAT_EVENT_SKILL_TIMINGS, timems, reducedslot, origId, LIBCOMBAT_SKILLSTATUS_SUCCESS)
 
@@ -2618,9 +2645,11 @@ end
 
 local function onProjectileEvent(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
 
-	if hitValue == nil or hitValue <= 1 then return end
+	if hitValue == nil or hitValue <= 1 or targetType == COMBAT_UNIT_TYPE_PLAYER or isProjectile[abilityId] == true then return end
 
 	isProjectile[abilityId] = true
+
+	Print("events", LOG_LEVEL_VERBOSE ,"[%.3f s] projectile: %s (%d)", (GetGameTimeMilliseconds() - currentfight.combatstart)/1000, GetAbilityName(abilityId), abilityId)
 
 	-- if IdToReducedSlot[abilityId] then isProjectile[abilityId] = true end TODO: Check if this should be limited
 
@@ -2892,8 +2921,6 @@ function lib:GetCurrentFight()
 	return copy
 end
 
-local registeredSkills = {}
-
 local function UpdateSkillEvents(self)
 
 	for _, skill in pairs(SlotSkills) do
@@ -2902,7 +2929,7 @@ local function UpdateSkillEvents(self)
 
 		if not registeredSkills[id] then
 
-			Print("events", LOG_LEVEL_DEBUG, "Skill registered: %d: %s (%s), End:  %d: %s (%s))", id, GetAbilityName(id), tostring(result), id2 or 0, GetAbilityName(id2 or 0), tostring(result2))
+			Print("events", LOG_LEVEL_VERBOSE, "Skill registered: %d: %s (%s), End:  %d: %s (%s))", id, GetAbilityName(id), tostring(result), id2 or 0, GetAbilityName(id2 or 0), tostring(result2))
 
 			local active
 
