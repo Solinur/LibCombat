@@ -15,7 +15,7 @@ local dx = math.ceil(GuiRoot:GetWidth()/tonumber(GetCVar("WindowedWidth"))*1000)
 LIBCOMBAT_LINE_SIZE = dx
 
 local lib = {}
-lib.version = 43
+lib.version = 44
 LibCombat = lib
 
 -- Basic values
@@ -100,7 +100,7 @@ local deathRecapTimePeriod = 10000
 local playerActivatedTime = 10000
 local lastQueuedAbilities = {}
 local usedCastTimeAbility = {}
-local maxSkillDelay = 2000
+local maxSkillDelay = GetDisplayName() == "@Chronix1753" and 10000 or 2000
 
 local DamageShieldBuffer = {}
 
@@ -194,63 +194,11 @@ LIBCOMBAT_STAT_PHYSICALRESISTANCE = 22
 LIBCOMBAT_STAT_SPELLRESISTANCE = 23
 LIBCOMBAT_STAT_CRITICALRESISTANCE = 24
 
-local statNames = {
+-- CP type
 
-	[LIBCOMBAT_STAT_MAXMAGICKA] = "maxmagicka",
-	[LIBCOMBAT_STAT_SPELLPOWER] = "spellpower",
-	[LIBCOMBAT_STAT_SPELLCRIT] = "spellcrit",
-	[LIBCOMBAT_STAT_SPELLCRITBONUS] = "spellcritbonus",
-	[LIBCOMBAT_STAT_SPELLPENETRATION] = "spellpen",
-
-	[LIBCOMBAT_STAT_MAXSTAMINA] = "maxstamina",
-	[LIBCOMBAT_STAT_WEAPONPOWER] = "weaponpower",
-	[LIBCOMBAT_STAT_WEAPONCRIT] = "weaponcrit",
-	[LIBCOMBAT_STAT_WEAPONCRITBONUS] = "weaponcritbonus",
-	[LIBCOMBAT_STAT_WEAPONPENETRATION] = "weaponpen",
-
-	[LIBCOMBAT_STAT_MAXHEALTH] = "maxhealth",
-	[LIBCOMBAT_STAT_PHYSICALRESISTANCE] = "physres",
-	[LIBCOMBAT_STAT_SPELLRESISTANCE] = "spellres",
-	[LIBCOMBAT_STAT_CRITICALRESISTANCE] = "critres",
-
-}
-
-local statNamesCurrent = {}
-local statNamesMax = {}
-
-local statNameConversion = {}
-
-for id, text in pairs(statNames) do
-
-	statNameConversion[text] = id
-	statNamesCurrent[id] = "current" .. text
-	statNamesMax[id] = "max" .. text
-
-end
-
-function lib.GetStatName(id)
-
-	return statNames[id]
-
-end
-
-function lib.GetStatNameCurrent(id)
-
-	return statNamesCurrent[id]
-
-end
-
-function lib.GetStatNameMax(id)
-
-	return statNamesMax[id]
-
-end
-
-function lib.ConvertStatName(statName)
-
-	return statNameConversion[statName]
-
-end
+LIBCOMBAT_CPTYPE_PASSIVE = 0
+LIBCOMBAT_CPTYPE_SLOTTED = 1
+LIBCOMBAT_CPTYPE_UNSLOTTED = 2
 
 -- Strings
 
@@ -390,7 +338,7 @@ local SpecialBuffs = {	-- buffs that the API doesn't show via EVENT_EFFECT_CHANG
 	71069,	-- Trial By Fire: Disease
 	71072,	-- Trial By Fire: Poison
 	49236,	-- Whitestrake's Retribution
-	57170,	-- Blod Frenzy
+	57170,	-- Blood Frenzy
 	75726,	-- Tava's Favor
 	75746,	-- Clever Alchemist
 	61870,	-- Armor Master Resistance
@@ -549,25 +497,26 @@ for k,v in pairs(abilityAdditions) do
 
 end
 
-local function SetAmbiguousSkillData(stats)
+local function SetAmbiguousSkillData()
 
-    local spellPower, weaponPower
+    local effectiveSpellPower, effectiveWeaponPower
+	local stats = data.stats
 
-    if stats.currentspellpower == nil or stats.currentmaxmagicka == nil or stats.currentweaponpower == nil or stats.currentmaxstamina == nil then
+    if stats[LIBCOMBAT_STAT_SPELLPOWER] == nil or stats[LIBCOMBAT_STAT_MAXMAGICKA] == nil or stats[LIBCOMBAT_STAT_WEAPONPOWER] == nil or stats[LIBCOMBAT_STAT_MAXSTAMINA] == nil then
 
-        _, spellPower, _ = GetUnitPower("player", POWERTYPE_MAGICKA)
-        _, weaponPower, _ = GetUnitPower("player", POWERTYPE_STAMINA)
+        _, effectiveSpellPower, _ = GetUnitPower("player", POWERTYPE_MAGICKA)
+        _, effectiveWeaponPower, _ = GetUnitPower("player", POWERTYPE_STAMINA)
 
-        if spellPower == nil or weaponPower == nil then return end
+        if effectiveSpellPower == nil or effectiveWeaponPower == nil then return end
 
     else
 
-        spellPower = stats.currentspellpower + stats.currentmaxmagicka/10.5
-        weaponPower = stats.currentweaponpower + stats.currentmaxstamina/10.5
+        effectiveSpellPower = stats[LIBCOMBAT_STAT_SPELLPOWER] + stats[LIBCOMBAT_STAT_MAXMAGICKA]/10.5
+        effectiveWeaponPower = stats[LIBCOMBAT_STAT_WEAPONPOWER] + stats[LIBCOMBAT_STAT_MAXSTAMINA]/10.5
 
     end
 
-	if spellPower > weaponPower then
+	if effectiveSpellPower > effectiveWeaponPower then
 
 		abilityConversions[26768] = {126890, 2240, nil, nil} --Soul Trap --> Soul Trap
 		abilityConversions[40328] = {126895, 2240, nil, nil} --Soul Splitting Trap --> Soul Splitting Trap
@@ -619,14 +568,6 @@ local validSkillEndResults = {
 
 	[ACTION_RESULT_EFFECT_GAINED] = true, -- 2240
 	[ACTION_RESULT_EFFECT_FADED] = true, -- 2250
-
-}
-
-local ignoredAbilities = { -- Skills which ignore global cooldown
-
-	[132141] = true,    -- Blood Frenzy (Vampire Toggle)
-	[134160] = true,    -- Simmering Frenzy (Vampire Toggle)
-	[135841] = true,    -- Sated Fury (Vampire Toggle)
 
 }
 
@@ -745,7 +686,6 @@ function FightHandler:Initialize()
 	self.DPSIn = 0						-- incoming dps
 	self.HPSIn = 0						-- incoming hps
 	self.group = data.inGroup
-	self.stats = {}
 	self.playerid = data.playerid
 	self.bosses = {}
 end
@@ -905,20 +845,77 @@ local function GetCritBonusFromCP()
 end
 
 local function GetCurrentCP()
+
 	local CP = {}
 
-	for i = 1,9 do
+	if GetAPIVersion() >= 100034 then
 
-		CP[i] = {}
+		CP.version = 2
 
-		for j = 1,4 do
+		-- collect slotted stars
 
-			CP[i][j] = GetNumPointsSpentOnChampionSkill(i, j)
+		local championBarData = CHAMPION_PERKS.championBar.slots
 
+		local slotsById = {}
+
+		for i, slot in pairs(championBarData) do
+
+			local starId = slot:GetSavedChampionSkillData():GetId()
+
+			slotsById[starId] = i
+			
 		end
-	end
 
-	return CP
+		--  collect CP data
+
+		local disciplines = CHAMPION_DATA_MANAGER.disciplineDatas
+
+		for _, discipline in pairs(disciplines) do
+
+			local disciplineId = discipline.disciplineId
+			local stars = discipline.championSkillDatas
+
+			local disciplineData = {}
+			CP[disciplineId] = disciplineData
+
+			disciplineData.total = discipline:GetNumSavedSpentPoints()
+
+			for _, star in pairs(stars) do
+
+				local savedPoints = star:GetNumSavedPoints()
+
+				if savedPoints > 0 then
+
+					local starId = star.championSkillId
+
+					local slotable = star:IsTypeSlottable()
+					local slotted = slotsById[starId] ~= nil
+
+					local starType = (slotted and LIBCOMBAT_CPTYPE_SLOTTED) or (slotable and LIBCOMBAT_CPTYPE_UNSLOTTED) or LIBCOMBAT_CPTYPE_PASSIVE
+
+					disciplineData[starId] = {savedPoints, starType}
+
+				end
+			end
+		end
+
+		return CP
+
+	else	-- Legacy
+
+		for i = 1,9 do
+
+			CP[i] = {}
+
+			for j = 1,4 do
+
+				CP[i][j] = GetNumPointsSpentOnChampionSkill(i, j)
+
+			end
+		end
+
+		return CP
+	end
 end
 
 local function PurgeEffectBuffer(timems)
@@ -1082,22 +1079,22 @@ function FightHandler:PrepareFight()
 		GetPlayerBuffs(timems)
 		GetOtherBuffs(timems)
 
-		self.stats.currenthealth, _, _ = GetUnitPower("player", POWERTYPE_HEALTH)
-		self.stats.currentmagicka, _, _ = GetUnitPower("player", POWERTYPE_MAGICKA)
-		self.stats.currentstamina, _, _ = GetUnitPower("player", POWERTYPE_STAMINA)
-		self.stats.currentulti, _, _ = GetUnitPower("player", POWERTYPE_ULTIMATE)
+		data.resources[POWERTYPE_HEALTH] = GetUnitPower("player", POWERTYPE_HEALTH)
+		data.resources[POWERTYPE_MAGICKA] = GetUnitPower("player", POWERTYPE_MAGICKA)
+		data.resources[POWERTYPE_STAMINA] = GetUnitPower("player", POWERTYPE_STAMINA)
+		data.resources[POWERTYPE_ULTIMATE] = GetUnitPower("player", POWERTYPE_ULTIMATE)
 
 		data.critBonusPassive = GetCritBonusFromPassives()
 		data.mightyCP, data.elfbornCP = GetCritBonusFromCP()
 
 		self.prepared = true
 
-		self.stats = {}
-
 		self.startBar = data.bar
 
+		data.stats = {}
 		self:GetNewStats(timems)
-		SetAmbiguousSkillData(self.stats)
+
+		SetAmbiguousSkillData()
 
 		GetCurrentSkillBars()
 
@@ -1256,9 +1253,46 @@ local function GetStats()
 	}
 end
 
+local advancedStatData = {}
+
+local function GetAdvancedStats(init)
+
+	if GetAPIVersion() < 100034 then return end
+
+	for statCategoryIndex = 1, GetNumAdvancedStatCategories() do
+
+		local statCategoryId = GetAdvancedStatsCategoryId(statCategoryIndex)
+
+		if init then advancedStatData[statCategoryIndex] = {} end
+
+		local categoryData = advancedStatData[statCategoryIndex]
+
+		local _, numStats = GetAdvancedStatCategoryInfo(statCategoryId)
+
+		for statIndex = 1, numStats do
+
+			local statType = GetAdvancedStatInfo(statCategoryId, statIndex)
+
+			local _, flatValue, percentValue = GetAdvancedStatValue(statType)
+
+			if init then categoryData[statType] = {flatValue, percentValue} end
+
+			categoryData[statType][1] = flatValue
+			categoryData[statType][2] = percentValue
+
+		end
+	end
+
+	return advancedStatData
+end
+
+CMXGetAdvancedStats = GetAdvancedStats
+
 local lastGetNewStatsCall = 0
 
 function FightHandler:GetNewStats(timems)
+
+	if Events.Stats.active ~= true then return end
 
 	em:UnregisterForUpdate("LibCombat_Stats")
 
@@ -1274,32 +1308,20 @@ function FightHandler:GetNewStats(timems)
 
 	end
 
-	if NonContiguousCount(ActiveCallbackTypes[LIBCOMBAT_EVENT_PLAYERSTATS]) == 0 then return end
-
 	lastGetNewStatsCall = timems
 
-	local stats = self.stats
+	local stats = data.stats
 
 	for statId, newValue in pairs(GetStats()) do
 
-		local currentkey = statNamesCurrent[statId]
-		local maxkey = statNamesMax[statId]
+		local oldValue = stats[statId]
 
-		if stats[currentkey] == nil or stats[maxkey] == nil then
+		local delta = oldValue and (newValue - stats[statId]) or 0
 
-			lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_PLAYERSTATS]), LIBCOMBAT_EVENT_PLAYERSTATS, timems, 0, newValue, statId)
+		lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_PLAYERSTATS]), LIBCOMBAT_EVENT_PLAYERSTATS, timems, delta, newValue, statId)
 
-			stats[currentkey] = newValue
-			stats[maxkey] = newValue
+		stats[statId] = newValue
 
-		elseif stats[currentkey] ~= newValue and timems ~= nil and data.inCombat then
-
-			lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_PLAYERSTATS]), LIBCOMBAT_EVENT_PLAYERSTATS, timems, newValue - stats[currentkey], newValue, statId)
-
-			stats[currentkey] = newValue
-			stats[maxkey] = mathmax(stats[maxkey] or newValue, newValue)
-
-		end
 	end
 end
 
@@ -2000,14 +2022,14 @@ local function onBaseResourceChanged(_,unitTag,_,powerType,powerValue,_,_)
 	local powerValueChange
 	local aId
 
-	local stats = currentfight.stats
+	local currentPowerValue = data.resources[powerType]
+
+	powerValueChange = powerValue - (currentPowerValue or powerValue)
+	currentPowerValue = powerValue
+
+	if powerValueChange == 0 then return end
 
  	if powerType == POWERTYPE_MAGICKA then
-
-		powerValueChange = powerValue - (stats.currentmagicka or powerValue)
-		stats.currentmagicka = powerValue
-
-		if powerValueChange == 0 then return end
 
 		Print("events", LOG_LEVEL_VERBOSE, "Skill cost: %d", powerValueChange)
 
@@ -2020,11 +2042,6 @@ local function onBaseResourceChanged(_,unitTag,_,powerType,powerValue,_,_)
 		end
 
 	elseif powerType == POWERTYPE_STAMINA then
-
-		powerValueChange = powerValue - (stats.currentstamina or powerValue)
-		stats.currentstamina = powerValue
-
-		if powerValueChange == 0 then return end
 
 		aId = checkLastAbilities(powerType, powerValueChange)
 
@@ -2055,19 +2072,9 @@ local function onBaseResourceChanged(_,unitTag,_,powerType,powerValue,_,_)
 
 		aId = 0
 
-		powerValueChange = powerValue - (stats.currentulti or powerValue)
-		stats.currentulti = powerValue
-
-		if powerValueChange == 0 then return end
-
 	elseif powerType == POWERTYPE_HEALTH then
 
 		aId = -1
-
-		powerValueChange = powerValue - (stats.currenthealth or powerValue)
-		stats.currenthealth = powerValue
-
-		if powerValueChange == 0 then return end
 
 		if powerValueChange == GetStat(STAT_HEALTH_REGEN_COMBAT) and data.playerid then
 
@@ -3804,6 +3811,8 @@ local function Initialize()
   data.minorForce = 0
   data.critBonusMundus = 0
   data.bar = GetActiveWeaponPairInfo()
+  data.resources = {}
+  data.stats = {}
 
   --resetfightdata
   currentfight = FightHandler:New()
@@ -3818,6 +3827,8 @@ local function Initialize()
   }
 
   onBossesChanged()
+
+  GetAdvancedStats(true)
 
   if data.LoadCustomizations then data.LoadCustomizations() end
 
