@@ -122,29 +122,29 @@ local ZO_CachedStrFormat = ZO_CachedStrFormat
 -- types of callbacks: Units, DPS/HPS, DPS/HPS for Group, Logevents
 
 LIBCOMBAT_EVENT_MIN = 0
-LIBCOMBAT_EVENT_UNITS = 0				-- LIBCOMBAT_EVENT_UNITS, {units}
-LIBCOMBAT_EVENT_FIGHTRECAP = 1			-- LIBCOMBAT_EVENT_FIGHTRECAP, {data}
-LIBCOMBAT_EVENT_FIGHTSUMMARY = 2		-- LIBCOMBAT_EVENT_FIGHTSUMMARY, {fight}
-LIBCOMBAT_EVENT_GROUPRECAP = 3			-- LIBCOMBAT_EVENT_GROUPRECAP, groupDPSOut, groupDPSIn, groupHPS, dpstime, hpstime
-LIBCOMBAT_EVENT_DAMAGE_OUT = 4			-- LIBCOMBAT_EVENT_DAMAGE_OUT, timems, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType, overflow
-LIBCOMBAT_EVENT_DAMAGE_IN = 5			-- LIBCOMBAT_EVENT_DAMAGE_IN, timems, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType, overflow
-LIBCOMBAT_EVENT_DAMAGE_SELF = 6			-- LIBCOMBAT_EVENT_DAMAGE_SELF, timems, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType, overflow
-LIBCOMBAT_EVENT_HEAL_OUT = 7			-- LIBCOMBAT_EVENT_HEAL_OUT, timems, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType, overflow
-LIBCOMBAT_EVENT_HEAL_IN = 8				-- LIBCOMBAT_EVENT_HEAL_IN, timems, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType, overflow
-LIBCOMBAT_EVENT_HEAL_SELF = 9			-- LIBCOMBAT_EVENT_HEAL_SELF, timems, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType, overflow
-LIBCOMBAT_EVENT_EFFECTS_IN = 10			-- LIBCOMBAT_EVENT_EFFECTS_IN, timems, unitId, abilityId, changeType, effectType, stacks, sourceType, effectSlot
-LIBCOMBAT_EVENT_EFFECTS_OUT = 11		-- LIBCOMBAT_EVENT_EFFECTS_OUT, timems, unitId, abilityId, changeType, effectType, stacks, sourceType, effectSlot
-LIBCOMBAT_EVENT_GROUPEFFECTS_IN = 12	-- LIBCOMBAT_EVENT_GROUPEFFECTS_IN, timems, unitId, abilityId, changeType, effectType, stacks, sourceType, effectSlot
-LIBCOMBAT_EVENT_GROUPEFFECTS_OUT = 13	-- LIBCOMBAT_EVENT_GROUPEFFECTS_OUT, timems, unitId, abilityId, changeType, effectType, stacks, sourceType, effectSlot
-LIBCOMBAT_EVENT_PLAYERSTATS = 14		-- LIBCOMBAT_EVENT_PLAYERSTATS, timems, statchange, newvalue, statId
-LIBCOMBAT_EVENT_RESOURCES = 15			-- LIBCOMBAT_EVENT_RESOURCES, timems, abilityId, powerValueChange, powerType, powerValue
-LIBCOMBAT_EVENT_MESSAGES = 16			-- LIBCOMBAT_EVENT_MESSAGES, timems, combatMessage, value
-LIBCOMBAT_EVENT_DEATH = 17				-- LIBCOMBAT_EVENT_DEATH, timems, state, unitId, abilityId/unitId
-LIBCOMBAT_EVENT_UNUSED = 18				-- not used for now
-LIBCOMBAT_EVENT_SKILL_TIMINGS = 19		-- LIBCOMBAT_EVENT_SKILL_TIMINGS, timems, reducedslot, abilityId, skillStatus, skillDelay
-LIBCOMBAT_EVENT_BOSSHP = 20				-- LIBCOMBAT_EVENT_BOSSHP, timems, bossId, currenthp, maxhp
-LIBCOMBAT_EVENT_PERFORMANCE = 21		-- LIBCOMBAT_EVENT_PERFORMANCE, timems, avg, min, max, ping
-LIBCOMBAT_EVENT_DEATHRECAP = 22			-- LIBCOMBAT_EVENT_DEATHRECAP, timems, {data}
+LIBCOMBAT_EVENT_UNITS = 0					-- LIBCOMBAT_EVENT_UNITS, {units}
+LIBCOMBAT_EVENT_FIGHTRECAP = 1				-- LIBCOMBAT_EVENT_FIGHTRECAP, {data}
+LIBCOMBAT_EVENT_FIGHTSUMMARY = 2			-- LIBCOMBAT_EVENT_FIGHTSUMMARY, {fight}
+LIBCOMBAT_EVENT_GROUPRECAP = 3				-- LIBCOMBAT_EVENT_GROUPRECAP, groupDPSOut, groupDPSIn, groupHPS, dpstime, hpstime
+LIBCOMBAT_EVENT_DAMAGE_OUT = 4				-- LIBCOMBAT_EVENT_DAMAGE_OUT, timems, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType, overflow
+LIBCOMBAT_EVENT_DAMAGE_IN = 5				-- LIBCOMBAT_EVENT_DAMAGE_IN, timems, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType, overflow
+LIBCOMBAT_EVENT_DAMAGE_SELF = 6				-- LIBCOMBAT_EVENT_DAMAGE_SELF, timems, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType, overflow
+LIBCOMBAT_EVENT_HEAL_OUT = 7				-- LIBCOMBAT_EVENT_HEAL_OUT, timems, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType, overflow
+LIBCOMBAT_EVENT_HEAL_IN = 8					-- LIBCOMBAT_EVENT_HEAL_IN, timems, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType, overflow
+LIBCOMBAT_EVENT_HEAL_SELF = 9				-- LIBCOMBAT_EVENT_HEAL_SELF, timems, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType, overflow
+LIBCOMBAT_EVENT_EFFECTS_IN = 10				-- LIBCOMBAT_EVENT_EFFECTS_IN, timems, unitId, abilityId, changeType, effectType, stacks, sourceType, effectSlot
+LIBCOMBAT_EVENT_EFFECTS_OUT = 11			-- LIBCOMBAT_EVENT_EFFECTS_OUT, timems, unitId, abilityId, changeType, effectType, stacks, sourceType, effectSlot
+LIBCOMBAT_EVENT_GROUPEFFECTS_IN = 12		-- LIBCOMBAT_EVENT_GROUPEFFECTS_IN, timems, unitId, abilityId, changeType, effectType, stacks, sourceType, effectSlot
+LIBCOMBAT_EVENT_GROUPEFFECTS_OUT = 13		-- LIBCOMBAT_EVENT_GROUPEFFECTS_OUT, timems, unitId, abilityId, changeType, effectType, stacks, sourceType, effectSlot
+LIBCOMBAT_EVENT_PLAYERSTATS = 14			-- LIBCOMBAT_EVENT_PLAYERSTATS, timems, statchange, newvalue, statId
+LIBCOMBAT_EVENT_RESOURCES = 15				-- LIBCOMBAT_EVENT_RESOURCES, timems, abilityId, powerValueChange, powerType, powerValue
+LIBCOMBAT_EVENT_MESSAGES = 16				-- LIBCOMBAT_EVENT_MESSAGES, timems, combatMessage, value
+LIBCOMBAT_EVENT_DEATH = 17					-- LIBCOMBAT_EVENT_DEATH, timems, state, unitId, abilityId/unitId
+LIBCOMBAT_EVENT_PLAYERSTATS_ADVANCED = 18	-- LIBCOMBAT_EVENT_PLAYERSTATS_ADVANCED, timems, statchange, newvalue, statId
+LIBCOMBAT_EVENT_SKILL_TIMINGS = 19			-- LIBCOMBAT_EVENT_SKILL_TIMINGS, timems, reducedslot, abilityId, skillStatus, skillDelay
+LIBCOMBAT_EVENT_BOSSHP = 20					-- LIBCOMBAT_EVENT_BOSSHP, timems, bossId, currenthp, maxhp
+LIBCOMBAT_EVENT_PERFORMANCE = 21			-- LIBCOMBAT_EVENT_PERFORMANCE, timems, avg, min, max, ping
+LIBCOMBAT_EVENT_DEATHRECAP = 22				-- LIBCOMBAT_EVENT_DEATHRECAP, timems, {data}
 LIBCOMBAT_EVENT_MAX = 22
 
 LIBCOMBAT_STATE_DEAD = 1
@@ -1092,6 +1092,7 @@ function FightHandler:PrepareFight()
 		self.startBar = data.bar
 
 		data.stats = {}
+		data.advancedStats = {}
 		self:GetNewStats(timems)
 
 		SetAmbiguousSkillData()
@@ -1228,65 +1229,95 @@ local function onTFSChanged(_, changeType, _, _, _, _, _, stackCount, _, _, _, _
 	end
 end
 
+local statData = {
+	[LIBCOMBAT_STAT_MAXMAGICKA]			= 0,
+	[LIBCOMBAT_STAT_SPELLPOWER]			= 0,
+	[LIBCOMBAT_STAT_SPELLCRIT]			= 0,
+	[LIBCOMBAT_STAT_SPELLCRITBONUS]		= 0,
+	[LIBCOMBAT_STAT_SPELLPENETRATION]	= 0,
+
+	[LIBCOMBAT_STAT_MAXSTAMINA]			= 0,
+	[LIBCOMBAT_STAT_WEAPONPOWER]		= 0,
+	[LIBCOMBAT_STAT_WEAPONCRIT]			= 0,
+	[LIBCOMBAT_STAT_WEAPONCRITBONUS]	= 0,
+	[LIBCOMBAT_STAT_WEAPONPENETRATION]	= 0,
+
+	[LIBCOMBAT_STAT_MAXHEALTH]			= 0,
+	[LIBCOMBAT_STAT_PHYSICALRESISTANCE]	= 0,
+	[LIBCOMBAT_STAT_SPELLRESISTANCE]	= 0,
+	[LIBCOMBAT_STAT_CRITICALRESISTANCE]	= 0,
+}
+
 local function GetStats()
 
 	local weaponcritbonus, spellcritbonus = GetCritbonus()
 	local maxcrit = mathfloor(100/GetCriticalStrikeChance(1)) -- Critical Strike chance of 100%
 
-	return {
-		[LIBCOMBAT_STAT_MAXMAGICKA]			= GetStat(STAT_MAGICKA_MAX),
-		[LIBCOMBAT_STAT_SPELLPOWER]			= GetStat(STAT_SPELL_POWER),
-		[LIBCOMBAT_STAT_SPELLCRIT]			= mathmin(GetStat(STAT_SPELL_CRITICAL), maxcrit),
-		[LIBCOMBAT_STAT_SPELLCRITBONUS]		= spellcritbonus,
-		[LIBCOMBAT_STAT_SPELLPENETRATION]	= GetStat(STAT_SPELL_PENETRATION),
+	statData[LIBCOMBAT_STAT_MAXMAGICKA]			= GetStat(STAT_MAGICKA_MAX)
+	statData[LIBCOMBAT_STAT_SPELLPOWER]			= GetStat(STAT_SPELL_POWER)
+	statData[LIBCOMBAT_STAT_SPELLCRIT]			= mathmin(GetStat(STAT_SPELL_CRITICAL), maxcrit)
+	statData[LIBCOMBAT_STAT_SPELLCRITBONUS]		= spellcritbonus
+	statData[LIBCOMBAT_STAT_SPELLPENETRATION]	= GetStat(STAT_SPELL_PENETRATION)
 
-		[LIBCOMBAT_STAT_MAXSTAMINA]			= GetStat(STAT_STAMINA_MAX),
-		[LIBCOMBAT_STAT_WEAPONPOWER]		= GetStat(STAT_POWER),
-		[LIBCOMBAT_STAT_WEAPONCRIT]			= mathmin(GetStat(STAT_CRITICAL_STRIKE), maxcrit),
-		[LIBCOMBAT_STAT_WEAPONCRITBONUS]	= weaponcritbonus,
-		[LIBCOMBAT_STAT_WEAPONPENETRATION]	= GetStat(STAT_PHYSICAL_PENETRATION) + TFSBonus,
+	statData[LIBCOMBAT_STAT_MAXSTAMINA]			= GetStat(STAT_STAMINA_MAX)
+	statData[LIBCOMBAT_STAT_WEAPONPOWER]		= GetStat(STAT_POWER)
+	statData[LIBCOMBAT_STAT_WEAPONCRIT]			= mathmin(GetStat(STAT_CRITICAL_STRIKE), maxcrit)
+	statData[LIBCOMBAT_STAT_WEAPONCRITBONUS]	= weaponcritbonus
+	statData[LIBCOMBAT_STAT_WEAPONPENETRATION]	= GetStat(STAT_PHYSICAL_PENETRATION) + TFSBonus
 
-		[LIBCOMBAT_STAT_MAXHEALTH]			= GetStat(STAT_HEALTH_MAX),
-		[LIBCOMBAT_STAT_PHYSICALRESISTANCE]	= GetStat(STAT_PHYSICAL_RESIST),
-		[LIBCOMBAT_STAT_SPELLRESISTANCE]	= GetStat(STAT_SPELL_RESIST),
-		[LIBCOMBAT_STAT_CRITICALRESISTANCE]	= GetStat(STAT_CRITICAL_RESISTANCE)
-	}
+	statData[LIBCOMBAT_STAT_MAXHEALTH]			= GetStat(STAT_HEALTH_MAX)
+	statData[LIBCOMBAT_STAT_PHYSICALRESISTANCE]	= GetStat(STAT_PHYSICAL_RESIST)
+	statData[LIBCOMBAT_STAT_SPELLRESISTANCE]	= GetStat(STAT_SPELL_RESIST)
+	statData[LIBCOMBAT_STAT_CRITICALRESISTANCE]	= GetStat(STAT_CRITICAL_RESISTANCE)
+
+	return statData
 end
 
 local advancedStatData = {}
 
-local function GetAdvancedStats(init)
+local function InitAdvancedStats()
 
 	if GetAPIVersion() < 100034 then return end
 
 	for statCategoryIndex = 1, GetNumAdvancedStatCategories() do
 
 		local statCategoryId = GetAdvancedStatsCategoryId(statCategoryIndex)
-
-		if init then advancedStatData[statCategoryIndex] = {} end
-
-		local categoryData = advancedStatData[statCategoryIndex]
-
 		local _, numStats = GetAdvancedStatCategoryInfo(statCategoryId)
 
-		for statIndex = 1, numStats do
+		if numStats > 0 then
 
-			local statType = GetAdvancedStatInfo(statCategoryId, statIndex)
+			for statIndex = 1, numStats do
 
-			local _, flatValue, percentValue = GetAdvancedStatValue(statType)
+				local statType = GetAdvancedStatInfo(statCategoryId, statIndex)
 
-			if init then categoryData[statType] = {flatValue, percentValue} end
+				local _, flatValue, percentValue = GetAdvancedStatValue(statType)
 
-			categoryData[statType][1] = flatValue
-			categoryData[statType][2] = percentValue
+				advancedStatData[statType] = {flatValue, percentValue}
 
+			end
 		end
+	end
+end
+
+local function GetAdvancedStats()
+
+	if GetAPIVersion() < 100034 then return end
+
+	for statType, _ in pairs(advancedStatData) do
+
+		local _, flatValue, percentValue = GetAdvancedStatValue(statType)
+
+		if flatValue then advancedStatData[statType][1] = flatValue end
+		if percentValue then advancedStatData[statType][2] = percentValue end
+
 	end
 
 	return advancedStatData
 end
 
 CMXGetAdvancedStats = GetAdvancedStats
+
+-- /script GetEventManager():RegisterForUpdate("TestPerformance", 0, CMXGetAdvancedStats)
 
 local lastGetNewStatsCall = 0
 
@@ -1316,11 +1347,49 @@ function FightHandler:GetNewStats(timems)
 
 		local oldValue = stats[statId]
 
-		local delta = oldValue and (newValue - stats[statId]) or 0
+		local delta = oldValue and (newValue - oldValue) or 0
 
 		lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_PLAYERSTATS]), LIBCOMBAT_EVENT_PLAYERSTATS, timems, delta, newValue, statId)
 
 		stats[statId] = newValue
+
+	end
+
+	if Events.AdvancedStats.active ~= true then return end
+
+	local advancedStats = data.advancedStats
+
+	for statId, values in pairs(GetAdvancedStats()) do
+
+		local newValue1 = values[1]
+		local newValue2 = values[2]
+
+		if advancedStats[statId] == nil then advancedStats[statId] = {} end
+
+		local oldValues = advancedStats[statId]
+
+		if newValue1 then
+
+			local oldValue1 = oldValues[1] or newValue1
+
+			local delta = newValue1 - oldValue1
+
+			lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_PLAYERSTATS_ADVANCED]), LIBCOMBAT_EVENT_PLAYERSTATS_ADVANCED, timems, delta, newValue1, statId)
+
+			advancedStats[statId][1] = newValue1
+
+		end
+
+		if newValue2 then
+
+			local oldValue2 = oldValues[2] or newValue2
+
+			local delta = newValue2 - oldValue2
+
+			lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_PLAYERSTATS_ADVANCED]), LIBCOMBAT_EVENT_PLAYERSTATS_ADVANCED, timems, delta, newValue2, statId)
+
+			advancedStats[statId][2] = newValue2
+		end
 
 	end
 end
@@ -3294,6 +3363,13 @@ Events.Stats = EventHandler:New(
 	end
 )
 
+Events.AdvancedStats = EventHandler:New(
+	{LIBCOMBAT_EVENT_PLAYERSTATS_ADVANCED},
+	function (self)
+		self.active = true
+	end
+)
+
 Events.Resources = EventHandler:New(
 	{LIBCOMBAT_EVENT_RESOURCES},
 	function (self)
@@ -3813,6 +3889,7 @@ local function Initialize()
   data.bar = GetActiveWeaponPairInfo()
   data.resources = {}
   data.stats = {}
+  data.advancedStats = {}
 
   --resetfightdata
   currentfight = FightHandler:New()
@@ -3828,7 +3905,7 @@ local function Initialize()
 
   onBossesChanged()
 
-  GetAdvancedStats(true)
+  InitAdvancedStats()
 
   if data.LoadCustomizations then data.LoadCustomizations() end
 
