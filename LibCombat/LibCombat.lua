@@ -688,6 +688,7 @@ function FightHandler:Initialize()
 	self.group = data.inGroup
 	self.playerid = data.playerid
 	self.bosses = {}
+	self.dataVersion = 2
 end
 
 local onCombatState
