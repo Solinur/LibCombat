@@ -197,8 +197,8 @@ LIBCOMBAT_STAT_CRITICALRESISTANCE = 24
 -- CP type
 
 LIBCOMBAT_CPTYPE_PASSIVE = 0
-LIBCOMBAT_CPTYPE_SLOTTED = 1
-LIBCOMBAT_CPTYPE_UNSLOTTED = 2
+LIBCOMBAT_CPTYPE_UNSLOTTED = 1
+LIBCOMBAT_CPTYPE_SLOTTED = 2
 
 -- Strings
 
@@ -833,16 +833,29 @@ end
 
 local function GetCritBonusFromCP()
 
-	local mightyCP = GetNumPointsSpentOnChampionSkill(5, 2) / 100
-	local elfbornCP = GetNumPointsSpentOnChampionSkill(7, 3) / 100
+	if GetAPIVersion() < 100034 then
 
-	local mightyValue = 0.25 * mightyCP * (2 - mightyCP) + (mightyCP - 1) * (mightyCP - 0.5) * mightyCP * 2/250
-	local elfbornValue = 0.25 * elfbornCP * (2 - elfbornCP) + (elfbornCP - 1) * (elfbornCP - 0.5) * elfbornCP * 2 / 250
+		local mightyCP = GetNumPointsSpentOnChampionSkill(5, 2) / 100
+		local elfbornCP = GetNumPointsSpentOnChampionSkill(7, 3) / 100
 
-	mightyValue = mathfloor(mightyValue * 100)
-	elfbornValue = mathfloor(elfbornValue * 100)
+		local mightyValue = 0.25 * mightyCP * (2 - mightyCP) + (mightyCP - 1) * (mightyCP - 0.5) * mightyCP * 2/250
+		local elfbornValue = 0.25 * elfbornCP * (2 - elfbornCP) + (elfbornCP - 1) * (elfbornCP - 0.5) * elfbornCP * 2 / 250
 
-	return mightyValue, elfbornValue
+		mightyValue = mathfloor(mightyValue * 100)
+		elfbornValue = mathfloor(elfbornValue * 100)
+
+		return mightyValue, elfbornValue
+
+	else
+
+		local finesse = 2 * math.floor(0.1 * CHAMPION_DATA_MANAGER:GetChampionSkillData(12):GetNumSavedPoints()) -- Fighting Finesse 2% per every full 10 points
+		local backstabber = 3 * math.floor(0.1 * CHAMPION_DATA_MANAGER:GetChampionSkillData(31):GetNumSavedPoints()) -- Backstabber 3% per every full 10 points (flanking!)
+
+		local total = finesse + backstabber
+
+		return total, total
+
+	end
 end
 
 local function GetCurrentCP()
@@ -860,11 +873,15 @@ local function GetCurrentCP()
 		local slotsById = {}
 
 		for i, slot in pairs(championBarData) do
-
-			local starId = slot:GetSavedChampionSkillData():GetId()
-
-			slotsById[starId] = i
 			
+			local slotData = slot:GetSavedChampionSkillData()
+
+			if slotData then 
+
+				local starId = slot:GetSavedChampionSkillData():GetId()
+
+				slotsById[starId] = i
+			end			
 		end
 
 		--  collect CP data
@@ -880,6 +897,11 @@ local function GetCurrentCP()
 			CP[disciplineId] = disciplineData
 
 			disciplineData.total = discipline:GetNumSavedSpentPoints()
+			disciplineData.stars = {}
+			disciplineData.slotted = {}
+
+			local discStarData = disciplineData.stars
+			local discSlotData = disciplineData.slotted
 
 			for _, star in pairs(stars) do
 
@@ -894,7 +916,8 @@ local function GetCurrentCP()
 
 					local starType = (slotted and LIBCOMBAT_CPTYPE_SLOTTED) or (slotable and LIBCOMBAT_CPTYPE_UNSLOTTED) or LIBCOMBAT_CPTYPE_PASSIVE
 
-					disciplineData[starId] = {savedPoints, starType}
+					discStarData[starId] = {savedPoints, starType}
+					if slotted then discSlotData[starId] = true end
 
 				end
 			end
