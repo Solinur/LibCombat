@@ -1325,7 +1325,7 @@ end
 
 local function GetAdvancedStats()
 
-	if GetAPIVersion() < 100034 then return end
+	if GetAPIVersion() < 100034 then return {} end
 
 	for statType, _ in pairs(advancedStatData) do
 
@@ -1338,10 +1338,6 @@ local function GetAdvancedStats()
 
 	return advancedStatData
 end
-
-CMXGetAdvancedStats = GetAdvancedStats
-
--- /script GetEventManager():RegisterForUpdate("TestPerformance", 0, CMXGetAdvancedStats)
 
 local lastGetNewStatsCall = 0
 
@@ -1400,6 +1396,8 @@ function FightHandler:GetNewStats(timems)
 
 			lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_PLAYERSTATS_ADVANCED]), LIBCOMBAT_EVENT_PLAYERSTATS_ADVANCED, timems, delta, newValue1, statId)
 
+			Print("other", LOG_LEVEL_DEBUG, "Advanced Stat!")
+
 			advancedStats[statId][1] = newValue1
 
 		end
@@ -1410,7 +1408,7 @@ function FightHandler:GetNewStats(timems)
 
 			local delta = newValue2 - oldValue2
 
-			lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_PLAYERSTATS_ADVANCED]), LIBCOMBAT_EVENT_PLAYERSTATS_ADVANCED, timems, delta, newValue2, statId)
+			lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_PLAYERSTATS_ADVANCED]), LIBCOMBAT_EVENT_PLAYERSTATS_ADVANCED, timems, delta, newValue2, statId + 2048)
 
 			advancedStats[statId][2] = newValue2
 		end
