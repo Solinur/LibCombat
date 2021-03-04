@@ -1,5 +1,8 @@
-﻿43 DL: 1.055.791 (30.01.2021) 14:04
-[*] Fixed an issue where crystal frag casts were not properly reported
+﻿44 DL: 1.151.286 (05.03.2021) 00:52
+[*] Added tracking for new CP system and advanced stats.
+
+43 DL: 1.055.791 (30.01.2021) 14:04
+[*] Fixed an issue where crystal frag casts were not properly reported.
 
 42 DL: 963.771 (25.12.2020) 21:52
 [*] Fixed an issue that could lead to inconsistent DPS numbers for a fight. 
