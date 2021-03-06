@@ -1,4 +1,7 @@
-﻿44 DL: 1.151.286 (05.03.2021) 00:52
+﻿45 DL: 1.175.705 (06.03.2021) 14:43
+[*] Fixed an issue with resource tracking.
+
+44 DL: 1.151.286 (05.03.2021) 00:52
 [*] Added tracking for new CP system and advanced stats.
 
 43 DL: 1.055.791 (30.01.2021) 14:04

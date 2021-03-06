@@ -15,7 +15,7 @@ local dx = math.ceil(GuiRoot:GetWidth()/tonumber(GetCVar("WindowedWidth"))*1000)
 LIBCOMBAT_LINE_SIZE = dx
 
 local lib = {}
-lib.version = 44
+lib.version = 45
 LibCombat = lib
 
 -- Basic values
@@ -2110,13 +2110,10 @@ local function onBaseResourceChanged(_,unitTag,_,powerType,powerValue,_,_)
 	if (powerType ~= POWERTYPE_HEALTH and powerType ~= POWERTYPE_MAGICKA and powerType ~= POWERTYPE_STAMINA and powerType ~= POWERTYPE_ULTIMATE) or (data.inCombat == false) then return end
 
 	local timems = GetGameTimeMilliseconds()
-	local powerValueChange
 	local aId
 
-	local currentPowerValue = data.resources[powerType]
-
-	powerValueChange = powerValue - (currentPowerValue or powerValue)
-	currentPowerValue = powerValue
+	local powerValueChange = powerValue - (data.resources[powerType] or powerValue)
+	data.resources[powerType] = powerValue
 
 	if powerValueChange == 0 then return end
 
