@@ -1,8 +1,15 @@
-﻿45 DL: 1.175.705 (06.03.2021) 14:43
+﻿47 DL: 1.222.560  (08.03.2021) 21:42
+[*] Fixed an issue where stat update events were too spammy. 
+
+46 DL: 1.222.560  (08.03.2021) 21:42
+[*] Disabled advanced stats tracking, since it causes major performance issues. Gotta investigate before returning them.
+
+45 DL: 1.175.705 (06.03.2021) 14:43
 [*] Fixed an issue with resource tracking.
 
 44 DL: 1.151.286 (05.03.2021) 00:52
 [*] Added tracking for new CP system and advanced stats.
+[*] API Bump to Flames of Ambition (100034)
 
 43 DL: 1.055.791 (30.01.2021) 14:04
 [*] Fixed an issue where crystal frag casts were not properly reported.

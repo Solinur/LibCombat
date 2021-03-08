@@ -15,7 +15,7 @@ local dx = math.ceil(GuiRoot:GetWidth()/tonumber(GetCVar("WindowedWidth"))*1000)
 LIBCOMBAT_LINE_SIZE = dx
 
 local lib = {}
-lib.version = 45
+lib.version = 47
 LibCombat = lib
 
 -- Basic values
@@ -1301,7 +1301,7 @@ local advancedStatData = {}
 
 local function InitAdvancedStats()
 
-	if GetAPIVersion() < 100034 then return end
+	if true then return {} end
 
 	for statCategoryIndex = 1, GetNumAdvancedStatCategories() do
 
@@ -1325,7 +1325,7 @@ end
 
 local function GetAdvancedStats()
 
-	if GetAPIVersion() < 100034 then return {} end
+	if true then return {} end
 
 	for statType, _ in pairs(advancedStatData) do
 
@@ -1369,10 +1369,13 @@ function FightHandler:GetNewStats(timems)
 
 		local delta = oldValue and (newValue - oldValue) or 0
 
-		lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_PLAYERSTATS]), LIBCOMBAT_EVENT_PLAYERSTATS, timems, delta, newValue, statId)
+		if oldValue == nil or delta ~= 0 then
 
-		stats[statId] = newValue
+			lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_PLAYERSTATS]), LIBCOMBAT_EVENT_PLAYERSTATS, timems, delta, newValue, statId)
 
+			stats[statId] = newValue
+
+		end
 	end
 
 	if Events.AdvancedStats.active ~= true then return end
@@ -1390,29 +1393,32 @@ function FightHandler:GetNewStats(timems)
 
 		if newValue1 then
 
-			local oldValue1 = oldValues[1] or newValue1
+			local oldValue = oldValues[1]
 
-			local delta = newValue1 - oldValue1
+			local delta = oldValue and (newValue1 - oldValue) or 0
 
-			lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_PLAYERSTATS_ADVANCED]), LIBCOMBAT_EVENT_PLAYERSTATS_ADVANCED, timems, delta, newValue1, statId)
+			if oldValue == nil or delta ~= 0 then
+				
+				lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_PLAYERSTATS_ADVANCED]), LIBCOMBAT_EVENT_PLAYERSTATS_ADVANCED, timems, delta, newValue1, statId)
 
-			Print("other", LOG_LEVEL_DEBUG, "Advanced Stat!")
+				advancedStats[statId][1] = newValue1
 
-			advancedStats[statId][1] = newValue1
-
+			end
 		end
 
 		if newValue2 then
 
-			local oldValue2 = oldValues[2] or newValue2
+			local oldValue = oldValues[2]
 
-			local delta = newValue2 - oldValue2
+			local delta = oldValue and (newValue2 - oldValue) or 0
 
-			lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_PLAYERSTATS_ADVANCED]), LIBCOMBAT_EVENT_PLAYERSTATS_ADVANCED, timems, delta, newValue2, statId + 2048)
+			if oldValue == nil or delta ~= 0 then
 
-			advancedStats[statId][2] = newValue2
+				lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_PLAYERSTATS_ADVANCED]), LIBCOMBAT_EVENT_PLAYERSTATS_ADVANCED, timems, delta, newValue2, statId + 2048)
+
+				advancedStats[statId][2] = newValue2
+			end
 		end
-
 	end
 end
 
