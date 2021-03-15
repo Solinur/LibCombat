@@ -15,7 +15,7 @@ local dx = math.ceil(GuiRoot:GetWidth()/tonumber(GetCVar("WindowedWidth"))*1000)
 LIBCOMBAT_LINE_SIZE = dx
 
 local lib = {}
-lib.version = 47
+lib.version = 48
 LibCombat = lib
 
 -- Basic values
@@ -831,31 +831,17 @@ local function GetCritBonusFromPassives()
 
 end
 
-local function GetCritBonusFromCP()
+local function GetCritBonusFromCP(CPdata)
 
-	if GetAPIVersion() < 100034 then
+	local slots = CPdata[1].slotted
+	local points = CPdata[1].stars
 
-		local mightyCP = GetNumPointsSpentOnChampionSkill(5, 2) / 100
-		local elfbornCP = GetNumPointsSpentOnChampionSkill(7, 3) / 100
+	local finesse = slots[12] and (2 * math.floor(0.1 * points[12][1])) or 0 -- Fighting Finesse 2% per every full 10 points
+	local backstabber = slots[31] and (3 * math.floor(0.1 * points[31][1])) or 0 -- Backstabber 3% per every full 10 points (flanking!)
 
-		local mightyValue = 0.25 * mightyCP * (2 - mightyCP) + (mightyCP - 1) * (mightyCP - 0.5) * mightyCP * 2/250
-		local elfbornValue = 0.25 * elfbornCP * (2 - elfbornCP) + (elfbornCP - 1) * (elfbornCP - 0.5) * elfbornCP * 2 / 250
+	local total = finesse + backstabber
 
-		mightyValue = mathfloor(mightyValue * 100)
-		elfbornValue = mathfloor(elfbornValue * 100)
-
-		return mightyValue, elfbornValue
-
-	else
-
-		local finesse = 2 * math.floor(0.1 * CHAMPION_DATA_MANAGER:GetChampionSkillData(12):GetNumSavedPoints()) -- Fighting Finesse 2% per every full 10 points
-		local backstabber = 3 * math.floor(0.1 * CHAMPION_DATA_MANAGER:GetChampionSkillData(31):GetNumSavedPoints()) -- Backstabber 3% per every full 10 points (flanking!)
-
-		local total = finesse + backstabber
-
-		return total, total
-
-	end
+	return total
 end
 
 local function GetCurrentCP()
@@ -881,7 +867,7 @@ local function GetCurrentCP()
 				local starId = slot:GetSavedChampionSkillData():GetId()
 
 				slotsById[starId] = i
-			end			
+			end
 		end
 
 		--  collect CP data
@@ -1109,7 +1095,7 @@ function FightHandler:PrepareFight()
 		data.resources[POWERTYPE_ULTIMATE] = GetUnitPower("player", POWERTYPE_ULTIMATE)
 
 		data.critBonusPassive = GetCritBonusFromPassives()
-		data.mightyCP, data.elfbornCP = GetCritBonusFromCP()
+		data.CPcrit = GetCritBonusFromCP(self.CP)
 
 		self.prepared = true
 
@@ -1227,12 +1213,11 @@ local function GetCritbonus()
 
 	end
 
-	local mightyCP = data.mightyCP
-	local elfbornCP = data.elfbornCP
+	local CPcrit = data.CPcrit
 
-	local total = 50 + data.critBonusMundus + passiveBonus + data.majorForce + data.minorForce
-	local spelltotal = elfbornCP + total
-	local weapontotal = mightyCP + total
+	local total = 50 + data.critBonusMundus + passiveBonus + data.majorForce + data.minorForce + CPcrit
+	local spelltotal = total
+	local weapontotal = total
 
 	return weapontotal, spelltotal
 
@@ -2255,14 +2240,22 @@ end
 
 local function OnDeathStateChanged(_, unitTag, isDead) 	-- death (for group display, also works for different zones)
 
-	Print("debug", LOG_LEVEL_INFO, "OnDeathStateChanged: %s is dead: %s", unitTag, tostring(isDead))
-
 	local unitId = unitTag == "player" and data.playerid or data.groupInfo.tagToId[unitTag]
 
-	if data.inCombat == false or unitId == nil then return end
+	Print("debug", LOG_LEVEL_INFO, "OnDeathStateChanged: %s (%s) is dead: %s", unitTag, tostring(unitId), tostring(isDead))
+
+	if data.inCombat == false or unitId == nil then 
+
+		Print("debug", LOG_LEVEL_INFO, "OnDeathStateChanged: Combat: %s", tostring(data.inCombat))
+		return
+	end
 
 	local unit = currentfight.units[unitId]
-	if unit then unit.isDead = isDead else return end
+	if unit then unit.isDead = isDead else 
+
+		Print("debug", LOG_LEVEL_INFO, "OnDeathStateChanged: no unit")
+		return
+	end
 
 	local timems = GetGameTimeMilliseconds()
 
@@ -2273,6 +2266,8 @@ local function OnDeathStateChanged(_, unitTag, isDead) 	-- death (for group disp
 		if (lasttime and lasttime - timems < 1000) then return end
 
 		GetUnitCache(unitId):OnDeath(timems)
+
+		Print("debug", LOG_LEVEL_INFO, "OnDeathStateChanged: fire callback")
 		lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_DEATH]), LIBCOMBAT_EVENT_DEATH, timems, LIBCOMBAT_STATE_DEAD, unitId)
 
 		CheckForWipe()
@@ -2585,10 +2580,10 @@ local function GroupCombatEventHandler(isheal, result, _, abilityName, _, _, sou
 	GetUnitCache(targetUnitId):AddEvent(timems, result, sourceUnitId, abilityId, hitValue, damageType, overflow or 0)
 
 	if overflow and overflow > 0 and not isheal then 
-		
+
 		Print("debug", LOG_LEVEL_INFO, "GroupCombatEventHandler: %s has overflow damage!", targetName)
 		GetUnitCache(targetUnitId):OnDeath(timems) 
-	
+
 	end
 
 end
