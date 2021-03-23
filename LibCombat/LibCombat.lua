@@ -280,7 +280,7 @@ end
 
 lib.GetFormattedAbilityIcon = GetFormattedAbilityIcon
 
-local critbonusabilities = {
+local critBonusPassiveData = {
 
 	{
 		["id"] = 31698,
@@ -297,6 +297,14 @@ local critbonusabilities = {
 		["effect"] = {[1] = 4, [2] = 8, [3] = 12},	-- Khajit: Feline Ambush
 		["requiresSkillFromLine"] = false,
 	},
+
+}
+
+local critBonusWeaponPassiveData = {
+
+	[30893] = {WEAPONTYPE_AXE, 2},
+
+	[29375] = {WEAPONTYPE_TWO_HANDED_AXE, 4},
 
 }
 
@@ -808,7 +816,7 @@ local function GetCritBonusFromPassives()
 
 	local bonusdata = {}
 
-	for k, ability in pairs(critbonusabilities) do
+	for k, ability in pairs(critBonusPassiveData) do
 
 		local id = ability.id
 
@@ -842,6 +850,35 @@ local function GetCritBonusFromCP(CPdata)
 	local total = finesse + backstabber
 
 	return total
+end
+
+local function GetCritBonusFromWeapon()
+
+	local mainBonus = 0
+	local backupBonus = 0
+
+	local passiveData = SKILLS_DATA_MANAGER.abilityIdToProgressionDataMap
+
+	for id, data in pairs(critBonusWeaponPassiveData) do
+
+		local skillData = passiveData[id].skillData
+
+		local rank = skillData.isPurchased and skillData.currentRank or 0
+
+		if rank > 0 then
+
+			local weapontype, bonus = unpack(data)
+
+			if GetItemWeaponType(BAG_WORN, EQUIP_SLOT_MAIN_HAND) == weapontype then mainBonus = mainBonus + bonus * rank end
+			if GetItemWeaponType(BAG_WORN, EQUIP_SLOT_OFF_HAND) == weapontype then mainBonus = mainBonus + bonus * rank end
+
+			if GetItemWeaponType(BAG_WORN, EQUIP_SLOT_BACKUP_MAIN) == weapontype then backupBonus = backupBonus + bonus * rank end
+			if GetItemWeaponType(BAG_WORN, EQUIP_SLOT_BACKUP_OFF) == weapontype then backupBonus = backupBonus + bonus * rank end
+
+		end
+	end
+
+	return mainBonus, backupBonus
 end
 
 local function GetCurrentCP()
@@ -1095,7 +1132,8 @@ function FightHandler:PrepareFight()
 		data.resources[POWERTYPE_ULTIMATE] = GetUnitPower("player", POWERTYPE_ULTIMATE)
 
 		data.critBonusPassive = GetCritBonusFromPassives()
-		data.CPcrit = GetCritBonusFromCP(self.CP)
+		data.critBonusCP = GetCritBonusFromCP(self.CP)
+		data.critBonusWeaponMain, data.critBonusWeaponBackup = GetCritBonusFromWeapon()
 
 		self.prepared = true
 
@@ -1213,9 +1251,10 @@ local function GetCritbonus()
 
 	end
 
-	local CPcrit = data.CPcrit
+	local activeWeaponPair = data.bar
+	local critBonusWeapon = (activeWeaponPair == ACTIVE_WEAPON_PAIR_MAIN and data.critBonusWeaponMain) or (activeWeaponPair == ACTIVE_WEAPON_PAIR_BACKUP and data.critBonusWeaponBackup) or 0
 
-	local total = 50 + data.critBonusMundus + passiveBonus + data.majorForce + data.minorForce + CPcrit
+	local total = 50 + data.critBonusMundus + passiveBonus + data.majorForce + data.minorForce + data.critBonusCP + critBonusWeapon
 	local spelltotal = total
 	local weapontotal = total
 
