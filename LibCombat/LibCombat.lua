@@ -294,7 +294,7 @@ local critbonusabilities = {
 	},
 	{
 		["id"] = 45301,
-		["effect"] = {[1] = 3, [2] = 6, [3] = 10},	-- Khajit: Feline Ambush
+		["effect"] = {[1] = 4, [2] = 8, [3] = 12},	-- Khajit: Feline Ambush
 		["requiresSkillFromLine"] = false,
 	},
 
@@ -1925,13 +1925,25 @@ local function onMageExplode( _, changeType, effectSlot, _, unitTag, _, endTime,
 
 end
 
-local function onAlkoshDmg(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId, overflow)
+local function onAlkoshDmg(_, _, _, _, _, _, _, _, _, _, hitValue, _, _, _, _, targetUnitId, _, overflow)
 
 	local fullValue = hitValue + (overflow or 0)
 
 	Print("events", LOG_LEVEL_DEBUG, "Alkosh Dmg: %d", fullValue)
 
 	AlkoshData[targetUnitId] = fullValue
+
+end
+
+local function onTrialDummy(_, _, _, _, _, _, _, _, _, _, _, _, _, _, sourceUnitId, _, _, _)
+
+	-- Print("debug", LOG_LEVEL_INFO, "Trial Dummy Detected: %s (%d)", sourceName, sourceUnitId)
+
+	if not currentfight.prepared then return end
+
+	local unit = currentfight.units[sourceUnitId]
+
+	if unit then unit.isTrialDummy = true end
 
 end
 
@@ -3338,6 +3350,7 @@ Events.Effects = EventHandler:New(
 		end
 
 		self:RegisterEvent(EVENT_COMBAT_EVENT, onAlkoshDmg, REGISTER_FILTER_ABILITY_ID, 75752, REGISTER_FILTER_IS_ERROR, false)
+		self:RegisterEvent(EVENT_COMBAT_EVENT, onTrialDummy, REGISTER_FILTER_ABILITY_ID, 120024, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_GAINED, REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_TARGET_DUMMY, REGISTER_FILTER_IS_ERROR, false)
 
 		self.active = true
 	end
