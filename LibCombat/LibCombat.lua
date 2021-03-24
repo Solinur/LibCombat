@@ -1970,7 +1970,7 @@ local function onAlkoshDmg(_, _, _, _, _, _, _, _, _, _, hitValue, _, _, _, _, t
 
 	Print("events", LOG_LEVEL_DEBUG, "Alkosh Dmg: %d", fullValue)
 
-	AlkoshData[targetUnitId] = fullValue
+	AlkoshData[targetUnitId] = math.min(fullValue, 3000)
 
 end
 
