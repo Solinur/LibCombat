@@ -1964,7 +1964,7 @@ local function onMageExplode( _, changeType, effectSlot, _, unitTag, _, endTime,
 
 end
 
-local function onAlkoshDmg(_, _, _, _, _, _, _, _, _, _, hitValue, _, _, _, _, targetUnitId, _, overflow)
+local function onAlkoshDmg(_, _, _, _, _, _, _, _, _, _, hitValue, _, _, _, _, targetUnitId, _, overflow)	-- inactive
 
 	local fullValue = hitValue + (overflow or 0)
 
@@ -2004,7 +2004,7 @@ local function BuffEventHandler(isspecial, groupeffect, _, changeType, effectSlo
 
 	local inCombat = currentfight.prepared
 
-	local hitValue = (abilityId == 75753 and changeType == EFFECT_RESULT_GAINED and AlkoshData[unitId]) or nil
+	-- local hitValue = (abilityId == 75753 and changeType == EFFECT_RESULT_GAINED and AlkoshData[unitId]) or nil
 
 	if inCombat ~= true and unitTag ~= "player" and (changeType == EFFECT_RESULT_GAINED or changeType == EFFECT_RESULT_UPDATED) then
 
@@ -2023,7 +2023,7 @@ local function BuffEventHandler(isspecial, groupeffect, _, changeType, effectSlo
 		end
 
 		if unitTag == "player" then currentfight:GetNewStats(timems) end
-		lib.cm:FireCallbacks((CallbackKeys[eventid]), eventid, timems, unitId, abilityId, changeType, effectType, stacks, sourceType, effectSlot, hitValue)
+		lib.cm:FireCallbacks((CallbackKeys[eventid]), eventid, timems, unitId, abilityId, changeType, effectType, stacks, sourceType, effectSlot)
 
 	end
 end
@@ -3388,7 +3388,7 @@ Events.Effects = EventHandler:New(
 			self:RegisterEvent(EVENT_EFFECT_CHANGED, onSourceBuggedEffectChanged, REGISTER_FILTER_ABILITY_ID, SourceBuggedBuffs[i])
 		end
 
-		self:RegisterEvent(EVENT_COMBAT_EVENT, onAlkoshDmg, REGISTER_FILTER_ABILITY_ID, 75752, REGISTER_FILTER_IS_ERROR, false)
+		-- self:RegisterEvent(EVENT_COMBAT_EVENT, onAlkoshDmg, REGISTER_FILTER_ABILITY_ID, 75752, REGISTER_FILTER_IS_ERROR, false)
 		self:RegisterEvent(EVENT_COMBAT_EVENT, onTrialDummy, REGISTER_FILTER_ABILITY_ID, 120024, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_GAINED, REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_TARGET_DUMMY, REGISTER_FILTER_IS_ERROR, false)
 
 		self.active = true
