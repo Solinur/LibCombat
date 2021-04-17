@@ -1,4 +1,11 @@
-﻿48 DL: 1.307.319 (16.03.2021) 00:56
+﻿49 DL: 1.422.774 (18.04.2021) 00:00
+[*] Updated the crit bonus value for Khajits
+[*] Added the crit bonus tracking for dual wield and 2H-Axes
+[*] Added detection of trial dummies
+[*] Updated tracking of penetration value from Alkosh, set it to 3000 instead
+[*] Remove a spammy debug message
+
+48 DL: 1.307.319 (16.03.2021) 00:56
 [*] Fixed an issue where Backstabber was included to the critical damage bonus even when not slotted
 
 47 DL: 1.231.354  (08.03.2021) 23:29
