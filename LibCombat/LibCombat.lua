@@ -302,9 +302,9 @@ local critBonusPassiveData = {
 
 local critBonusWeaponPassiveData = {
 
-	[30893] = {WEAPONTYPE_AXE, 2},
+	[30893] = {WEAPONTYPE_AXE, 3},
 
-	[29375] = {WEAPONTYPE_TWO_HANDED_AXE, 4},
+	[29375] = {WEAPONTYPE_TWO_HANDED_AXE, 6},
 
 }
 
@@ -3129,16 +3129,19 @@ local function UpdateSkillEvents(self)
 	end
 end
 
-local ResultWithFullUnitInfo = {}
-
 local function onCombatEvent(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId, overflow)
 
-	if ResultWithFullUnitInfo[result] == 2 then return end
+	LibCombat_Save = LibCombat_Save or {}
+	LibCombat_Save.timestamp = GetTimeStamp()
+	LibCombat_Save.ResultWithFullUnitInfo = LibCombat_Save.ResultWithFullUnitInfo or {}
+	local ResultWithFullUnitInfo = LibCombat_Save.ResultWithFullUnitInfo
 
-	local isSource = sourceName and sourceName ~= "" and sourceType and sourceUnitId and sourceUnitId >= 0
-	local isTarget = targetName and targetName ~= "" and targetType and targetUnitId and targetUnitId >= 0
+	if ResultWithFullUnitInfo[result] == 3 then return end
 
-	local sum = (isSource and 1 or 0) + (isTarget and 1 or 0)
+	local isSource = sourceName and sourceName ~= "" and sourceType and sourceType ~= COMBAT_UNIT_TYPE_PLAYER and sourceUnitId and sourceUnitId >= 0
+	local isTarget = targetName and targetName ~= "" and targetType and targetType ~= COMBAT_UNIT_TYPE_PLAYER and targetUnitId and targetUnitId >= 0
+
+	local sum = (isSource and 1 or 0) + (isTarget and 2 or 0)
 
 	if sum == 0 or sum <= (ResultWithFullUnitInfo[result] or 0) then return end
 
@@ -3147,6 +3150,7 @@ local function onCombatEvent(eventCode, result, isError, abilityName, abilityGra
 	Print("debug", LOG_LEVEL_INFO, "New Result with full unit info: %d (Source: %s, Target: %s)", result, tostring(isSource), tostring(isTarget))
 
 end
+
 
 local EventHandler = ZO_Object:Subclass()
 
@@ -3995,43 +3999,43 @@ end
 
 local function Initialize()
 
-  data.inCombat = IsUnitInCombat("player")
-  data.inGroup = IsUnitGrouped("player")
-  data.rawPlayername = GetRawUnitName("player")
-  data.playername = ZO_CachedStrFormat(SI_UNIT_NAME, data.rawPlayername)
-  data.accountname = ZO_CachedStrFormat(SI_UNIT_NAME, GetDisplayName())
-  data.bossInfo = {}
-  data.groupInfo = {nameToId = {}, tagToId = {}, nameToTag = {}, nameToDisplayname = {}}
-  data.PlayerPets = {}
-  data.lastabilities = {}
-  data.majorForce = 0
-  data.minorForce = 0
-  data.critBonusMundus = 0
-  data.bar = GetActiveWeaponPairInfo()
-  data.resources = {}
-  data.stats = {}
-  data.advancedStats = {}
+	data.inCombat = IsUnitInCombat("player")
+	data.inGroup = IsUnitGrouped("player")
+	data.rawPlayername = GetRawUnitName("player")
+	data.playername = ZO_CachedStrFormat(SI_UNIT_NAME, data.rawPlayername)
+	data.accountname = ZO_CachedStrFormat(SI_UNIT_NAME, GetDisplayName())
+	data.bossInfo = {}
+	data.groupInfo = {nameToId = {}, tagToId = {}, nameToTag = {}, nameToDisplayname = {}}
+	data.PlayerPets = {}
+	data.lastabilities = {}
+	data.majorForce = 0
+	data.minorForce = 0
+	data.critBonusMundus = 0
+	data.bar = GetActiveWeaponPairInfo()
+	data.resources = {}
+	data.stats = {}
+	data.advancedStats = {}
 
-  --resetfightdata
-  currentfight = FightHandler:New()
+	--resetfightdata
+	currentfight = FightHandler:New()
 
-  InitResources()
+	InitResources()
 
-  -- make addon options menu
+	-- make addon options menu
 
-  data.CustomAbilityIcon = {}
-  data.CustomAbilityName = {
-	[46539]	= "Major Force",
-  }
+	data.CustomAbilityIcon = {}
+	data.CustomAbilityName = {
+		[46539]	= "Major Force",
+	}
 
-  onBossesChanged()
+	onBossesChanged()
 
-  InitAdvancedStats()
+	InitAdvancedStats()
 
-  if data.LoadCustomizations then data.LoadCustomizations() end
+	if data.LoadCustomizations then data.LoadCustomizations() end
 
-  em:RegisterForEvent("LibCombatActive", EVENT_PLAYER_ACTIVATED, function() data.isUIActivated = true end)
-  em:RegisterForEvent("LibCombatActive", EVENT_PLAYER_DEACTIVATED, function() data.isUIActivated = false end)
+	em:RegisterForEvent("LibCombatActive", EVENT_PLAYER_ACTIVATED, function() data.isUIActivated = true end)
+	em:RegisterForEvent("LibCombatActive", EVENT_PLAYER_DEACTIVATED, function() data.isUIActivated = false end)
 end
 
 Initialize()
