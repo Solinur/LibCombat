@@ -15,7 +15,7 @@ local dx = math.ceil(GuiRoot:GetWidth()/tonumber(GetCVar("WindowedWidth"))*1000)
 LIBCOMBAT_LINE_SIZE = dx
 
 local lib = {}
-lib.version = 49
+lib.version = 50
 LibCombat = lib
 
 -- Basic values
@@ -88,9 +88,6 @@ local AlkoshData = {}
 local isInPortalWorld = false	-- used to prevent fight reset in Cloudrest/Sunspire when using a portal.
 
 local lastBossHealthValue = 2
-
-local majorForceAmount = 20
-local minorForceAmount = 10
 
 local CombatEventCache = {}
 local maxUnitCacheEvents = 60
@@ -297,42 +294,6 @@ local critBonusPassiveData = {
 		["effect"] = {[1] = 4, [2] = 8, [3] = 12},	-- Khajit: Feline Ambush
 		["requiresSkillFromLine"] = false,
 	},
-
-}
-
-local critBonusWeaponPassiveData = {
-
-	[30893] = {WEAPONTYPE_AXE, 2},
-
-	[29375] = {WEAPONTYPE_TWO_HANDED_AXE, 4},
-
-}
-
-local MajorForceAbility = {		-- All AbilityId's that cause Major Force. Used to calculate the Critical Damage Bonus stat.
-
-	[40225] = true,
-	[61747] = true,	-- not used?
-	[85154] = true,
-	--[97261] = true, -- not used?
-	[120013] = true,
-
-}
-
-local MinorForceAbility = {		-- All AbilityId's that cause Minor Force. Used to calculate the Critical Damage Bonus stat.
-
-	[61746] = true,
-	[68595] = true,
-	[68628] = true,
-	[68632] = true,
-	[76564] = true,
-	[80984] = true,
-	[80986] = true,
-	[85611] = true,
-	[103521] = true,
-	[103708] = true,
-	[103712] = true,
-	[106861] = true,
-	[116775] = true,
 
 }
 
@@ -721,7 +682,7 @@ end
 
 local DivineSlots = {EQUIP_SLOT_HEAD, EQUIP_SLOT_SHOULDERS, EQUIP_SLOT_CHEST, EQUIP_SLOT_HAND, EQUIP_SLOT_WAIST, EQUIP_SLOT_LEGS, EQUIP_SLOT_FEET}
 
-local function GetShadowBonus()
+local function GetShadowBonus(effectSlot)
 
 	local divines = 0
 
@@ -739,9 +700,15 @@ local function GetShadowBonus()
 
 	end
 
-	data.critBonusMundus = mathfloor(11 * (1 + divines/100)) -- total mundus bonus
+	local ZOSDesc = GetAbilityEffectDescription(effectSlot):gsub("^.-(%d+)%p?(%d*)%s?.-$", "%1.%2")
+	local ZOSBonus = ZOSDesc:gsub("^.-(%d+)%p?(%d*)%s?.-$", "%1.%2")
 
-	Print("other", LOG_LEVEL_DEBUG, "Shadow Mundus: %d%%", data.critBonusMundus)
+	local ZOSBonusShadow = tonumber(ZOSBonus) -- value attributed by ZOS
+	local calcBonus =  mathfloor(11 * (1 + divines/100))
+
+	data.critBonusMundus = calcBonus - ZOSBonusShadow -- total mundus bonus
+
+	Print("other", LOG_LEVEL_DEBUG, "Shadow Mundus Offset: %d%% (calc %d%% - ZOS %d%%)", data.critBonusMundus, calcBonus, ZOSBonusShadow)
 
 end
 
@@ -781,10 +748,7 @@ local function GetPlayerBuffs(timems)
 
 		end
 
-		if abilityId ==	13984 then GetShadowBonus() end
-
-		if MajorForceAbility[abilityId] then data.majorForce = majorForceAmount end
-		if MinorForceAbility[abilityId] then data.minorForce = minorForceAmount end
+		if abilityId ==	13984 then GetShadowBonus(effectSlot) end
 	end
 end
 
@@ -808,77 +772,14 @@ local function GetOtherBuffs(timems)
 	EffectBuffer = {}
 end
 
-local function GetCritBonusFromPassives()
-
-	local bonus = 0
-
-	local skillDataTable = SKILLS_DATA_MANAGER.abilityIdToProgressionDataMap
-
-	local bonusdata = {}
-
-	for k, ability in pairs(critBonusPassiveData) do
-
-		local id = ability.id
-
-		local skillData = skillDataTable[id].skillData
-
-		local purchased = skillData.isPurchased
-		local rank = skillData.currentRank
-		local lineData = skillData.skillLineData
-
-		local line = lineData.skillLineIndex
-
-		local skillType = lineData.skillTypeData.skillType
-
-		bonus = purchased == true and ability.effect[rank] or 0
-
-		if bonus > 0 then bonusdata[id] = {skillType, line, bonus, ability.requiresSkillFromLine} end
-	end
-
-	return bonusdata
-
-end
-
 local function GetCritBonusFromCP(CPdata)
 
 	local slots = CPdata[1].slotted
 	local points = CPdata[1].stars
 
-	local finesse = slots[12] and (2 * math.floor(0.1 * points[12][1])) or 0 -- Fighting Finesse 2% per every full 10 points
 	local backstabber = slots[31] and (3 * math.floor(0.1 * points[31][1])) or 0 -- Backstabber 3% per every full 10 points (flanking!)
 
-	local total = finesse + backstabber
-
-	return total
-end
-
-local function GetCritBonusFromWeapon()
-
-	local mainBonus = 0
-	local backupBonus = 0
-
-	local passiveData = SKILLS_DATA_MANAGER.abilityIdToProgressionDataMap
-
-	for id, data in pairs(critBonusWeaponPassiveData) do
-
-		local skillData = passiveData[id].skillData
-
-		local rank = skillData.isPurchased and skillData.currentRank or 0
-
-		if rank > 0 then
-
-			local weapontype, bonus = unpack(data)
-
-			if GetItemWeaponType(BAG_WORN, EQUIP_SLOT_MAIN_HAND) == weapontype then mainBonus = mainBonus + bonus * rank end
-			if GetItemWeaponType(BAG_WORN, EQUIP_SLOT_OFF_HAND) == weapontype then mainBonus = mainBonus + bonus * rank end
-
-			if GetItemWeaponType(BAG_WORN, EQUIP_SLOT_BACKUP_MAIN) == weapontype then backupBonus = backupBonus + bonus * rank end
-			if GetItemWeaponType(BAG_WORN, EQUIP_SLOT_BACKUP_OFF) == weapontype then backupBonus = backupBonus + bonus * rank end
-
-		end
-	end
-
-	return mainBonus, backupBonus
+	return backstabber
 end
 
 local function GetCurrentCP()
@@ -1131,9 +1032,7 @@ function FightHandler:PrepareFight()
 		data.resources[POWERTYPE_STAMINA] = GetUnitPower("player", POWERTYPE_STAMINA)
 		data.resources[POWERTYPE_ULTIMATE] = GetUnitPower("player", POWERTYPE_ULTIMATE)
 
-		data.critBonusPassive = GetCritBonusFromPassives()
-		data.critBonusCP = GetCritBonusFromCP(self.CP)
-		data.critBonusWeaponMain, data.critBonusWeaponBackup = GetCritBonusFromWeapon()
+		data.backstabber = GetCritBonusFromCP(self.CP)
 
 		self.prepared = true
 
@@ -1152,7 +1051,6 @@ function FightHandler:PrepareFight()
 		self.isWipe = false
 		lastQueuedAbilities = {}
 		usedCastTimeAbility = {}
-		AlkoshData = {}
 
 		DamageShieldBuffer = {}
 
@@ -1204,9 +1102,6 @@ function FightHandler:FinishFight()
 	self.endtime = mathmax(self.dpsend or 0, self.hpsend or 0)
 	self.activetime = mathmax((self.endtime - self.starttime) / 1000, 1)
 
-	data.majorForce = 0
-	data.minorForce = 0
-
 	EffectBuffer = {}
 
 	lastAbilityActivations = {}
@@ -1223,40 +1118,11 @@ end
 
 local function GetCritbonus()
 
-	local isactive = false
+	local _, _, valueFromZos = GetAdvancedStatValue(ADVANCED_STAT_DISPLAY_TYPE_CRITICAL_DAMAGE)
+	local total2 = 50 + valueFromZos + data.backstabber + data.critBonusMundus
 
-	local passiveBonus = 0
-
-	for id, passiveData in pairs(data.critBonusPassive) do
-
-		local skillType, line, bonus, requiresSkillFromLine = unpack(passiveData)
-
-		if requiresSkillFromLine and bonus and bonus > 0 then
-
-			for i = 1, 6 do
-
-				if GetAssignedSlotFromSkillAbility(skillType, line, i) ~= nil then 		-- Determines if an ability is equiped which "activates" the passive. Works both for templars and nightblades.
-
-					isactive = true
-					break
-
-				end
-			end
-
-			bonus = isactive and bonus or 0
-
-		end
-
-		passiveBonus = passiveBonus + (bonus or 0)
-
-	end
-
-	local activeWeaponPair = data.bar
-	local critBonusWeapon = (activeWeaponPair == ACTIVE_WEAPON_PAIR_MAIN and data.critBonusWeaponMain) or (activeWeaponPair == ACTIVE_WEAPON_PAIR_BACKUP and data.critBonusWeaponBackup) or 0
-
-	local total = 50 + data.critBonusMundus + passiveBonus + data.majorForce + data.minorForce + data.critBonusCP + critBonusWeapon
-	local spelltotal = total
-	local weapontotal = total
+	local spelltotal = total2
+	local weapontotal = total2
 
 	return weapontotal, spelltotal
 
@@ -2077,17 +1943,12 @@ local function onSpecialDebuffEventNoSelf(...)
 	SpecialBuffEventHandler(true, ...)		-- (isdebuff, ...)
 end
 
-local function onMajorForceChanged( _, changeType)
+local function onShadowMundus( _, changeType, effectSlot)
 
-	if changeType == EFFECT_RESULT_GAINED or changeType == EFFECT_RESULT_UPDATED then data.majorForce = majorForceAmount
-	elseif changeType == EFFECT_RESULT_FADED then data.majorForce = 0 end
+	if changeType == EFFECT_RESULT_GAINED or changeType == EFFECT_RESULT_UPDATED then GetShadowBonus(effectSlot)
+	elseif changeType == EFFECT_RESULT_FADED then data.critBonusMundus = 0 end
 
-end
-
-local function onMinorForceChanged( _, changeType)
-
-	if changeType == EFFECT_RESULT_GAINED or changeType == EFFECT_RESULT_UPDATED then data.minorForce = minorForceAmount
-	elseif changeType == EFFECT_RESULT_FADED then data.minorForce = 0 end
+	if currentfight.prepared == true then currentfight:GetNewStats() end
 
 end
 
@@ -3418,17 +3279,7 @@ Events.Stats = EventHandler:New(
 	{LIBCOMBAT_EVENT_PLAYERSTATS},
 	function (self)
 
-		for id, _ in pairs(MajorForceAbility) do
-
-			self:RegisterEvent(EVENT_EFFECT_CHANGED, onMajorForceChanged, REGISTER_FILTER_UNIT_TAG, "player", REGISTER_FILTER_ABILITY_ID, id)
-
-		end
-
-		for id, _ in pairs(MinorForceAbility) do
-
-			self:RegisterEvent(EVENT_EFFECT_CHANGED, onMinorForceChanged, REGISTER_FILTER_UNIT_TAG, "player", REGISTER_FILTER_ABILITY_ID, id)
-
-		end
+		self:RegisterEvent(EVENT_EFFECT_CHANGED, onShadowMundus, REGISTER_FILTER_UNIT_TAG, "player", REGISTER_FILTER_ABILITY_ID, 13984)
 
 		self:RegisterEvent(EVENT_EFFECT_CHANGED, onTFSChanged, REGISTER_FILTER_UNIT_TAG, "player", REGISTER_FILTER_ABILITY_ID, 51176)  -- to track TFS procs, which aren't recognized for stacks > 1 in penetration stat.
 		self.active = true
@@ -3955,8 +3806,7 @@ local function Initialize()
   data.groupInfo = {nameToId = {}, tagToId = {}, nameToTag = {}, nameToDisplayname = {}}
   data.PlayerPets = {}
   data.lastabilities = {}
-  data.majorForce = 0
-  data.minorForce = 0
+  data.backstabber = 0
   data.critBonusMundus = 0
   data.bar = GetActiveWeaponPairInfo()
   data.resources = {}
