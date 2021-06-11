@@ -1,4 +1,7 @@
-﻿50 DL: 1.566.411 (09.06.2021) 21:50
+﻿51 DL: 1.609.832 (12.06.2021) 00:49
+[*] Fixed parsing of strings to determine the critical damage bonus by shadow mundus for russian language. 
+
+50 DL: 1.566.411 (09.06.2021) 21:50
 [*] Reworked critical damage tracking to use the advanced stats info from ZOS (including adjustments like backstabber to keep it consistent with how it was shown up til now). 
 
 49 DL: 1.422.774 (18.04.2021) 00:00

@@ -15,7 +15,7 @@ local dx = math.ceil(GuiRoot:GetWidth()/tonumber(GetCVar("WindowedWidth"))*1000)
 LIBCOMBAT_LINE_SIZE = dx
 
 local lib = {}
-lib.version = 50
+lib.version = 51
 LibCombat = lib
 
 -- Basic values
@@ -684,7 +684,7 @@ local DivineSlots = {EQUIP_SLOT_HEAD, EQUIP_SLOT_SHOULDERS, EQUIP_SLOT_CHEST, EQ
 
 local function GetShadowBonus(effectSlot)
 
-	local divines = 0
+	local totalBonus = 0
 
 	for _, key in pairs(DivineSlots) do
 
@@ -692,23 +692,24 @@ local function GetShadowBonus(effectSlot)
 
 		if trait == ITEM_TRAIT_TYPE_ARMOR_DIVINES then
 
-			local bonus = desc:gsub("^.-(%d+)%p?(%d*)%s?.-$", "%1.%2")  	-- only get first argument to pass it to tonumber()
-
-			divines = (tonumber(bonus) or 0) + divines
+			local bonus = {desc:match("(%d+)%p?(%d*)%%")}  	-- only get first argument to pass it to tonumber()
+			local bonusString = table.concat(bonus, ".")
+			totalBonus = (tonumber(bonusString) or 0) + totalBonus
 
 		end
 
 	end
 
-	local ZOSDesc = GetAbilityEffectDescription(effectSlot):gsub("^.-(%d+)%p?(%d*)%s?.-$", "%1.%2")
-	local ZOSBonus = ZOSDesc:gsub("^.-(%d+)%p?(%d*)%s?.-$", "%1.%2")
+	local ZOSDesc = GetAbilityEffectDescription(effectSlot)
+	local ZOSBonusString = ZOSDesc:match("cffffff(%d+)%%")
 
-	local ZOSBonusShadow = tonumber(ZOSBonus) -- value attributed by ZOS
-	local calcBonus =  mathfloor(11 * (1 + divines/100))
+	local calcBonus =  mathfloor(11 * (1 + totalBonus/100))
+	local ZOSBonus = tonumber(ZOSBonusString or 0) -- value attributed by ZOS
 
-	data.critBonusMundus = calcBonus - ZOSBonusShadow -- total mundus bonus
+	data.critBonusMundus = calcBonus - ZOSBonus -- mundus bonus difference
 
-	Print("other", LOG_LEVEL_DEBUG, "Shadow Mundus Offset: %d%% (calc %d%% - ZOS %d%%)", data.critBonusMundus, calcBonus, ZOSBonusShadow)
+	Print("other", LOG_LEVEL_INFO, "Shadow Mundus Offset: %d%% (calc %d%% - ZOS %d%%)", data.critBonusMundus, calcBonus, ZOSBonus)
+
 
 end
 
