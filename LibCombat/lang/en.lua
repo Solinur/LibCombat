@@ -75,6 +75,8 @@ local strings = {
 	SI_LIBCOMBAT_LOG_RESURRECT1 = "|c00cc00resurrect|r",
 	SI_LIBCOMBAT_LOG_RESURRECT2 = "|c00cc00resurrects|r",
 
+	SI_LIBCOMBAT_CUSTOM_ABILITY_FORMAT = GetString(SI_ABILITY_NAME) .. " (<<2>>)",
+
 }
 
 SI_LIBCOMBAT_LOADED = true
