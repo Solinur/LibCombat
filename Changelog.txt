@@ -1,4 +1,14 @@
-﻿51 DL: 1.609.832 (12.06.2021) 00:49
+﻿54 DL: 1.764.699 (06.07.2021) 00:06
+[*] Fix an issue where incoming critical hits were not properly shown in logs (Thx to shira for reporting this).
+
+53 DL: 1.669.193 (15.06.2021) 23:58
+[*] Added workaround for Grim Focus, to correctly calculate its contribution to the critical damage bonus stat.
+[*] Added missing license file.
+
+52 DL: 1.611.041 (12.06.2021) 01:07
+[*] Another fix to finally make it work for all ESO supported languages (and hopefully all others too)
+
+51 DL: 1.609.832 (12.06.2021) 00:49
 [*] Fixed parsing of strings to determine the critical damage bonus by shadow mundus for russian language. 
 
 50 DL: 1.566.411 (09.06.2021) 21:50
