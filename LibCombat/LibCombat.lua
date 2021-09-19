@@ -3493,15 +3493,17 @@ function lib.GetDamageColor(damageType)
 	return logColors[damageType]
 end
 
-local function GetAbilityString(abilityId, damageType, fontsize, showIds)
+local function GetAbilityString(abilityId, damageType, fontsize, showIds, stacks)
+
+	local stacks = stacks or 0
 
 	local icon = zo_iconFormat(GetFormattedAbilityIcon(abilityId), fontsize, fontsize)
 	local name = GetFormattedAbilityName(abilityId)
 	local damageColor = lib.GetDamageColor(damageType)
 
-	local format = showIds and "<<1>> <<2>><<3>> (<<4>>)|r" or "<<1>> <<2>><<3>>|r"
+	local format = showIds and "<<5[//$dx ]>><<1>> <<2>><<3>> (<<4>>)|r" or "<<5[//$dx ]>><<1>> <<2>><<3>>|r"
 
-	local abilityString = ZO_CachedStrFormat(format, icon, damageColor, name, showIds and abilityId or nil)
+	local abilityString = ZO_CachedStrFormat(format, icon, damageColor, name, showIds and abilityId or nil, stacks)
 
 	return abilityString
 end
@@ -3620,7 +3622,7 @@ function lib:GetCombatLogString(fight, logline, fontsize, showIds)
 
 	elseif logtype == LIBCOMBAT_EVENT_EFFECTS_IN or logtype == LIBCOMBAT_EVENT_EFFECTS_OUT or logtype == LIBCOMBAT_EVENT_GROUPEFFECTS_IN or logtype == LIBCOMBAT_EVENT_GROUPEFFECTS_OUT then
 
-		local _, _, unitId, abilityId, changeType, effectType, _, sourceType, slot = unpack(logline)
+		local _, _, unitId, abilityId, changeType, effectType, stacks, sourceType, slot = unpack(logline)
 
 		if units[unitId] == nil then return end
 
@@ -3632,9 +3634,10 @@ function lib:GetCombatLogString(fight, logline, fontsize, showIds)
 
 		local colorKey = effectType == BUFF_EFFECT_TYPE_DEBUFF and "debuff" or "buff"
 
-		local buff = GetAbilityString(abilityId, colorKey, fontsize, showIds)
-
+		local buff = GetAbilityString(abilityId, colorKey, fontsize, showIds, stacks)
+		
 		color = {0.8,0.8,0.8}
+
 		text = ZO_CachedStrFormat(logFormat, timeString, unitString, changeTypeString, buff, source)
 
 	elseif logtype == LIBCOMBAT_EVENT_RESOURCES then

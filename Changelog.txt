@@ -1,4 +1,7 @@
-﻿54 DL: 1.764.699 (06.07.2021) 00:06
+﻿55 
+[*] Added number of stacks to buff events in combat log
+
+54 DL: 1.764.699 (06.07.2021) 00:06
 [*] Fix an issue where incoming critical hits were not properly shown in logs (Thx to shira for reporting this).
 
 53 DL: 1.669.193 (15.06.2021) 23:58
