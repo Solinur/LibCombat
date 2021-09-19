@@ -13,20 +13,20 @@ local strings = {
 	SI_LIBCOMBAT_LOG_UNITTYPE_GROUP = "a group member", -- "Groupmember"
 	SI_LIBCOMBAT_LOG_UNITTYPE_OTHER = "another player", -- "Another Player"
 
-	SI_LIBCOMBAT_LOG_IS_AT = "is at", -- "Weapon Swap"
-	SI_LIBCOMBAT_LOG_INCREASED = "increased to", -- "Weapon Swap"
-	SI_LIBCOMBAT_LOG_DECREASED = "decreased to", -- "Weapon Swap"
+	SI_LIBCOMBAT_LOG_IS_AT = "is at", -- "is at"
+	SI_LIBCOMBAT_LOG_INCREASED = "increased to", -- "increased to"
+	SI_LIBCOMBAT_LOG_DECREASED = "decreased to", -- "decreased to"
 
-	SI_LIBCOMBAT_LOG_ULTIMATE = "Ultimate", -- "Weapon Swap"
-	SI_LIBCOMBAT_LOG_BASEREG = "Base Regneration", -- "Weapon Swap"
+	SI_LIBCOMBAT_LOG_ULTIMATE = "Ultimate", -- "Ultimate"
+	SI_LIBCOMBAT_LOG_BASEREG = "Base Regeneration", -- "Base Regeneration"
 
 	SI_LIBCOMBAT_LOG_STAT_SPELL_CRIT_DONE = "Spell Critical Damage",  -- "Spell Critical Damage"
 	SI_LIBCOMBAT_LOG_STAT_WEAPON_CRIT_DONE = "Physical Critical Damage",  -- "Physical Critical Damage"
 
 	SI_LIBCOMBAT_LOG_MESSAGE1 = "Entering Combat",  -- "Entering Combat"
-	SI_LIBCOMBAT_LOG_MESSAGE2 = "Exiting Combat",  -- "Entering Combat"
-	SI_LIBCOMBAT_LOG_MESSAGE3 = "Weapon Swap",  -- "Entering Combat"
-	SI_LIBCOMBAT_LOG_MESSAGE_BAR = "Bar",  -- "Entering Combat"
+	SI_LIBCOMBAT_LOG_MESSAGE2 = "Exiting Combat",  -- "Exiting Combat"
+	SI_LIBCOMBAT_LOG_MESSAGE3 = "Weapon Swap",  -- "Weapon Swap"
+	SI_LIBCOMBAT_LOG_MESSAGE_BAR = "Bar",  -- "Bar"
 
 	SI_LIBCOMBAT_LOG_FORMAT_TARGET_NORMAL = "<<1>>|r with ",  -- i.e. "dwemer sphere with", %s = targetname. |r stops the colored text
 	SI_LIBCOMBAT_LOG_FORMAT_TARGET_BLOCK = "<<1>>s block|r with",  -- i.e. "dwemer spheres block with", %s = targetname. |r stops the colored text
@@ -74,6 +74,8 @@ local strings = {
 
 	SI_LIBCOMBAT_LOG_RESURRECT1 = "|c00cc00resurrect|r",
 	SI_LIBCOMBAT_LOG_RESURRECT2 = "|c00cc00resurrects|r",
+
+	SI_LIBCOMBAT_CUSTOM_ABILITY_FORMAT = GetString(SI_ABILITY_NAME) .. " (<<2>>)",
 
 }
 

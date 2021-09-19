@@ -1,8 +1,8 @@
 ﻿## Title: LibCombat
-## APIVersion: 100034 100035
+## APIVersion: 100035
 ## Author: Solinur
-## Version: 49
-## AddOnVersion: 49
+## Version: 54
+## AddOnVersion: 54
 ## IsLibrary: true
 ## DependsOn: 
 ## OptionalDependsOn: LibDebugLogger

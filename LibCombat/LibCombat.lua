@@ -15,7 +15,7 @@ local dx = math.ceil(GuiRoot:GetWidth()/tonumber(GetCVar("WindowedWidth"))*1000)
 LIBCOMBAT_LINE_SIZE = dx
 
 local lib = {}
-lib.version = 49
+lib.version = 54
 LibCombat = lib
 
 -- Basic values
@@ -89,9 +89,6 @@ local isInPortalWorld = false	-- used to prevent fight reset in Cloudrest/Sunspi
 
 local lastBossHealthValue = 2
 
-local majorForceAmount = 20
-local minorForceAmount = 10
-
 local CombatEventCache = {}
 local maxUnitCacheEvents = 60
 local UnitDeathsToProcess = {}
@@ -106,6 +103,8 @@ local DamageShieldBuffer = {}
 
 local registeredSkills = {}
 lib.registeredSkills = registeredSkills
+
+local onGrimFocusChanged, onTFSChanged
 
 -- localize some functions for performance
 
@@ -212,130 +211,6 @@ local BadAbility = {
 	[63601] = true, -- ESO Plus
 }
 
-local CustomAbilityName = {
-
-	[-1] = "Unknown", -- Whenever there is no known abilityId
-	[-2] = "Unknown", -- Whenever there is no known abilityId
-
-	[0] = GetString(SI_LIBCOMBAT_LOG_BASEREG), -- Whenever there is no known abilityId
-
-	[75753] = zo_strformat(SI_ABILITY_NAME, GetAbilityName(75753)), -- Line-breaker (Alkosh). pin abiltiy name so it can't get overridden
-	[17906] = zo_strformat(SI_ABILITY_NAME, GetAbilityName(17906)), -- Crusher (Glyph). pin abiltiy name so it can't get overridden
-	[62988] = zo_strformat(SI_ABILITY_NAME, GetAbilityName(62988)), -- Off-Balance
-
-	[81274] = "(C) " .. zo_strformat(SI_ABILITY_NAME, GetAbilityName(81274)), -- Crown Store Poison, Rename to differentiate from normal Poison, which can apparently stack ?
-	[81275] = "(C) " .. zo_strformat(SI_ABILITY_NAME, GetAbilityName(81275)), -- Crown Store Poison, Rename to differentiate from normal Poison, which can apparently stack ?
-
-	[113382] = zo_strformat("<<1>>, (<<2>>)", zo_strformat(SI_ABILITY_NAME, GetAbilityName(113382)), GetString(SI_LIBCOMBAT_LOG_DEBUFF)) -- To make sure that tracking works correctly since both buff and debuff are named the same.
-
-	}
-
-local CustomAbilityIcon = {
-
-	[0] = "esoui/art/icons/achievement_wrothgar_046.dds"
-
-}
-
-local AbilityNameCache = {}
-
-local function GetFormattedAbilityName(id)
-
-	if id == nil then return "" end
-
-	local name = AbilityNameCache[id]
-
-	if name == nil then
-
-		name = CustomAbilityName[id] or zo_strformat(SI_ABILITY_NAME, GetAbilityName(id))
-		if name == "Off-Balance" then name = "Off Balance" end
-		AbilityNameCache[id] = name
-
-	end
-
-	return name
-
-end
-
-lib.GetFormattedAbilityName = GetFormattedAbilityName
-
-local AbilityIconCache = {}
-
-local function GetFormattedAbilityIcon(id)
-
-	if id == nil then return
-	elseif type(id) == "string" then return id end
-
-	local icon = AbilityIconCache[id]
-
-	if icon == nil then
-
-		icon = CustomAbilityIcon[id] or GetAbilityIcon(id)
-		AbilityIconCache[id] = icon
-
-	end
-
-	return icon
-
-end
-
-lib.GetFormattedAbilityIcon = GetFormattedAbilityIcon
-
-local critBonusPassiveData = {
-
-	{
-		["id"] = 31698,
-		["effect"] = {[1] = 5, [2] = 10	},	-- Templar: Piercing Spear
-		["requiresSkillFromLine"] = true,
-	},
-	{
-		["id"] = 36641,
-		["effect"] = {[1] = 5, [2] = 10	},	-- Nightblade: Hemorrhage
-		["requiresSkillFromLine"] = true,
-	},
-	{
-		["id"] = 45301,
-		["effect"] = {[1] = 4, [2] = 8, [3] = 12},	-- Khajit: Feline Ambush
-		["requiresSkillFromLine"] = false,
-	},
-
-}
-
-local critBonusWeaponPassiveData = {
-
-	[30893] = {WEAPONTYPE_AXE, 3},
-
-	[29375] = {WEAPONTYPE_TWO_HANDED_AXE, 6},
-
-}
-
-local MajorForceAbility = {		-- All AbilityId's that cause Major Force. Used to calculate the Critical Damage Bonus stat.
-
-	[40225] = true,
-	[61747] = true,	-- not used?
-	[85154] = true,
-	--[97261] = true, -- not used?
-	[120013] = true,
-
-}
-
-local MinorForceAbility = {		-- All AbilityId's that cause Minor Force. Used to calculate the Critical Damage Bonus stat.
-
-	[61746] = true,
-	[68595] = true,
-	[68628] = true,
-	[68632] = true,
-	[76564] = true,
-	[80984] = true,
-	[80986] = true,
-	[85611] = true,
-	[103521] = true,
-	[103708] = true,
-	[103712] = true,
-	[106861] = true,
-	[116775] = true,
-
-}
-
 local SpecialBuffs = {	-- buffs that the API doesn't show via EVENT_EFFECT_CHANGED and need to be specially tracked via EVENT_COMBAT_EVENT
 
 	21230,	-- Weapon/spell power enchant (Berserker)
@@ -364,6 +239,14 @@ local SpecialDebuffs = {   -- debuffs that the API doesn't show via EVENT_EFFECT
 local SourceBuggedBuffs = {   -- buffs where ZOS messed up the source, causing CMX to falsely not track them
 
 	88401,  -- Minor Magickasteal
+
+}
+
+local GrimFocusBuffs = {
+
+	[61905] = true,	-- Grim Focus
+	[61920] = true,	-- Merciless Resolve
+	[61928] = true,	-- Relentless Focus
 
 }
 
@@ -579,6 +462,79 @@ local validSkillEndResults = {
 
 }
 
+
+local CustomAbilityName = {
+
+	[-1] = "Unknown", -- Whenever there is no known abilityId
+	[-2] = "Unknown", -- Whenever there is no known abilityId
+
+	[0] = GetString(SI_LIBCOMBAT_LOG_BASEREG), -- Whenever there is no known abilityId
+
+	[75753] = zo_strformat(SI_ABILITY_NAME, GetAbilityName(75753)), -- Line-breaker (Alkosh). pin abiltiy name so it can't get overridden
+	[17906] = zo_strformat(SI_ABILITY_NAME, GetAbilityName(17906)), -- Crusher (Glyph). pin abiltiy name so it can't get overridden
+	[62988] = zo_strformat(SI_ABILITY_NAME, GetAbilityName(62988)), -- Off-Balance
+
+	[81274] = "(C) " .. zo_strformat(SI_ABILITY_NAME, GetAbilityName(81274)), -- Crown Store Poison, Rename to differentiate from normal Poison, which can apparently stack ?
+	[81275] = "(C) " .. zo_strformat(SI_ABILITY_NAME, GetAbilityName(81275)), -- Crown Store Poison, Rename to differentiate from normal Poison, which can apparently stack ?
+
+	[113382] = zo_strformat(SI_LIBCOMBAT_CUSTOM_ABILITY_FORMAT, GetAbilityName(113382), GetString(SI_LIBCOMBAT_LOG_DEBUFF)), -- To make sure that tracking works correctly since both buff and debuff are named the same.
+
+	[61901] = zo_strformat(SI_LIBCOMBAT_CUSTOM_ABILITY_FORMAT, GetAbilityName(61901), GetString(SI_ABILITY_TOOLTIP_TOGGLE_DURATION)),	-- Grim Focus Toggle
+	[61919] = zo_strformat(SI_LIBCOMBAT_CUSTOM_ABILITY_FORMAT, GetAbilityName(61919), GetString(SI_ABILITY_TOOLTIP_TOGGLE_DURATION)),	-- Merciless Resolve Toggle
+	[61927] = zo_strformat(SI_LIBCOMBAT_CUSTOM_ABILITY_FORMAT, GetAbilityName(61927), GetString(SI_ABILITY_TOOLTIP_TOGGLE_DURATION)),	-- Relentless Focus Toggle
+
+}
+
+local CustomAbilityIcon = {
+
+	[0] = "esoui/art/icons/achievement_wrothgar_046.dds"
+
+}
+
+local AbilityNameCache = {}
+
+local function GetFormattedAbilityName(id)
+
+	if id == nil then return "" end
+
+	local name = AbilityNameCache[id]
+
+	if name == nil then
+
+		name = CustomAbilityName[id] or zo_strformat(SI_ABILITY_NAME, GetAbilityName(id))
+		if name == "Off-Balance" then name = "Off Balance" end
+		AbilityNameCache[id] = name
+
+	end
+
+	return name
+
+end
+
+lib.GetFormattedAbilityName = GetFormattedAbilityName
+
+local AbilityIconCache = {}
+
+local function GetFormattedAbilityIcon(id)
+
+	if id == nil then return
+	elseif type(id) == "string" then return id end
+
+	local icon = AbilityIconCache[id]
+
+	if icon == nil then
+
+		icon = CustomAbilityIcon[id] or GetAbilityIcon(id)
+		AbilityIconCache[id] = icon
+
+	end
+
+	return icon
+
+end
+
+lib.GetFormattedAbilityIcon = GetFormattedAbilityIcon
+
 local UnitHandler = ZO_Object:Subclass()
 
 function UnitHandler:New(...)
@@ -721,9 +677,9 @@ end
 
 local DivineSlots = {EQUIP_SLOT_HEAD, EQUIP_SLOT_SHOULDERS, EQUIP_SLOT_CHEST, EQUIP_SLOT_HAND, EQUIP_SLOT_WAIST, EQUIP_SLOT_LEGS, EQUIP_SLOT_FEET}
 
-local function GetShadowBonus()
+local function GetShadowBonus(effectSlot)
 
-	local divines = 0
+	local totalBonus = 0
 
 	for _, key in pairs(DivineSlots) do
 
@@ -731,18 +687,23 @@ local function GetShadowBonus()
 
 		if trait == ITEM_TRAIT_TYPE_ARMOR_DIVINES then
 
-			local bonus = desc:gsub("^.-(%d+)%p?(%d*)%s?.-$", "%1.%2")  	-- only get first argument to pass it to tonumber()
-
-			divines = (tonumber(bonus) or 0) + divines
+			local bonus = {desc:match("(%d+)%p?(%d*)[%%|]")}
+			local bonusString = table.concat(bonus, ".")
+			totalBonus = (tonumber(bonusString) or 0) + totalBonus
 
 		end
 
 	end
 
-	data.critBonusMundus = mathfloor(11 * (1 + divines/100)) -- total mundus bonus
+	local ZOSDesc = GetAbilityEffectDescription(effectSlot)
+	local ZOSBonusString = ZOSDesc:match("cffffff(%d+)[%%|]")
 
-	Print("other", LOG_LEVEL_DEBUG, "Shadow Mundus: %d%%", data.critBonusMundus)
+	local calcBonus =  mathfloor(11 * (1 + totalBonus/100))
+	local ZOSBonus = tonumber(ZOSBonusString) or 0 -- value attributed by ZOS
 
+	data.critBonusMundus = calcBonus - ZOSBonus -- mundus bonus difference
+
+	Print("other", LOG_LEVEL_INFO, "Shadow Mundus Offset: %d%% (calc %d%% - ZOS %d%%)", data.critBonusMundus, calcBonus, ZOSBonus)
 end
 
 local function GetPlayerBuffs(timems)
@@ -781,10 +742,19 @@ local function GetPlayerBuffs(timems)
 
 		end
 
-		if abilityId ==	13984 then GetShadowBonus() end
+		if abilityId ==	13984 then GetShadowBonus(effectSlot) end
 
-		if MajorForceAbility[abilityId] then data.majorForce = majorForceAmount end
-		if MinorForceAbility[abilityId] then data.minorForce = minorForceAmount end
+		if GrimFocusBuffs[abilityId] then
+
+			onGrimFocusChanged(_, EFFECT_RESULT_GAINED, _, _, _, _, _, stackCount)
+
+		end
+
+		if abilityId ==	51176 then
+
+			onTFSChanged(_, EFFECT_RESULT_GAINED, _, _, _, _, _, stackCount)
+
+		end
 	end
 end
 
@@ -808,77 +778,14 @@ local function GetOtherBuffs(timems)
 	EffectBuffer = {}
 end
 
-local function GetCritBonusFromPassives()
-
-	local bonus = 0
-
-	local skillDataTable = SKILLS_DATA_MANAGER.abilityIdToProgressionDataMap
-
-	local bonusdata = {}
-
-	for k, ability in pairs(critBonusPassiveData) do
-
-		local id = ability.id
-
-		local skillData = skillDataTable[id].skillData
-
-		local purchased = skillData.isPurchased
-		local rank = skillData.currentRank
-		local lineData = skillData.skillLineData
-
-		local line = lineData.skillLineIndex
-
-		local skillType = lineData.skillTypeData.skillType
-
-		bonus = purchased == true and ability.effect[rank] or 0
-
-		if bonus > 0 then bonusdata[id] = {skillType, line, bonus, ability.requiresSkillFromLine} end
-	end
-
-	return bonusdata
-
-end
-
 local function GetCritBonusFromCP(CPdata)
 
 	local slots = CPdata[1].slotted
 	local points = CPdata[1].stars
 
-	local finesse = slots[12] and (2 * math.floor(0.1 * points[12][1])) or 0 -- Fighting Finesse 2% per every full 10 points
 	local backstabber = slots[31] and (3 * math.floor(0.1 * points[31][1])) or 0 -- Backstabber 3% per every full 10 points (flanking!)
 
-	local total = finesse + backstabber
-
-	return total
-end
-
-local function GetCritBonusFromWeapon()
-
-	local mainBonus = 0
-	local backupBonus = 0
-
-	local passiveData = SKILLS_DATA_MANAGER.abilityIdToProgressionDataMap
-
-	for id, data in pairs(critBonusWeaponPassiveData) do
-
-		local skillData = passiveData[id].skillData
-
-		local rank = skillData.isPurchased and skillData.currentRank or 0
-
-		if rank > 0 then
-
-			local weapontype, bonus = unpack(data)
-
-			if GetItemWeaponType(BAG_WORN, EQUIP_SLOT_MAIN_HAND) == weapontype then mainBonus = mainBonus + bonus * rank end
-			if GetItemWeaponType(BAG_WORN, EQUIP_SLOT_OFF_HAND) == weapontype then mainBonus = mainBonus + bonus * rank end
-
-			if GetItemWeaponType(BAG_WORN, EQUIP_SLOT_BACKUP_MAIN) == weapontype then backupBonus = backupBonus + bonus * rank end
-			if GetItemWeaponType(BAG_WORN, EQUIP_SLOT_BACKUP_OFF) == weapontype then backupBonus = backupBonus + bonus * rank end
-
-		end
-	end
-
-	return mainBonus, backupBonus
+	return backstabber
 end
 
 local function GetCurrentCP()
@@ -1160,9 +1067,7 @@ function FightHandler:PrepareFight()
 		data.resources[POWERTYPE_STAMINA] = GetUnitPower("player", POWERTYPE_STAMINA)
 		data.resources[POWERTYPE_ULTIMATE] = GetUnitPower("player", POWERTYPE_ULTIMATE)
 
-		data.critBonusPassive = GetCritBonusFromPassives()
-		data.critBonusCP = GetCritBonusFromCP(self.CP)
-		data.critBonusWeaponMain, data.critBonusWeaponBackup = GetCritBonusFromWeapon()
+		data.backstabber = GetCritBonusFromCP(self.CP)
 
 		self.prepared = true
 
@@ -1181,7 +1086,6 @@ function FightHandler:PrepareFight()
 		self.isWipe = false
 		lastQueuedAbilities = {}
 		usedCastTimeAbility = {}
-		AlkoshData = {}
 
 		DamageShieldBuffer = {}
 
@@ -1233,9 +1137,6 @@ function FightHandler:FinishFight()
 	self.endtime = mathmax(self.dpsend or 0, self.hpsend or 0)
 	self.activetime = mathmax((self.endtime - self.starttime) / 1000, 1)
 
-	data.majorForce = 0
-	data.minorForce = 0
-
 	EffectBuffer = {}
 
 	lastAbilityActivations = {}
@@ -1250,60 +1151,19 @@ local function GetStat(stat) -- helper function to make code shorter
 	return GetPlayerStat(stat, STAT_BONUS_OPTION_APPLY_BONUS)
 end
 
+local GrimFocusBonus = 0
+local TFSBonus = 0
+
 local function GetCritbonus()
 
-	local isactive = false
+	local _, _, valueFromZos = GetAdvancedStatValue(ADVANCED_STAT_DISPLAY_TYPE_CRITICAL_DAMAGE)
+	local total2 = 50 + valueFromZos + data.backstabber + data.critBonusMundus + GrimFocusBonus
 
-	local passiveBonus = 0
-
-	for id, passiveData in pairs(data.critBonusPassive) do
-
-		local skillType, line, bonus, requiresSkillFromLine = unpack(passiveData)
-
-		if requiresSkillFromLine and bonus and bonus > 0 then
-
-			for i = 1, 6 do
-
-				if GetAssignedSlotFromSkillAbility(skillType, line, i) ~= nil then 		-- Determines if an ability is equiped which "activates" the passive. Works both for templars and nightblades.
-
-					isactive = true
-					break
-
-				end
-			end
-
-			bonus = isactive and bonus or 0
-
-		end
-
-		passiveBonus = passiveBonus + (bonus or 0)
-
-	end
-
-	local activeWeaponPair = data.bar
-	local critBonusWeapon = (activeWeaponPair == ACTIVE_WEAPON_PAIR_MAIN and data.critBonusWeaponMain) or (activeWeaponPair == ACTIVE_WEAPON_PAIR_BACKUP and data.critBonusWeaponBackup) or 0
-
-	local total = 50 + data.critBonusMundus + passiveBonus + data.majorForce + data.minorForce + data.critBonusCP + critBonusWeapon
-	local spelltotal = total
-	local weapontotal = total
+	local spelltotal = total2
+	local weapontotal = total2
 
 	return weapontotal, spelltotal
 
-end
-
-local TFSBonus = 0
-
-local function onTFSChanged(_, changeType, _, _, _, _, _, stackCount, _, _, _, _, _, _, _, _, _)
-
-	if (changeType == EFFECT_RESULT_GAINED or changeType == EFFECT_RESULT_UPDATED) and stackCount > 1 then
-
-		TFSBonus = (stackCount - 1) * 544
-
-	else
-
-		TFSBonus = 0
-
-	end
 end
 
 local statData = {
@@ -1348,6 +1208,36 @@ local function GetStats()
 	statData[LIBCOMBAT_STAT_CRITICALRESISTANCE]	= GetStat(STAT_CRITICAL_RESISTANCE)
 
 	return statData
+end
+
+function onGrimFocusChanged(_, changeType, _, _, _, _, _, stackCount)
+
+	if (changeType == EFFECT_RESULT_GAINED or changeType == EFFECT_RESULT_UPDATED) and stackCount > 1 then
+
+		GrimFocusBonus = (stackCount - 1) * 2
+
+	else
+
+		GrimFocusBonus = 0
+
+	end
+
+	FightHandler:GetNewStats()
+end
+
+function onTFSChanged(_, changeType, _, _, _, _, _, stackCount, _, _, _, _, _, _, _, _, _)
+
+	if (changeType == EFFECT_RESULT_GAINED or changeType == EFFECT_RESULT_UPDATED) and stackCount > 1 then
+
+		TFSBonus = (stackCount - 1) * 544
+
+	else
+
+		TFSBonus = 0
+
+	end
+
+	FightHandler:GetNewStats()
 end
 
 local advancedStatData = {}
@@ -2015,66 +1905,6 @@ local function onTrialDummy(_, _, _, _, _, _, _, _, _, _, _, _, _, _, sourceUnit
 
 end
 
-local function CheckUnit(unitName, unitId, unitType, timems)
-
-	if unitId == nil or unitId <= 0 then return end
-
-	local currentunits = currentfight.units
-
-	if currentunits[unitId] == nil then currentunits[unitId] = UnitHandler:New(unitName, unitId, unitType) end
-	local unit = currentunits[unitId]
-
-	if unit.name == "Offline" or unit.name == "" then unit.name = ZO_CachedStrFormat(SI_UNIT_NAME, unitName) end
-
-	if unit.unitType ~= COMBAT_UNIT_TYPE_GROUP and unitType == COMBAT_UNIT_TYPE_GROUP then
-
-		unit.unitType = COMBAT_UNIT_TYPE_GROUP
-		unit.isFriendly = true
-
-	end
-
-	if unit.isFriendly == false then
-
-		local bossId = data.bossInfo[unit.name]		-- if this is a boss, add the id (e.g. 1 for unitTag == "boss1")
-
-		if bossId then
-
-			unit.bossId = bossId
-			currentfight.bosses[bossId] = unitId
-
-			unit.unitTag = ZO_CachedStrFormat("boss<<1>>", bossId)
-
-		end
-	end
-
-	unit.dpsstart = unit.dpsstart or timems
-	unit.dpsend = timems
-
-	unit.starttime = unit.starttime or timems
-	unit.endtime = timems
-end
-
-local function CheckUnitFromTag(unitName, unitId, unitTag, timems, isGroup)
-
-	if unitId == nil or unitId <= 0 or currentfight.units[unitId] ~= nil then return end
-
-	local unitType = COMBAT_UNIT_TYPE_NONE
-
-	if unitTag == "player" then
-
-		unitType = COMBAT_UNIT_TYPE_PLAYER
-
-	elseif unitTag and stringsub(unitTag, 1, 9) == "playerpet" then unitType = COMBAT_UNIT_TYPE_PLAYER_PET end
-	if isGroup then unitType = COMBAT_UNIT_TYPE_GROUP end
-
-	-- IsUnitGrouped(unitTag), GetGroupIndexByUnitTag(unitTag), IsPlayerInGroup(GetUnitDisplayName(unitTag))
-
-	Print("debug", LOG_LEVEL_INFO, "New Unit detected: %s (%d), tag: %s, type: %d", unitName or "", unitId or 0, unitTag or "", unitType or 0)
-
-	CheckUnit(unitName, unitId, unitType, timems)
-
-end
-
 local function BuffEventHandler(isspecial, groupeffect, _, changeType, effectSlot, _, unitTag, _, endTime, stackCount, _, _, effectType, abilityType, _, unitName, unitId, abilityId, sourceType)
 
 	if (changeType ~= EFFECT_RESULT_GAINED and changeType ~= EFFECT_RESULT_FADED and not (changeType == EFFECT_RESULT_UPDATED and stackCount > 1)) or unitName == "Offline" or unitId == nil then return end
@@ -2170,17 +2000,12 @@ local function onSpecialDebuffEventNoSelf(...)
 	SpecialBuffEventHandler(true, ...)		-- (isdebuff, ...)
 end
 
-local function onMajorForceChanged( _, changeType)
+local function onShadowMundus( _, changeType, effectSlot)
 
-	if changeType == EFFECT_RESULT_GAINED or changeType == EFFECT_RESULT_UPDATED then data.majorForce = majorForceAmount
-	elseif changeType == EFFECT_RESULT_FADED then data.majorForce = 0 end
+	if changeType == EFFECT_RESULT_GAINED or changeType == EFFECT_RESULT_UPDATED then GetShadowBonus(effectSlot)
+	elseif changeType == EFFECT_RESULT_FADED then data.critBonusMundus = 0 end
 
-end
-
-local function onMinorForceChanged( _, changeType)
-
-	if changeType == EFFECT_RESULT_GAINED or changeType == EFFECT_RESULT_UPDATED then data.minorForce = minorForceAmount
-	elseif changeType == EFFECT_RESULT_FADED then data.minorForce = 0 end
+	if currentfight.prepared == true then currentfight:GetNewStats() end
 
 end
 
@@ -2558,6 +2383,8 @@ local function CombatEventHandler(isheal, _, result, _, _, _, _, sourceName, sou
 
 	CheckUnit(sourceName, sourceUnitId, sourceType, timems)
 	CheckUnit(targetName, targetUnitId, targetType, timems)
+
+	if result == ACTION_RESULT_DAMAGE_SHIELDED then
 
 	if result == ACTION_RESULT_DAMAGE_SHIELDED then
 
@@ -3471,19 +3298,16 @@ Events.Stats = EventHandler:New(
 	{LIBCOMBAT_EVENT_PLAYERSTATS},
 	function (self)
 
-		for id, _ in pairs(MajorForceAbility) do
-
-			self:RegisterEvent(EVENT_EFFECT_CHANGED, onMajorForceChanged, REGISTER_FILTER_UNIT_TAG, "player", REGISTER_FILTER_ABILITY_ID, id)
-
-		end
-
-		for id, _ in pairs(MinorForceAbility) do
-
-			self:RegisterEvent(EVENT_EFFECT_CHANGED, onMinorForceChanged, REGISTER_FILTER_UNIT_TAG, "player", REGISTER_FILTER_ABILITY_ID, id)
-
-		end
+		self:RegisterEvent(EVENT_EFFECT_CHANGED, onShadowMundus, REGISTER_FILTER_UNIT_TAG, "player", REGISTER_FILTER_ABILITY_ID, 13984)
 
 		self:RegisterEvent(EVENT_EFFECT_CHANGED, onTFSChanged, REGISTER_FILTER_UNIT_TAG, "player", REGISTER_FILTER_ABILITY_ID, 51176)  -- to track TFS procs, which aren't recognized for stacks > 1 in penetration stat.
+
+		for id, _ in pairs(GrimFocusBuffs) do
+
+			self:RegisterEvent(EVENT_EFFECT_CHANGED, onGrimFocusChanged, REGISTER_FILTER_UNIT_TAG, "player", REGISTER_FILTER_ABILITY_ID, id)  -- to track TFS procs, which aren't recognized for stacks > 1 in penetration stat.
+
+		end
+
 		self.active = true
 	end
 )
@@ -3664,13 +3488,19 @@ function lib.GetDamageColor(damageType)
 	return logColors[damageType]
 end
 
-local function GetAbilityString(abilityId, damageType, fontsize)
+local function GetAbilityString(abilityId, damageType, fontsize, showIds, stacks)
+
+	local stacks = stacks or 0
 
 	local icon = zo_iconFormat(GetFormattedAbilityIcon(abilityId), fontsize, fontsize)
 	local name = GetFormattedAbilityName(abilityId)
 	local damageColor = lib.GetDamageColor(damageType)
 
-	return ZO_CachedStrFormat("<<1>> <<2>><<3>>|r", icon, damageColor, name)
+	local format = showIds and "<<5[//$dx ]>><<1>> <<2>><<3>> (<<4>>)|r" or "<<5[//$dx ]>><<1>> <<2>><<3>>|r"
+
+	local abilityString = ZO_CachedStrFormat(format, icon, damageColor, name, showIds and abilityId or nil, stacks)
+
+	return abilityString
 end
 
 local UnitTypeString = {
@@ -3680,7 +3510,7 @@ local UnitTypeString = {
 	[COMBAT_UNIT_TYPE_OTHER] 		= GetString(SI_LIBCOMBAT_LOG_UNITTYPE_OTHER),
 }
 
-function lib:GetCombatLogString(fight, logline, fontsize)
+function lib:GetCombatLogString(fight, logline, fontsize, showIds)
 
 	if fight == nil then fight = currentfight end
 
@@ -3705,7 +3535,7 @@ function lib:GetCombatLogString(fight, logline, fontsize)
 
 		local targetString = ZO_CachedStrFormat(GetString(targetFormat), targetname)
 
-		local ability = GetAbilityString(abilityId, damageType, fontsize)
+		local ability = GetAbilityString(abilityId, damageType, fontsize, showIds)
 
 		local hitValueString = overflow > 0 and ZO_CachedStrFormat(GetString(SI_LIBCOMBAT_LOG_FORMAT_ABSORBED), hitValue, overflow) or hitValue
 
@@ -3716,14 +3546,14 @@ function lib:GetCombatLogString(fight, logline, fontsize)
 
 		local _, _, result, sourceUnitId, _, abilityId, hitValue, damageType, overflow = unpack(logline)
 
-		local crit = (result == ACTION_RESULT_CRITICAL_HEAL or result == ACTION_RESULT_HOT_TICK_CRITICAL) and ZO_CachedStrFormat("|cFFCC99<<1>>|r", GetString(SI_LIBCOMBAT_LOG_CRITICAL)) or ""
+		local crit = (result == ACTION_RESULT_CRITICAL_DAMAGE or result == ACTION_RESULT_DOT_TICK_CRITICAL) and ZO_CachedStrFormat("|cFFCC99<<1>>|r", GetString(SI_LIBCOMBAT_LOG_CRITICAL)) or ""
 
 		local sourceName = units[sourceUnitId].name
 
 		local targetFormat = (result == ACTION_RESULT_BLOCKED_DAMAGE and SI_LIBCOMBAT_LOG_FORMAT_TARGETSELF_BLOCK) or SI_LIBCOMBAT_LOG_FORMAT_TARGETSELF_NORMAL
 		local targetString = GetString(targetFormat)
 
-		local ability = GetAbilityString(abilityId, damageType, fontsize)
+		local ability = GetAbilityString(abilityId, damageType, fontsize, showIds)
 
 		local hitValueString = overflow > 0 and ZO_CachedStrFormat(GetString(SI_LIBCOMBAT_LOG_FORMAT_ABSORBED), hitValue, overflow) or hitValue
 
@@ -3755,7 +3585,7 @@ function lib:GetCombatLogString(fight, logline, fontsize)
 
 		local targetname = units[targetUnitId].name
 
-		local ability = GetAbilityString(abilityId, "heal", fontsize)
+		local ability = GetAbilityString(abilityId, "heal", fontsize, showIds)
 
 		color = {0.6,1.0,0.6}
 		text = ZO_CachedStrFormat(logFormat, timeString, crit, targetname, ability, hitValue)
@@ -3768,7 +3598,7 @@ function lib:GetCombatLogString(fight, logline, fontsize)
 
 		local sourceName = units[sourceUnitId].name
 
-		local ability = GetAbilityString(abilityId, "heal", fontsize)
+		local ability = GetAbilityString(abilityId, "heal", fontsize, showIds)
 
 		color = {0.4,0.8,0.4}
 
@@ -3780,14 +3610,14 @@ function lib:GetCombatLogString(fight, logline, fontsize)
 
 		local crit = (result == ACTION_RESULT_CRITICAL_HEAL or result == ACTION_RESULT_HOT_TICK_CRITICAL) and ZO_CachedStrFormat("|cFFCC99<<1>>|r", GetString(SI_LIBCOMBAT_LOG_CRITICAL)) or ""
 
-		local ability = GetAbilityString(abilityId, "heal", fontsize)
+		local ability = GetAbilityString(abilityId, "heal", fontsize, showIds)
 
 		color = {0.8,1.0,0.6}
 		text = result == ACTION_RESULT_DAMAGE_SHIELDED and ZO_CachedStrFormat(GetString(SI_LIBCOMBAT_LOG_FORMAT_HEALABSORB), timeString, ability, hitValue) or ZO_CachedStrFormat(logFormat, timeString, crit, ability, hitValue)
 
 	elseif logtype == LIBCOMBAT_EVENT_EFFECTS_IN or logtype == LIBCOMBAT_EVENT_EFFECTS_OUT or logtype == LIBCOMBAT_EVENT_GROUPEFFECTS_IN or logtype == LIBCOMBAT_EVENT_GROUPEFFECTS_OUT then
 
-		local _, _, unitId, abilityId, changeType, effectType, _, sourceType, slot = unpack(logline)
+		local _, _, unitId, abilityId, changeType, effectType, stacks, sourceType, slot = unpack(logline)
 
 		if units[unitId] == nil then return end
 
@@ -3799,9 +3629,10 @@ function lib:GetCombatLogString(fight, logline, fontsize)
 
 		local colorKey = effectType == BUFF_EFFECT_TYPE_DEBUFF and "debuff" or "buff"
 
-		local buff = GetAbilityString(abilityId, colorKey, fontsize)
-
+		local buff = GetAbilityString(abilityId, colorKey, fontsize, showIds, stacks)
+		
 		color = {0.8,0.8,0.8}
+
 		text = ZO_CachedStrFormat(logFormat, timeString, unitString, changeTypeString, buff, source)
 
 	elseif logtype == LIBCOMBAT_EVENT_RESOURCES then
@@ -3835,7 +3666,7 @@ function lib:GetCombatLogString(fight, logline, fontsize)
 
 			local resource = (powerType == POWERTYPE_MAGICKA and GetString(SI_ATTRIBUTES2)) or (powerType == POWERTYPE_STAMINA and GetString(SI_ATTRIBUTES3)) or (powerType == POWERTYPE_ULTIMATE and GetString(SI_LIBCOMBAT_LOG_ULTIMATE))
 
-			local ability = abilityId and ZO_CachedStrFormat("(<<1>>)", GetAbilityString(abilityId, "resource", fontsize)) or ""
+			local ability = abilityId and ZO_CachedStrFormat("(<<1>>)", GetAbilityString(abilityId, "resource", fontsize, showIds)) or ""
 
 			color = (powerType == POWERTYPE_MAGICKA and {0.7,0.7,1}) or (powerType == POWERTYPE_STAMINA and {0.7,1,0.7}) or (powerType == POWERTYPE_ULTIMATE and {1,1,0.7})
 			text = ZO_CachedStrFormat(logFormat, timeString, changeTypeString, amount, resource, ability)
@@ -3980,7 +3811,7 @@ function lib:GetCombatLogString(fight, logline, fontsize)
 		local action = ""
 		local otherString = ""
 
-		if state == 1 and otherId ~= nil then otherString = GetAbilityString(otherId, DAMAGE_TYPE_GENERIC, fontsize) end
+		if state == 1 and otherId ~= nil then otherString = GetAbilityString(otherId, DAMAGE_TYPE_GENERIC, fontsize, showIds) end
 
 		if state > 2 then
 
@@ -3999,22 +3830,21 @@ end
 
 local function Initialize()
 
-	data.inCombat = IsUnitInCombat("player")
-	data.inGroup = IsUnitGrouped("player")
-	data.rawPlayername = GetRawUnitName("player")
-	data.playername = ZO_CachedStrFormat(SI_UNIT_NAME, data.rawPlayername)
-	data.accountname = ZO_CachedStrFormat(SI_UNIT_NAME, GetDisplayName())
-	data.bossInfo = {}
-	data.groupInfo = {nameToId = {}, tagToId = {}, nameToTag = {}, nameToDisplayname = {}}
-	data.PlayerPets = {}
-	data.lastabilities = {}
-	data.majorForce = 0
-	data.minorForce = 0
-	data.critBonusMundus = 0
-	data.bar = GetActiveWeaponPairInfo()
-	data.resources = {}
-	data.stats = {}
-	data.advancedStats = {}
+  data.inCombat = IsUnitInCombat("player")
+  data.inGroup = IsUnitGrouped("player")
+  data.rawPlayername = GetRawUnitName("player")
+  data.playername = ZO_CachedStrFormat(SI_UNIT_NAME, data.rawPlayername)
+  data.accountname = ZO_CachedStrFormat(SI_UNIT_NAME, GetDisplayName())
+  data.bossInfo = {}
+  data.groupInfo = {nameToId = {}, tagToId = {}, nameToTag = {}, nameToDisplayname = {}}
+  data.PlayerPets = {}
+  data.lastabilities = {}
+  data.backstabber = 0
+  data.critBonusMundus = 0
+  data.bar = GetActiveWeaponPairInfo()
+  data.resources = {}
+  data.stats = {}
+  data.advancedStats = {}
 
 	--resetfightdata
 	currentfight = FightHandler:New()
