@@ -1,5 +1,5 @@
 ﻿## Title: LibCombat
-## APIVersion: 100035
+## APIVersion: 101031
 ## Author: Solinur
 ## Version: 54
 ## AddOnVersion: 54
@@ -18,4 +18,8 @@
 lang/en.lua
 lang/$(language).lua
 
+init.lua
+global.lua
+utils.lua
 LibCombat.lua
+units.lua
