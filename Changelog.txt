@@ -1,5 +1,6 @@
-﻿55 
+﻿55 DL: 1.956.294 (05.11.2021) 20:30
 [*] Added number of stacks to buff events in combat log
+[*] Removed Grim Focus tracking as it is no longer needed
 
 54 DL: 1.764.699 (06.07.2021) 00:06
 [*] Fix an issue where incoming critical hits were not properly shown in logs (Thx to shira for reporting this).

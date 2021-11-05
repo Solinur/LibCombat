@@ -15,7 +15,7 @@ local dx = math.ceil(GuiRoot:GetWidth()/tonumber(GetCVar("WindowedWidth"))*1000)
 LIBCOMBAT_LINE_SIZE = dx
 
 local lib = {}
-lib.version = 54
+lib.version = 55
 LibCombat = lib
 
 -- Basic values
@@ -104,7 +104,7 @@ local DamageShieldBuffer = {}
 local registeredSkills = {}
 lib.registeredSkills = registeredSkills
 
-local onGrimFocusChanged, onTFSChanged
+local onTFSChanged
 
 -- localize some functions for performance
 
@@ -232,21 +232,13 @@ local SpecialBuffs = {	-- buffs that the API doesn't show via EVENT_EFFECT_CHANG
 
 local SpecialDebuffs = {   -- debuffs that the API doesn't show via EVENT_EFFECT_CHANGED and need to be specially tracked via EVENT_COMBAT_EVENT
 
-	17906,  -- Crusher Enchantment
+	95136,  -- Chilled (used for tracking Warden crit damage buff)
 
 }
 
 local SourceBuggedBuffs = {   -- buffs where ZOS messed up the source, causing CMX to falsely not track them
 
 	88401,  -- Minor Magickasteal
-
-}
-
-local GrimFocusBuffs = {
-
-	[61905] = true,	-- Grim Focus
-	[61920] = true,	-- Merciless Resolve
-	[61928] = true,	-- Relentless Focus
 
 }
 
@@ -744,13 +736,7 @@ local function GetPlayerBuffs(timems)
 
 		if abilityId ==	13984 then GetShadowBonus(effectSlot) end
 
-		if GrimFocusBuffs[abilityId] then
-
-			onGrimFocusChanged(_, EFFECT_RESULT_GAINED, _, _, _, _, _, stackCount)
-
-		end
-
-		if abilityId ==	51176 then
+		if abilityId ==	51176 then -- TFS workaround
 
 			onTFSChanged(_, EFFECT_RESULT_GAINED, _, _, _, _, _, stackCount)
 
@@ -1122,13 +1108,12 @@ local function GetStat(stat) -- helper function to make code shorter
 	return GetPlayerStat(stat, STAT_BONUS_OPTION_APPLY_BONUS)
 end
 
-local GrimFocusBonus = 0
 local TFSBonus = 0
 
 local function GetCritbonus()
 
 	local _, _, valueFromZos = GetAdvancedStatValue(ADVANCED_STAT_DISPLAY_TYPE_CRITICAL_DAMAGE)
-	local total2 = 50 + valueFromZos + data.backstabber + data.critBonusMundus + GrimFocusBonus
+	local total2 = 50 + valueFromZos + data.backstabber + data.critBonusMundus
 
 	local spelltotal = total2
 	local weapontotal = total2
@@ -1179,21 +1164,6 @@ local function GetStats()
 	statData[LIBCOMBAT_STAT_CRITICALRESISTANCE]	= GetStat(STAT_CRITICAL_RESISTANCE)
 
 	return statData
-end
-
-function onGrimFocusChanged(_, changeType, _, _, _, _, _, stackCount)
-
-	if (changeType == EFFECT_RESULT_GAINED or changeType == EFFECT_RESULT_UPDATED) and stackCount > 1 then
-
-		GrimFocusBonus = (stackCount - 1) * 2
-
-	else
-
-		GrimFocusBonus = 0
-
-	end
-
-	FightHandler:GetNewStats()
 end
 
 function onTFSChanged(_, changeType, _, _, _, _, _, stackCount, _, _, _, _, _, _, _, _, _)
@@ -1938,7 +1908,7 @@ local function SpecialBuffEventHandler(isdebuff, _, result, _, _, _, _, _, sourc
 
 	if BadAbility[abilityId] == true then return end
 
-	if unitName ~= data.rawPlayername then return end
+	-- if unitName ~= data.rawPlayername then return end
 
 	local changeType = result == ACTION_RESULT_EFFECT_GAINED_DURATION and 1 or result == ACTION_RESULT_EFFECT_FADED and 2 or nil
 
@@ -1955,13 +1925,13 @@ local function onSpecialDebuffEvent(...)
 	SpecialBuffEventHandler(true, ...)		-- (isdebuff, ...)
 end
 
-local function onSpecialBuffEventNoSelf(...)
+local function onSpecialBuffEventOnSelf(...)
 	local _, _, _, _, _, _, _, sourceType, _, targetType, _, _, _, _, _, _, _ = ...
 	if sourceType == COMBAT_UNIT_TYPE_PLAYER and targetType == COMBAT_UNIT_TYPE_PLAYER then return end
 	SpecialBuffEventHandler(false, ...)		-- (isdebuff, ...)
 end
 
-local function onSpecialDebuffEventNoSelf(...)
+local function onSpecialDebuffEventOnSelf(...)
 	local _, _, _, _, _, _, _, sourceType, _, targetType, _, _, _, _, _, _, _ = ...
 	if sourceType == COMBAT_UNIT_TYPE_PLAYER and targetType == COMBAT_UNIT_TYPE_PLAYER then return end
 	SpecialBuffEventHandler(true, ...)		-- (isdebuff, ...)
@@ -3257,16 +3227,16 @@ Events.Effects = EventHandler:New(
 			self:RegisterEvent(EVENT_COMBAT_EVENT, onSpecialBuffEvent, REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_GAINED_DURATION, REGISTER_FILTER_ABILITY_ID, SpecialBuffs[i], REGISTER_FILTER_IS_ERROR, false)
 			self:RegisterEvent(EVENT_COMBAT_EVENT, onSpecialBuffEvent, REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_FADED, REGISTER_FILTER_ABILITY_ID, SpecialBuffs[i], REGISTER_FILTER_IS_ERROR, false)
 
-			self:RegisterEvent(EVENT_COMBAT_EVENT, onSpecialBuffEventNoSelf, REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_GAINED_DURATION, REGISTER_FILTER_ABILITY_ID, SpecialBuffs[i], REGISTER_FILTER_IS_ERROR, false)
-			self:RegisterEvent(EVENT_COMBAT_EVENT, onSpecialBuffEventNoSelf, REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_FADED, REGISTER_FILTER_ABILITY_ID, SpecialBuffs[i], REGISTER_FILTER_IS_ERROR, false)
+			self:RegisterEvent(EVENT_COMBAT_EVENT, onSpecialBuffEventOnSelf, REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_GAINED_DURATION, REGISTER_FILTER_ABILITY_ID, SpecialBuffs[i], REGISTER_FILTER_IS_ERROR, false)
+			self:RegisterEvent(EVENT_COMBAT_EVENT, onSpecialBuffEventOnSelf, REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_FADED, REGISTER_FILTER_ABILITY_ID, SpecialBuffs[i], REGISTER_FILTER_IS_ERROR, false)
 		end
 
 		for i=1,#SpecialDebuffs do
 			self:RegisterEvent(EVENT_COMBAT_EVENT, onSpecialDebuffEvent, REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_GAINED_DURATION, REGISTER_FILTER_ABILITY_ID, SpecialDebuffs[i], REGISTER_FILTER_IS_ERROR, false)
 			self:RegisterEvent(EVENT_COMBAT_EVENT, onSpecialDebuffEvent, REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_FADED, REGISTER_FILTER_ABILITY_ID, SpecialDebuffs[i], REGISTER_FILTER_IS_ERROR, false)
 
-			self:RegisterEvent(EVENT_COMBAT_EVENT, onSpecialDebuffEventNoSelf, REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_GAINED_DURATION, REGISTER_FILTER_ABILITY_ID, SpecialDebuffs[i], REGISTER_FILTER_IS_ERROR, false)
-			self:RegisterEvent(EVENT_COMBAT_EVENT, onSpecialDebuffEventNoSelf, REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_FADED, REGISTER_FILTER_ABILITY_ID, SpecialDebuffs[i], REGISTER_FILTER_IS_ERROR, false)
+			self:RegisterEvent(EVENT_COMBAT_EVENT, onSpecialDebuffEventOnSelf, REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_GAINED_DURATION, REGISTER_FILTER_ABILITY_ID, SpecialDebuffs[i], REGISTER_FILTER_IS_ERROR, false)
+			self:RegisterEvent(EVENT_COMBAT_EVENT, onSpecialDebuffEventOnSelf, REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_FADED, REGISTER_FILTER_ABILITY_ID, SpecialDebuffs[i], REGISTER_FILTER_IS_ERROR, false)
 		end
 
 		for i=1,#SourceBuggedBuffs do
@@ -3306,12 +3276,6 @@ Events.Stats = EventHandler:New(
 		self:RegisterEvent(EVENT_EFFECT_CHANGED, onShadowMundus, REGISTER_FILTER_UNIT_TAG, "player", REGISTER_FILTER_ABILITY_ID, 13984)
 
 		self:RegisterEvent(EVENT_EFFECT_CHANGED, onTFSChanged, REGISTER_FILTER_UNIT_TAG, "player", REGISTER_FILTER_ABILITY_ID, 51176)  -- to track TFS procs, which aren't recognized for stacks > 1 in penetration stat.
-
-		for id, _ in pairs(GrimFocusBuffs) do
-
-			self:RegisterEvent(EVENT_EFFECT_CHANGED, onGrimFocusChanged, REGISTER_FILTER_UNIT_TAG, "player", REGISTER_FILTER_ABILITY_ID, id)  -- to track TFS procs, which aren't recognized for stacks > 1 in penetration stat.
-
-		end
 
 		self.active = true
 	end
