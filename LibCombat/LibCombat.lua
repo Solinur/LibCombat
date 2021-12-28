@@ -15,7 +15,7 @@ local dx = math.ceil(GuiRoot:GetWidth()/tonumber(GetCVar("WindowedWidth"))*1000)
 LIBCOMBAT_LINE_SIZE = dx
 
 local lib = {}
-lib.version = 55
+lib.version = 56
 LibCombat = lib
 
 -- Basic values
@@ -241,6 +241,7 @@ local SourceBuggedBuffs = {   -- buffs where ZOS messed up the source, causing C
 	88401,  -- Minor Magickasteal
 
 }
+
 
 local abilityConversions = {	-- Ability conversions for tracking skill activations
 
@@ -645,6 +646,7 @@ function FightHandler:Initialize()
 	self.playerid = data.playerid
 	self.bosses = {}
 	self.dataVersion = 2
+	self.special = {}
 end
 
 local onCombatState
@@ -696,6 +698,21 @@ local function GetShadowBonus(effectSlot)
 	data.critBonusMundus = calcBonus - ZOSBonus -- mundus bonus difference
 
 	Print("other", LOG_LEVEL_INFO, "Shadow Mundus Offset: %d%% (calc %d%% - ZOS %d%%)", data.critBonusMundus, calcBonus, ZOSBonus)
+end
+
+local function GetGlacialPresence()
+
+	if GetUnitClassId("player") ~= 4 then return 0 end
+
+	local skillDataTable = SKILLS_DATA_MANAGER.abilityIdToProgressionDataMap
+	local skillData = skillDataTable and skillDataTable[86192] and skillDataTable[86192].skillData
+
+	local rank = skillData.currentRank	-- Glacial Presence
+	local purchased = skillData.isPurchased	-- Glacial Presence
+
+	local bonus = purchased and rank or 0
+
+	return bonus * 0.5
 end
 
 local function GetPlayerBuffs(timems)
@@ -778,84 +795,66 @@ local function GetCurrentCP()
 
 	local CP = {}
 
-	if GetAPIVersion() >= 100034 then
+	CP.version = 2
 
-		CP.version = 2
+	-- collect slotted stars
 
-		-- collect slotted stars
+	local championBarData = CHAMPION_PERKS.championBar.slots
 
-		local championBarData = CHAMPION_PERKS.championBar.slots
+	local slotsById = {}
 
-		local slotsById = {}
+	for i, slot in pairs(championBarData) do
 
-		for i, slot in pairs(championBarData) do
+		local slotData = slot:GetSavedChampionSkillData()
 
-			local slotData = slot:GetSavedChampionSkillData()
+		if slotData then
 
-			if slotData then
+			local starId = slotData:GetId()
 
-				local starId = slot:GetSavedChampionSkillData():GetId()
-
-				slotsById[starId] = i
-			end
+			slotsById[starId] = i
 		end
-
-		--  collect CP data
-
-		local disciplines = CHAMPION_DATA_MANAGER.disciplineDatas
-
-		for _, discipline in pairs(disciplines) do
-
-			local disciplineId = discipline.disciplineId
-			local stars = discipline.championSkillDatas
-
-			local disciplineData = {}
-			CP[disciplineId] = disciplineData
-
-			disciplineData.total = discipline:GetNumSavedSpentPoints()
-			disciplineData.stars = {}
-			disciplineData.slotted = {}
-
-			local discStarData = disciplineData.stars
-			local discSlotData = disciplineData.slotted
-
-			for _, star in pairs(stars) do
-
-				local savedPoints = star:GetNumSavedPoints()
-
-				if savedPoints > 0 then
-
-					local starId = star.championSkillId
-
-					local slotable = star:IsTypeSlottable()
-					local slotted = slotsById[starId] ~= nil
-
-					local starType = (slotted and LIBCOMBAT_CPTYPE_SLOTTED) or (slotable and LIBCOMBAT_CPTYPE_UNSLOTTED) or LIBCOMBAT_CPTYPE_PASSIVE
-
-					discStarData[starId] = {savedPoints, starType}
-					if slotted then discSlotData[starId] = true end
-
-				end
-			end
-		end
-
-		return CP
-
-	else	-- Legacy
-
-		for i = 1,9 do
-
-			CP[i] = {}
-
-			for j = 1,4 do
-
-				CP[i][j] = GetNumPointsSpentOnChampionSkill(i, j)
-
-			end
-		end
-
-		return CP
 	end
+
+	--  collect CP data
+
+	local disciplines = CHAMPION_DATA_MANAGER.disciplineDatas
+
+	for _, discipline in pairs(disciplines) do
+
+		local disciplineId = discipline.disciplineId
+		local stars = discipline.championSkillDatas
+
+		local disciplineData = {}
+		CP[disciplineId] = disciplineData
+
+		disciplineData.total = discipline:GetNumSavedSpentPoints()
+		disciplineData.stars = {}
+		disciplineData.slotted = {}
+
+		local discStarData = disciplineData.stars
+		local discSlotData = disciplineData.slotted
+
+		for _, star in pairs(stars) do
+
+			local savedPoints = star:GetNumSavedPoints()
+
+			if savedPoints > 0 then
+
+				local starId = star.championSkillId
+
+				local slotable = star:IsTypeSlottable()
+				local slotted = slotsById[starId] ~= nil
+
+				local starType = (slotted and LIBCOMBAT_CPTYPE_SLOTTED) or (slotable and LIBCOMBAT_CPTYPE_UNSLOTTED) or LIBCOMBAT_CPTYPE_PASSIVE
+
+				discStarData[starId] = {savedPoints, starType}
+				if slotted then discSlotData[starId] = true end
+
+			end
+		end
+	end
+
+	return CP
 end
 
 local function PurgeEffectBuffer(timems)
@@ -1025,6 +1024,7 @@ function FightHandler:PrepareFight()
 		data.resources[POWERTYPE_ULTIMATE] = GetUnitPower("player", POWERTYPE_ULTIMATE)
 
 		data.backstabber = GetCritBonusFromCP(self.CP)
+		self.special.glacial = GetGlacialPresence()
 
 		self.prepared = true
 
@@ -1909,8 +1909,9 @@ local function SpecialBuffEventHandler(isdebuff, _, result, _, _, _, _, _, sourc
 	if BadAbility[abilityId] == true then return end
 
 	-- if unitName ~= data.rawPlayername then return end
-
+	
 	local changeType = result == ACTION_RESULT_EFFECT_GAINED_DURATION and 1 or result == ACTION_RESULT_EFFECT_FADED and 2 or nil
+	-- Print("debug", LOG_LEVEL_INFO, "%s (%d): %d (%d)", GetFormattedAbilityName(abilityId), abilityId, changeType, result)
 
 	local effectType = isdebuff and BUFF_EFFECT_TYPE_DEBUFF or BUFF_EFFECT_TYPE_BUFF
 	BuffEventHandler(true, GROUP_EFFECT_NONE, _, changeType, 0, _, _, _, _, _, _, _, effectType, ABILITY_TYPE_BONUS, _, unitName, unitId, abilityId, sourceType)
@@ -3224,16 +3225,16 @@ Events.Effects = EventHandler:New(
 		self:RegisterEvent(EVENT_EFFECT_CHANGED, onEffectChanged, REGISTER_FILTER_UNIT_TAG, "player", REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_OTHER)
 
 		for i=1,#SpecialBuffs do
-			self:RegisterEvent(EVENT_COMBAT_EVENT, onSpecialBuffEvent, REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_GAINED_DURATION, REGISTER_FILTER_ABILITY_ID, SpecialBuffs[i], REGISTER_FILTER_IS_ERROR, false)
-			self:RegisterEvent(EVENT_COMBAT_EVENT, onSpecialBuffEvent, REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_FADED, REGISTER_FILTER_ABILITY_ID, SpecialBuffs[i], REGISTER_FILTER_IS_ERROR, false)
+			self:RegisterEvent(EVENT_COMBAT_EVENT, onSpecialBuffEvent, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_GAINED_DURATION, REGISTER_FILTER_ABILITY_ID, SpecialBuffs[i], REGISTER_FILTER_IS_ERROR, false)
+			self:RegisterEvent(EVENT_COMBAT_EVENT, onSpecialBuffEvent, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_FADED, REGISTER_FILTER_ABILITY_ID, SpecialBuffs[i], REGISTER_FILTER_IS_ERROR, false)
 
 			self:RegisterEvent(EVENT_COMBAT_EVENT, onSpecialBuffEventOnSelf, REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_GAINED_DURATION, REGISTER_FILTER_ABILITY_ID, SpecialBuffs[i], REGISTER_FILTER_IS_ERROR, false)
 			self:RegisterEvent(EVENT_COMBAT_EVENT, onSpecialBuffEventOnSelf, REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_FADED, REGISTER_FILTER_ABILITY_ID, SpecialBuffs[i], REGISTER_FILTER_IS_ERROR, false)
 		end
 
 		for i=1,#SpecialDebuffs do
-			self:RegisterEvent(EVENT_COMBAT_EVENT, onSpecialDebuffEvent, REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_GAINED_DURATION, REGISTER_FILTER_ABILITY_ID, SpecialDebuffs[i], REGISTER_FILTER_IS_ERROR, false)
-			self:RegisterEvent(EVENT_COMBAT_EVENT, onSpecialDebuffEvent, REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_FADED, REGISTER_FILTER_ABILITY_ID, SpecialDebuffs[i], REGISTER_FILTER_IS_ERROR, false)
+			self:RegisterEvent(EVENT_COMBAT_EVENT, onSpecialDebuffEvent, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_GAINED_DURATION, REGISTER_FILTER_ABILITY_ID, SpecialDebuffs[i], REGISTER_FILTER_IS_ERROR, false)
+			self:RegisterEvent(EVENT_COMBAT_EVENT, onSpecialDebuffEvent, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_FADED, REGISTER_FILTER_ABILITY_ID, SpecialDebuffs[i], REGISTER_FILTER_IS_ERROR, false)
 
 			self:RegisterEvent(EVENT_COMBAT_EVENT, onSpecialDebuffEventOnSelf, REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_GAINED_DURATION, REGISTER_FILTER_ABILITY_ID, SpecialDebuffs[i], REGISTER_FILTER_IS_ERROR, false)
 			self:RegisterEvent(EVENT_COMBAT_EVENT, onSpecialDebuffEventOnSelf, REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_FADED, REGISTER_FILTER_ABILITY_ID, SpecialDebuffs[i], REGISTER_FILTER_IS_ERROR, false)

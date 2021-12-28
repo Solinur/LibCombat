@@ -1,4 +1,8 @@
-﻿55 DL: 1.956.294 (05.11.2021) 20:30
+﻿56 DL: 2.081.191 (28.12.2021) 17:41
+[*] Added tracking of glacial presence passive and the (hidden) chilled debuff to allow tracking of the respective critical damage bonus.
+[*] Removed some legacy code
+
+55 DL: 1.956.294 (05.11.2021) 20:30
 [*] Added number of stacks to buff events in combat log
 [*] Removed Grim Focus tracking as it is no longer needed
 
