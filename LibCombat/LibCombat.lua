@@ -15,7 +15,7 @@ local dx = math.ceil(GuiRoot:GetWidth()/tonumber(GetCVar("WindowedWidth"))*1000)
 LIBCOMBAT_LINE_SIZE = dx
 
 local lib = {}
-lib.version = 56
+lib.version = 57
 LibCombat = lib
 
 -- Basic values
@@ -249,17 +249,9 @@ local abilityConversions = {	-- Ability conversions for tracking skill activatio
 	[22182] = {22183, 2240, nil, nil}, --Radiant Ward --> Radiant Ward
 	[22180] = {49091, 2240, nil, nil}, --Blazing Shield --> Blazing Shield
 
-	[22304] = {22307, 2240, nil, nil}, --Healing Ritual --> Healing Ritual
-	[22327] = {22331, 2240, nil, nil}, --Ritual of Rebirth --> Ritual of Rebirth
-	[22314] = {22318, 2240, nil, nil}, --Hasty Prayer --> Hasty Prayer
-
-	[22259] = {26301, 2240, nil, nil}, --Ritual of Retribution --> Ritual of Retribution
-	[22265] = {26287, 2240, nil, nil}, --Cleansing Ritual --> Healing Ritual
-	[22262] = {26306, 2240, nil, nil}, --Extended Ritual --> Extended Ritual
-
 	[26209] = {26220, 2240, nil, nil}, --Restoring Aura --> Minor Magickasteal
 	[26807] = {26809, 2240, nil, nil}, --Radiant Aura --> Minor Magickasteal
-	[26821] = {29824, 16, nil, nil}, --Repentance? --> Repentance?
+	[26821] = {29824, nil, nil, nil}, --Repentance? --> Repentance?
 
 	[29173] = {53881, 2240, nil, nil}, --Weakness to Elements --> Major Breach
 	[39089] = {62775, 2240, nil, nil}, --Elemental Susceptibility --> Major Breach
@@ -275,7 +267,7 @@ local abilityConversions = {	-- Ability conversions for tracking skill activatio
 
 	[103503] = {103521, 2240, nil, nil}, --Accelerate --> Minor Force
 	[103706] = {103706, nil, 103708, 2240}, --Channeled Acceleration --> Minor Force
-	[103710] = {103712, nil, nil, nil}, --Race Against Time --> Minor Force
+	[103710] = {122260, 2240, nil, nil}, --Race Against Time --> Race Against Time
 
 	[103478] = {108609, 2240, nil, nil}, --Undo --> Undo
 	[103557] = {108621, 2240, nil, nil}, --Precognition --> Precognition
@@ -293,16 +285,16 @@ local abilityConversions = {	-- Ability conversions for tracking skill activatio
 	[40223] = {40224, 2240, nil, nil}, --Aggressive Horn --> Aggressive Horn
 	[40220] = {40221, 2240, nil, nil}, --Sturdy Horn --> Sturdy Horn
 
-	[28279] = {28279, 2200, 28279, 1}, --Uppercut --> Uppercut
-	[38814] = {38814, 2200, 38814, 1}, --Dizzying Swing --> Dizzying Swing
-	[38807] = {38807, 2200, 38807, 1}, --Wrecking Blow --> Wrecking Blow
+	[28279] = {28279, 2200, 28279, nil}, --Uppercut --> Uppercut
+	[38814] = {38814, 2200, 38814, nil}, --Dizzying Swing --> Dizzying Swing
+	[38807] = {38807, 2200, 38807, nil}, --Wrecking Blow --> Wrecking Blow
 
-	[83600] = {85156, 2240, nil, nil}, --Lacerate --> Lacerate
-	[85187] = {85192, 2240, nil, nil}, --Rend --> Rend
-	[85179] = {85182, 2240, nil, nil}, --Thrive in Chaos --> Thrive in Chaos
+	[83600] = {83600, 2200, 85156, 2240}, --Lacerate --> Lacerate
+	[85187] = {85187, 2200, 85192, 2240}, --Rend --> Rend
+	[85179] = {85179, 2200, 85182, 2240}, --Thrive in Chaos --> Thrive in Chaos
 
-	[31531] = {31531, 2200, 88565, 2240}, --Force Siphon --> Force Siphon
-	[40109] = {40109, 2200, 88575, 2240}, --Siphon Spirit --> Siphon Spirit
+	[31531] = {88565, 2240, nil, nil}, --Force Siphon --> Force Siphon
+	[40109] = {88575, 2240, nil, nil}, --Siphon Spirit --> Siphon Spirit
 	[40116] = {88606, nil, nil, nil}, --Quick Siphon --> Minor Lifesteal
 
 	[29043] = {92507, 2240, nil, nil}, --Molten Weapons --> Major Sorcery
@@ -313,17 +305,14 @@ local abilityConversions = {	-- Ability conversions for tracking skill activatio
 	[35414] = {90593, 2240, nil, nil}, --Mirage --> Major Evasion
 	[35419] = {90620, 2240, nil, nil}, --Phantasmal Escape --> Major Evasion
 
-	[25375] = {25376, 2240, nil, nil}, --Shadow Cloak --> Shadow Cloak
-	[25380] = {25381, 2240, nil, nil}, --Shadowy Disguise --> Shadowy Disguise
+	[35445] = {35451, 2250, nil, nil}, --Shadow Image Teleport --> Shadow Image
 
-	[35445] = {35451, 2250, nil, nil}, --Shadow Image Teleport --> Shadow
-
-	[24584] = {nil, nil, 114903, 2250}, --Dark Exchange -->
+	[24584] = {nil, nil, 114903, 2250}, --Dark Exchange --> Dark Exchange
 	[24595] = {nil, nil, 114908, 2250}, --Dark Deal -->
 	[24589] = {nil, nil, 114909, 2250}, --Dark Conversion -->
 
 	[108840] = {108842, 2240, nil, nil}, --Summon Unstable Familiar --> Unstable Familiar Damage Pulse
-	[76076] = {76078, 16, nil, nil}, --Summon Unstable Clannfear --> Clannfear Heal
+	[76076] = {76078, nil, nil, nil}, --Summon Unstable Clannfear --> Clannfear Heal
 	[77182] = {77187, 2240, nil, nil}, --Summon Volatile Familiar --> Volatile Famliiar Damage Pulsi
 
 	[108845] = {108846, 16, nil, nil}, --Winged Twilight Restore --> Winged Twilight Restore
@@ -333,7 +322,7 @@ local abilityConversions = {	-- Ability conversions for tracking skill activatio
 	[23234] = {51392, 2240, nil, nil}, --Bolt Escape --> Bolt Escape Fatigue
 	[23236] = {51392, 2240, nil, nil}, --Streak --> Bolt Escape Fatigue
 
-	[85922] = {85925, 32, nil, nil}, --Budding Seeds --> Budding Seeds Heal
+	[85922] = {85841, nil, nil, nil}, --Budding Seeds (2nd cast) --> Budding Seeds Heal
 
 	[86122] = {86224, 2240, nil, nil}, --Frost Cloak --> Major Resolve
 	[86126] = {88758, 2240, nil, nil}, --Expansive Frost Cloak --> Major Resolve
@@ -343,6 +332,8 @@ local abilityConversions = {	-- Ability conversions for tracking skill activatio
 	[118623] = {118624, 2240, nil, nil}, --Deaden Pain --> Deaden Pain
 	[118639] = {121797, 2240, nil, nil}, --Necrotic Potency --> Necrotic Potency
 
+	[114860] = {114861, 2240, nil, nil}, --Blastbones --> Blastbones
+	[117330] = {114861, 2240, nil, nil}, --Blastbones --> Blastbones
 	[117690] = {117691, 2240, nil, nil}, --Blighted Blastbones --> Blighted Blastbones
 	[117693] = {117691, 2240, nil, nil}, --Blighted Blastbones --> Blighted Blastbones (Id when greyed out)
 	[117749] = {117750, 2240, nil, nil}, --Stalking Blastbones --> Stalking Blastbones
@@ -352,15 +343,9 @@ local abilityConversions = {	-- Ability conversions for tracking skill activatio
 	[117940] = {117947, 2240, nil, nil}, --Expunge and Modify --> Expunge and Modify
 	--[117919] = {???, nil, nil, nil}, --Hexproof -->
 
-	[88158] = {88163, 1, nil, nil}, --Materialize --> Materialize
-
 	[28567] = {126370, 2240, nil, nil}, --Entropy --> Entropy
 	[40457] = {126374, 2240, nil, nil}, --Degeneration --> Degeneration
 	[40452] = {126371, 2240, nil, nil}, --Structured Entropy --> Structured Entropy
-
-	[26768] = {126890, 2240, nil, nil}, --Soul Trap --> Soul Trap
-	[40328] = {126894, 2240, nil, nil}, --Soul Splitting Trap --> Soul Splitting Trap
-	[40317] = {126898, 2240, nil, nil}, --Consuming Trap --> Consuming Trap
 
 }
 
@@ -379,40 +364,6 @@ for k,v in pairs(abilityAdditions) do
 
 	abilityAdditionsReverse[v] = k
 
-end
-
-local function SetAmbiguousSkillData()
-
-    local effectiveSpellPower, effectiveWeaponPower
-	local stats = data.stats
-
-    if stats[LIBCOMBAT_STAT_SPELLPOWER] == nil or stats[LIBCOMBAT_STAT_MAXMAGICKA] == nil or stats[LIBCOMBAT_STAT_WEAPONPOWER] == nil or stats[LIBCOMBAT_STAT_MAXSTAMINA] == nil then
-
-        _, effectiveSpellPower, _ = GetUnitPower("player", POWERTYPE_MAGICKA)
-        _, effectiveWeaponPower, _ = GetUnitPower("player", POWERTYPE_STAMINA)
-
-        if effectiveSpellPower == nil or effectiveWeaponPower == nil then return end
-
-    else
-
-        effectiveSpellPower = stats[LIBCOMBAT_STAT_SPELLPOWER] + stats[LIBCOMBAT_STAT_MAXMAGICKA]/10.5
-        effectiveWeaponPower = stats[LIBCOMBAT_STAT_WEAPONPOWER] + stats[LIBCOMBAT_STAT_MAXSTAMINA]/10.5
-
-    end
-
-	if effectiveSpellPower > effectiveWeaponPower then
-
-		abilityConversions[26768] = {126890, 2240, nil, nil} --Soul Trap --> Soul Trap
-		abilityConversions[40328] = {126895, 2240, nil, nil} --Soul Splitting Trap --> Soul Splitting Trap
-		abilityConversions[40317] = {126897, 2240, nil, nil} --Consuming Trap --> Consuming Trap
-
-	else
-
-		abilityConversions[26768] = {126891, 2240, nil, nil} --Soul Trap --> Soul Trap
-		abilityConversions[40328] = {126894, 2240, nil, nil} --Soul Splitting Trap --> Soul Splitting Trap
-		abilityConversions[40317] = {126898, 2240, nil, nil} --Consuming Trap --> Consuming Trap
-
-	end
 end
 
 local DirectHeavyAttacks = {	-- for special handling to detect their end
@@ -1033,8 +984,6 @@ function FightHandler:PrepareFight()
 		data.stats = {}
 		data.advancedStats = {}
 		self:GetNewStats(timems)
-
-		SetAmbiguousSkillData()
 
 		GetCurrentSkillBars()
 
