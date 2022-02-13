@@ -1,4 +1,7 @@
-﻿57 DL: 2.163.506 (19.01.2022) 00:37
+﻿58 DL: 2.252.144 (12.02.2022) 13:38
+[*] Fixed issue with skill activation tracking of Meteor and its morphs. (thx to Skinny Cheeks for reporting the issue)
+
+57 DL: 2.163.506 (19.01.2022) 00:37
 [*] Fixed some issue with skill activation tracking. (thx to Skinny Cheeks and virtus753 for reporting the issue)
 
 56 DL: 2.081.191 (28.12.2021) 17:41

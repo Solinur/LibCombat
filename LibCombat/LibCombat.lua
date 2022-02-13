@@ -15,7 +15,7 @@ local dx = math.ceil(GuiRoot:GetWidth()/tonumber(GetCVar("WindowedWidth"))*1000)
 LIBCOMBAT_LINE_SIZE = dx
 
 local lib = {}
-lib.version = 57
+lib.version = 58
 LibCombat = lib
 
 -- Basic values
@@ -346,6 +346,10 @@ local abilityConversions = {	-- Ability conversions for tracking skill activatio
 	[28567] = {126370, 2240, nil, nil}, --Entropy --> Entropy
 	[40457] = {126374, 2240, nil, nil}, --Degeneration --> Degeneration
 	[40452] = {126371, 2240, nil, nil}, --Structured Entropy --> Structured Entropy
+
+	[16536] = {163227, 2240, nil, nil}, --Meteor --> Meteor
+	[40493] = {163236, 2240, nil, nil}, --Shooting Star --> Shooting Star
+	[40489] = {163238, 2240, nil, nil}, --Ice Comet --> Meteor
 
 }
 
