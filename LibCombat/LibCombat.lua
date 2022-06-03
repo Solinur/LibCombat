@@ -15,13 +15,20 @@ local dx = math.ceil(GuiRoot:GetWidth()/tonumber(GetCVar("WindowedWidth"))*1000)
 LIBCOMBAT_LINE_SIZE = dx
 
 local lib = {}
-lib.version = 58
+lib.version = 59
 LibCombat = lib
 
 -- Basic values
 lib.name = "LibCombat"
 lib.data = {skillBars= {}}
 lib.cm = ZO_CallbackObject:New()
+
+-- Legacy Support
+
+COMBAT_MECHANIC_FLAGS_HEALTH = COMBAT_MECHANIC_FLAGS_HEALTH or POWERTYPE_HEALTH
+COMBAT_MECHANIC_FLAGS_MAGICKA = COMBAT_MECHANIC_FLAGS_MAGICKA or POWERTYPE_MAGICKA
+COMBAT_MECHANIC_FLAGS_STAMINA = COMBAT_MECHANIC_FLAGS_STAMINA or POWERTYPE_STAMINA
+COMBAT_MECHANIC_FLAGS_ULTIMATE = COMBAT_MECHANIC_FLAGS_ULTIMATE or POWERTYPE_ULTIMATE
 
 -- Logger
 
@@ -63,7 +70,7 @@ local function Print(category, level, ...)
 
 end
 
---aliases
+-- aliases
 
 local wm = GetWindowManager()
 local em = GetEventManager()
@@ -887,7 +894,7 @@ local function GetCurrentSkillBars()
 
 	for i = 1, 8 do
 
-		local id = GetSlotBoundId(i)
+		local id = GetSlotBoundId(i, GetActiveHotbarCategory())
 
 		currentbar[i] = id
 
@@ -955,6 +962,7 @@ function FightHandler:PrepareFight()
 		self.subzone = GetPlayerActiveSubzoneName()
 		self.zoneId = GetUnitWorldPosition("player")
 		self.ESOversion = GetESOVersionString()
+		self.APIversion = GetAPIVersion()
 		self.account = data.accountname
 
 		self.charData = {}
@@ -973,10 +981,10 @@ function FightHandler:PrepareFight()
 		GetPlayerBuffs(timems)
 		GetOtherBuffs(timems)
 
-		data.resources[POWERTYPE_HEALTH] = GetUnitPower("player", POWERTYPE_HEALTH)
-		data.resources[POWERTYPE_MAGICKA] = GetUnitPower("player", POWERTYPE_MAGICKA)
-		data.resources[POWERTYPE_STAMINA] = GetUnitPower("player", POWERTYPE_STAMINA)
-		data.resources[POWERTYPE_ULTIMATE] = GetUnitPower("player", POWERTYPE_ULTIMATE)
+		data.resources[COMBAT_MECHANIC_FLAGS_HEALTH] = GetUnitPower("player", COMBAT_MECHANIC_FLAGS_HEALTH)
+		data.resources[COMBAT_MECHANIC_FLAGS_MAGICKA] = GetUnitPower("player", COMBAT_MECHANIC_FLAGS_MAGICKA)
+		data.resources[COMBAT_MECHANIC_FLAGS_STAMINA] = GetUnitPower("player", COMBAT_MECHANIC_FLAGS_STAMINA)
+		data.resources[COMBAT_MECHANIC_FLAGS_ULTIMATE] = GetUnitPower("player", COMBAT_MECHANIC_FLAGS_ULTIMATE)
 
 		data.backstabber = GetCritBonusFromCP(self.CP)
 		self.special.glacial = GetGlacialPresence()
@@ -1594,7 +1602,7 @@ function UnitCacheHandler:ProcessDeath()
 
 				log[#log + 1] = data
 				local sourceUnitId = data[3]
-				local sourceUnit = sourceUnitId and sourceUnitId>0 and currentfight.units[sourceUnitId] or "nil"
+				local sourceUnit = sourceUnitId and sourceUnitId>0 and currentfight and currentfight.units and currentfight.units[sourceUnitId] or "nil"
 
 				data[3] = (sourceUnit and sourceUnit.name) or "Unknown"
 
@@ -1646,12 +1654,12 @@ function UnitCacheHandler:InitResources()
 
 		local unitTag = unit.unitTag
 
-		self.health, self.healthMax = GetUnitPower(unitTag, POWERTYPE_HEALTH)
+		self.health, self.healthMax = GetUnitPower(unitTag, COMBAT_MECHANIC_FLAGS_HEALTH)
 
 		if unitTag == "player" then
 
-			self.magicka = GetUnitPower(unitTag, POWERTYPE_MAGICKA)
-			self.stamina = GetUnitPower(unitTag, POWERTYPE_STAMINA)
+			self.magicka = GetUnitPower(unitTag, COMBAT_MECHANIC_FLAGS_MAGICKA)
+			self.stamina = GetUnitPower(unitTag, COMBAT_MECHANIC_FLAGS_STAMINA)
 
 		end
 	end
@@ -1659,17 +1667,17 @@ end
 
 function UnitCacheHandler:UpdateResource(powerType, value, powerMax)
 
-	if powerType == POWERTYPE_HEALTH then
+	if powerType == COMBAT_MECHANIC_FLAGS_HEALTH then
 
 		self.health = value
 		self.healthMax = powerMax > 0 and powerMax or self.healthMax or 0
 
-	elseif powerType == POWERTYPE_STAMINA then
+	elseif powerType == COMBAT_MECHANIC_FLAGS_STAMINA then
 
 		self.stamina = value
 		self.staminaMax = powerMax > 0 and powerMax or self.staminaMax or 0
 
-	elseif powerType == POWERTYPE_MAGICKA then
+	elseif powerType == COMBAT_MECHANIC_FLAGS_MAGICKA then
 
 		self.magicka = value
 		self.magickaMax = powerMax > 0 and powerMax or self.magickaMax or 0
@@ -1958,7 +1966,7 @@ end
 local function onBaseResourceChanged(_,unitTag,_,powerType,powerValue,_,_)
 
 	if unitTag ~= "player" then return end
-	if (powerType ~= POWERTYPE_HEALTH and powerType ~= POWERTYPE_MAGICKA and powerType ~= POWERTYPE_STAMINA and powerType ~= POWERTYPE_ULTIMATE) or (data.inCombat == false) then return end
+	if (powerType ~= COMBAT_MECHANIC_FLAGS_HEALTH and powerType ~= COMBAT_MECHANIC_FLAGS_MAGICKA and powerType ~= COMBAT_MECHANIC_FLAGS_STAMINA and powerType ~= COMBAT_MECHANIC_FLAGS_ULTIMATE) or (data.inCombat == false) then return end
 
 	local timems = GetGameTimeMilliseconds()
 	local aId
@@ -1968,7 +1976,7 @@ local function onBaseResourceChanged(_,unitTag,_,powerType,powerValue,_,_)
 
 	if powerValueChange == 0 then return end
 
- 	if powerType == POWERTYPE_MAGICKA then
+ 	if powerType == COMBAT_MECHANIC_FLAGS_MAGICKA then
 
 		Print("events", LOG_LEVEL_VERBOSE, "Skill cost: %d", powerValueChange)
 
@@ -1980,7 +1988,7 @@ local function onBaseResourceChanged(_,unitTag,_,powerType,powerValue,_,_)
 
 		end
 
-	elseif powerType == POWERTYPE_STAMINA then
+	elseif powerType == COMBAT_MECHANIC_FLAGS_STAMINA then
 
 		aId = checkLastAbilities(powerType, powerValueChange)
 
@@ -2007,11 +2015,11 @@ local function onBaseResourceChanged(_,unitTag,_,powerType,powerValue,_,_)
 			end
 		end
 
-	elseif powerType == POWERTYPE_ULTIMATE then
+	elseif powerType == COMBAT_MECHANIC_FLAGS_ULTIMATE then
 
 		aId = 0
 
-	elseif powerType == POWERTYPE_HEALTH then
+	elseif powerType == COMBAT_MECHANIC_FLAGS_HEALTH then
 
 		aId = -1
 
@@ -2048,7 +2056,7 @@ end
 
 local function onWeaponSwap(_, isHotbarSwap)
 
-	local newbar = ACTION_BAR_ASSIGNMENT_MANAGER.currentHotbarCategory + 1
+	local newbar = GetActiveHotbarCategory() + 1
 
 	if data.bar == newbar then return end
 
@@ -2617,10 +2625,10 @@ local function onSlotUsed(_, slot)
 
 	local timems = GetGameTimeMilliseconds()
 	local cost, powerType = GetSlotAbilityCost(slot)
-	local abilityId = GetSlotBoundId(slot)
+	local abilityId = GetSlotBoundId(slot, GetActiveHotbarCategory())
 	local lastabilities = data.lastabilities
 
-	if Events.Resources.active and slot > 2 and (powerType == POWERTYPE_HEALTH or powerType == POWERTYPE_MAGICKA or powerType == POWERTYPE_STAMINA) then
+	if Events.Resources.active and slot > 2 and (powerType == COMBAT_MECHANIC_FLAGS_HEALTH or powerType == COMBAT_MECHANIC_FLAGS_MAGICKA or powerType == COMBAT_MECHANIC_FLAGS_STAMINA) then
 
 		table.insert(lastabilities,{timems, abilityId, -cost, powerType})
 
@@ -3354,7 +3362,7 @@ Events.Skills = EventHandler:New(
 Events.BossHP = EventHandler:New(
 	{LIBCOMBAT_EVENT_BOSSHP},
 	function (self)
-		self:RegisterEvent(EVENT_POWER_UPDATE, onBossHealthChanged, REGISTER_FILTER_UNIT_TAG, "boss1", REGISTER_FILTER_POWER_TYPE, POWERTYPE_HEALTH)
+		self:RegisterEvent(EVENT_POWER_UPDATE, onBossHealthChanged, REGISTER_FILTER_UNIT_TAG, "boss1", REGISTER_FILTER_POWER_TYPE, COMBAT_MECHANIC_FLAGS_HEALTH)
 		self.active = true
 	end
 )
@@ -3587,11 +3595,12 @@ function lib:GetCombatLogString(fight, logline, fontsize, showIds)
 
 			local amount = powerValueChange~=0 and tostring(mathabs(powerValueChange)) or ""
 
-			local resource = (powerType == POWERTYPE_MAGICKA and GetString(SI_ATTRIBUTES2)) or (powerType == POWERTYPE_STAMINA and GetString(SI_ATTRIBUTES3)) or (powerType == POWERTYPE_ULTIMATE and GetString(SI_LIBCOMBAT_LOG_ULTIMATE))
+			local resource = (powerType == COMBAT_MECHANIC_FLAGS_MAGICKA and GetString(SI_ATTRIBUTES2)) or (powerType == COMBAT_MECHANIC_FLAGS_STAMINA and GetString(SI_ATTRIBUTES3)) or (powerType == COMBAT_MECHANIC_FLAGS_ULTIMATE and GetString(SI_LIBCOMBAT_LOG_ULTIMATE))
 
 			local ability = abilityId and ZO_CachedStrFormat("(<<1>>)", GetAbilityString(abilityId, "resource", fontsize, showIds)) or ""
 
-			color = (powerType == POWERTYPE_MAGICKA and {0.7,0.7,1}) or (powerType == POWERTYPE_STAMINA and {0.7,1,0.7}) or (powerType == POWERTYPE_ULTIMATE and {1,1,0.7})
+			color = (powerType == COMBAT_MECHANIC_FLAGS_MAGICKA and {0.7,0.7,1}) or (powerType == COMBAT_MECHANIC_FLAGS_STAMINA and {0.7,1,0.7}) or (powerType == COMBAT_MECHANIC_FLAGS_ULTIMATE and {1,1,0.7})
+	
 			text = ZO_CachedStrFormat(logFormat, timeString, changeTypeString, amount, resource, ability)
 
 		else return
@@ -3753,42 +3762,42 @@ end
 
 local function Initialize()
 
-  data.inCombat = IsUnitInCombat("player")
-  data.inGroup = IsUnitGrouped("player")
-  data.rawPlayername = GetRawUnitName("player")
-  data.playername = ZO_CachedStrFormat(SI_UNIT_NAME, data.rawPlayername)
-  data.accountname = ZO_CachedStrFormat(SI_UNIT_NAME, GetDisplayName())
-  data.bossInfo = {}
-  data.groupInfo = {nameToId = {}, tagToId = {}, nameToTag = {}, nameToDisplayname = {}}
-  data.PlayerPets = {}
-  data.lastabilities = {}
-  data.backstabber = 0
-  data.critBonusMundus = 0
-  data.bar = GetActiveWeaponPairInfo()
-  data.resources = {}
-  data.stats = {}
-  data.advancedStats = {}
+	data.inCombat = IsUnitInCombat("player")
+	data.inGroup = IsUnitGrouped("player")
+	data.rawPlayername = GetRawUnitName("player")
+	data.playername = ZO_CachedStrFormat(SI_UNIT_NAME, data.rawPlayername)
+	data.accountname = ZO_CachedStrFormat(SI_UNIT_NAME, GetDisplayName())
+	data.bossInfo = {}
+	data.groupInfo = {nameToId = {}, tagToId = {}, nameToTag = {}, nameToDisplayname = {}}
+	data.PlayerPets = {}
+	data.lastabilities = {}
+	data.backstabber = 0
+	data.critBonusMundus = 0
+	data.bar = GetActiveWeaponPairInfo()
+	data.resources = {}
+	data.stats = {}
+	data.advancedStats = {}
 
-  --resetfightdata
-  currentfight = FightHandler:New()
+	--resetfightdata
+	currentfight = FightHandler:New()
 
-  InitResources()
+	InitResources()
 
-  -- make addon options menu
+	-- make addon options menu
 
-  data.CustomAbilityIcon = {}
-  data.CustomAbilityName = {
+	data.CustomAbilityIcon = {}
+	data.CustomAbilityName = {
 	[46539]	= "Major Force",
-  }
+	}
 
-  onBossesChanged()
+	onBossesChanged()
 
-  InitAdvancedStats()
+	InitAdvancedStats()
 
-  if data.LoadCustomizations then data.LoadCustomizations() end
+	if data.LoadCustomizations then data.LoadCustomizations() end
 
-  em:RegisterForEvent("LibCombatActive", EVENT_PLAYER_ACTIVATED, function() data.isUIActivated = true end)
-  em:RegisterForEvent("LibCombatActive", EVENT_PLAYER_DEACTIVATED, function() data.isUIActivated = false end)
+	em:RegisterForEvent("LibCombatActive", EVENT_PLAYER_ACTIVATED, function() data.isUIActivated = true end)
+	em:RegisterForEvent("LibCombatActive", EVENT_PLAYER_DEACTIVATED, function() data.isUIActivated = false end)
 end
 
 Initialize()

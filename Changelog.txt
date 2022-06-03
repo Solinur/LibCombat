@@ -1,4 +1,7 @@
-﻿58 DL: 2.252.144 (12.02.2022) 13:38
+﻿59 DL: 2.416.799 (03.06.2022) 23:12
+[*] Added compatibility with High Isle (API 101034).
+
+58 DL: 2.252.144 (12.02.2022) 13:38
 [*] Fixed issue with skill activation tracking of Meteor and its morphs. (thx to Skinny Cheeks for reporting the issue)
 
 57 DL: 2.163.506 (19.01.2022) 00:37
