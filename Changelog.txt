@@ -1,4 +1,7 @@
-﻿59 DL: 2.416.799 (03.06.2022) 23:12
+﻿60 DL: 2.490.988 (10.06.2022) 22:05
+[*] Fixed an issue where ability costs were not attributed properly. (Thx to Hypno for reporting)
+
+59 DL: 2.416.799 (03.06.2022) 23:12
 [*] Added compatibility with High Isle (API 101034).
 
 58 DL: 2.252.144 (12.02.2022) 13:38

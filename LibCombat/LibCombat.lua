@@ -15,20 +15,13 @@ local dx = math.ceil(GuiRoot:GetWidth()/tonumber(GetCVar("WindowedWidth"))*1000)
 LIBCOMBAT_LINE_SIZE = dx
 
 local lib = {}
-lib.version = 59
+lib.version = 60
 LibCombat = lib
 
 -- Basic values
 lib.name = "LibCombat"
 lib.data = {skillBars= {}}
 lib.cm = ZO_CallbackObject:New()
-
--- Legacy Support
-
-COMBAT_MECHANIC_FLAGS_HEALTH = COMBAT_MECHANIC_FLAGS_HEALTH or POWERTYPE_HEALTH
-COMBAT_MECHANIC_FLAGS_MAGICKA = COMBAT_MECHANIC_FLAGS_MAGICKA or POWERTYPE_MAGICKA
-COMBAT_MECHANIC_FLAGS_STAMINA = COMBAT_MECHANIC_FLAGS_STAMINA or POWERTYPE_STAMINA
-COMBAT_MECHANIC_FLAGS_ULTIMATE = COMBAT_MECHANIC_FLAGS_ULTIMATE or POWERTYPE_ULTIMATE
 
 -- Logger
 
@@ -2624,8 +2617,9 @@ local function onSlotUsed(_, slot)
 	if data.inCombat == false or slot > 8 then return end
 
 	local timems = GetGameTimeMilliseconds()
-	local cost, powerType = GetSlotAbilityCost(slot)
 	local abilityId = GetSlotBoundId(slot, GetActiveHotbarCategory())
+	local powerType = GetNextAbilityMechanicFlag(abilityId)
+	local cost = GetSlotAbilityCost(slot, powerType)
 	local lastabilities = data.lastabilities
 
 	if Events.Resources.active and slot > 2 and (powerType == COMBAT_MECHANIC_FLAGS_HEALTH or powerType == COMBAT_MECHANIC_FLAGS_MAGICKA or powerType == COMBAT_MECHANIC_FLAGS_STAMINA) then
