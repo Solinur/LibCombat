@@ -15,7 +15,7 @@ local dx = math.ceil(GuiRoot:GetWidth()/tonumber(GetCVar("WindowedWidth"))*1000)
 LIBCOMBAT_LINE_SIZE = dx
 
 local lib = {}
-lib.version = 60
+lib.version = 61
 LibCombat = lib
 
 -- Basic values
@@ -741,7 +741,7 @@ local function GetCritBonusFromCP(CPdata)
 	local slots = CPdata[1].slotted
 	local points = CPdata[1].stars
 
-	local backstabber = slots[31] and (3 * math.floor(0.1 * points[31][1])) or 0 -- Backstabber 3% per every full 10 points (flanking!)
+	local backstabber = slots[31] and (2 * math.floor(0.1 * points[31][1])) or 0 -- Backstabber 2% per every full 10 points (flanking!)
 
 	return backstabber
 end

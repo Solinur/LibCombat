@@ -1,4 +1,7 @@
-﻿60 DL: 2.490.988 (10.06.2022) 22:05
+﻿61 DL: 2.536.688  (12.06.2022) 23:16
+[*] Adjusted crit damage bonus from Backstabber to new value. (Thx to Complicative for the hint)
+
+60 DL: 2.490.988 (10.06.2022) 22:05
 [*] Fixed an issue where ability costs were not attributed properly. (Thx to Hypno for reporting)
 
 59 DL: 2.416.799 (03.06.2022) 23:12
