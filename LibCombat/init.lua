@@ -7,7 +7,7 @@ LIBCOMBAT_LINE_SIZE = dx
 
 -- Basic values
 lib.name = "LibCombat"
-lib.version = 54
+lib.version = 61
 lib.data = {skillBars= {}}
 lib.cm = ZO_CallbackObject:New()
 lib.internal = {}

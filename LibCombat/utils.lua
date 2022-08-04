@@ -310,11 +310,12 @@ function lib:GetCombatLogString(fight, logline, fontsize, showIds)
 
 			local amount = powerValueChange~=0 and tostring(mathabs(powerValueChange)) or ""
 
-			local resource = (powerType == POWERTYPE_MAGICKA and GetString(SI_ATTRIBUTES2)) or (powerType == POWERTYPE_STAMINA and GetString(SI_ATTRIBUTES3)) or (powerType == POWERTYPE_ULTIMATE and GetString(SI_LIBCOMBAT_LOG_ULTIMATE))
+			local resource = (powerType == COMBAT_MECHANIC_FLAGS_MAGICKA and GetString(SI_ATTRIBUTES2)) or (powerType == COMBAT_MECHANIC_FLAGS_STAMINA and GetString(SI_ATTRIBUTES3)) or (powerType == COMBAT_MECHANIC_FLAGS_ULTIMATE and GetString(SI_LIBCOMBAT_LOG_ULTIMATE))
 
 			local ability = abilityId and ZO_CachedStrFormat("(<<1>>)", GetAbilityString(abilityId, "resource", fontsize, showIds)) or ""
 
-			color = (powerType == POWERTYPE_MAGICKA and {0.7,0.7,1}) or (powerType == POWERTYPE_STAMINA and {0.7,1,0.7}) or (powerType == POWERTYPE_ULTIMATE and {1,1,0.7})
+			color = (powerType == COMBAT_MECHANIC_FLAGS_MAGICKA and {0.7,0.7,1}) or (powerType == COMBAT_MECHANIC_FLAGS_STAMINA and {0.7,1,0.7}) or (powerType == COMBAT_MECHANIC_FLAGS_ULTIMATE and {1,1,0.7})
+	
 			text = ZO_CachedStrFormat(logFormat, timeString, changeTypeString, amount, resource, ability)
 
 		else return
