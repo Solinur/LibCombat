@@ -2612,19 +2612,53 @@ local function onProjectileEvent(eventCode, result, isError, abilityName, abilit
 
 end
 
+local powerTypeCache = {}
+
+local function GetPowerTypes(abilityId)
+
+	local lastPowerType
+
+	if powerTypeCache[abilityId] == nil then
+
+		local newData = {}
+
+		for i = 1, 4 do
+
+			local powerType = GetNextAbilityMechanicFlag(abilityId)
+
+			if powerType and (powerType == COMBAT_MECHANIC_FLAGS_HEALTH or powerType == COMBAT_MECHANIC_FLAGS_MAGICKA or powerType == COMBAT_MECHANIC_FLAGS_STAMINA) then
+
+				newData[powerType] = GetAbilityCost(abilityId,powerType)	-- add cost over time ??
+
+			elseif powerType == nil then
+
+				break
+
+			end
+		end
+
+		powerTypeCache[abilityId] = newData
+	end
+
+	return powerTypeCache[abilityId]
+end
+
 local function onSlotUsed(_, slot)
 
 	if data.inCombat == false or slot > 8 then return end
 
 	local timems = GetGameTimeMilliseconds()
 	local abilityId = GetSlotBoundId(slot, GetActiveHotbarCategory())
-	local powerType = GetNextAbilityMechanicFlag(abilityId)
-	local cost = GetSlotAbilityCost(slot, powerType)
+	local powerTypes = GetPowerTypes(abilityId)
 	local lastabilities = data.lastabilities
 
-	if Events.Resources.active and slot > 2 and (powerType == COMBAT_MECHANIC_FLAGS_HEALTH or powerType == COMBAT_MECHANIC_FLAGS_MAGICKA or powerType == COMBAT_MECHANIC_FLAGS_STAMINA) then
+	if Events.Resources.active and slot > 2 and #powerTypes > 0 then
 
-		table.insert(lastabilities,{timems, abilityId, -cost, powerType})
+		for powerType, cost in pairs(powerTypes) do
+
+			table.insert(lastabilities,{timems, abilityId, -cost, powerType})
+
+		end
 
 		if #lastabilities > 10 then table.remove(lastabilities, 1) end
 
