@@ -21,5 +21,8 @@ lang/$(language).lua
 init.lua
 global.lua
 utils.lua
+events.lua
+effects.lua
+stats.lua
 LibCombat.lua
 units.lua

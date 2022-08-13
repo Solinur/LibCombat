@@ -11,7 +11,9 @@ lib.version = 61
 lib.data = {skillBars= {}}
 lib.cm = ZO_CallbackObject:New()
 lib.internal = {}
-lib.debug = false or GetDisplayName() == "@Solinur"
+local libint = lib.internal
+libint.functions = {}
+libint.debug = false or GetDisplayName() == "@Solinur"
 
 -- Logger
 
@@ -47,13 +49,13 @@ if LibDebugLogger then
 
 end
 
-function lib.Print(category, level, ...)
+function libint.Print(category, level, ...)
 
 	if mainlogger == nil then return end
 
 	local logger = category and subloggers[category] or mainlogger
 
-	if category == "dev" and lib.debug ~= true then return end
+	if category == "dev" and libint.debug ~= true then return end
 
 	if type(logger.Log)=="function" then logger:Log(levelKeys[level], ...) end
 

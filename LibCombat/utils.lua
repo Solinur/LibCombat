@@ -89,6 +89,8 @@ end
 
 lib.GetFormattedAbilityIcon = GetFormattedAbilityIcon
 
+-- Combat log generator
+
 local statStrings = {
 
 	[LIBCOMBAT_STAT_MAXMAGICKA]			= "|c8888ff"..GetString(SI_DERIVEDSTATS4).."|r ", 							--|c8888ff blue
@@ -158,7 +160,7 @@ local UnitTypeString = {
 
 function lib:GetCombatLogString(fight, logline, fontsize, showIds)
 
-	if fight == nil then fight = currentfight end
+	if fight == nil then fight = libint.currentfight end
 
 	local logtype = logline[1]
 

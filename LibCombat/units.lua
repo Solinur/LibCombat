@@ -1,4 +1,82 @@
 local lib = LibCombat
+local libint = lib.internal
+local libdata = lib.data
+local Print = libint.Print
+
+local UnitHandler = ZO_Object:Subclass()
+libint.UnitHandler = UnitHandler
+
+function UnitHandler:New(...)
+    local object = ZO_Object.New(self)
+    object:Initialize(...)
+    return object
+end
+
+function UnitHandler:Initialize(name, unitId, unitType)
+
+	name = ZO_CachedStrFormat(SI_UNIT_NAME, name)
+
+	if (unitType == nil or unitType == COMBAT_UNIT_TYPE_TARGET_DUMMY) then unitType = COMBAT_UNIT_TYPE_NONE end
+
+	self.isFriendly = false
+
+	if unitType==COMBAT_UNIT_TYPE_PLAYER or unitType==COMBAT_UNIT_TYPE_GROUP or unitType==COMBAT_UNIT_TYPE_PLAYER_PET then
+
+		self.isFriendly = true
+
+	end
+
+	if unitType == COMBAT_UNIT_TYPE_PLAYER then
+
+		libdata.playerid = unitId
+		libint.currentfight.playerid = unitId
+		self.displayname = libdata.accountname
+		self.unitTag = "player"
+		self.isDead = IsUnitDeadOrReincarnating("player")
+
+	end
+
+	self.unitId = unitId
+	self.name = name					-- name
+	self.unitType = unitType			-- type of unit: group, pet or boss
+	self.damageOutTotal = 0
+	self.groupDamageOut  = 0
+	self.dpsstart = nil 				-- start of dps in ms
+	self.dpsend = nil				 	-- end of dps in ms
+
+	if self.unitType == COMBAT_UNIT_TYPE_GROUP then self:UpdateGroupData() end
+end
+
+function UnitHandler:UpdateGroupData()
+
+	local groupdata = libdata.groupInfo
+
+	local unitTag = groupdata.nameToTag[self.name]
+
+	self.displayname = groupdata.nameToDisplayname[self.name]
+	self.unitTag = unitTag
+
+	if unitTag then self.isDead = IsUnitDeadOrReincarnating(unitTag) end
+
+	groupdata.nameToId[self.name] = self.unitId
+
+	if unitTag then groupdata.tagToId[unitTag] = self.unitId end
+
+end
+
+function UnitHandler:GetUnitInfo()
+
+	local data = {}
+
+	data.unitId = self.unitId
+	data.name = self.name
+	data.displayname = self.displayname
+	data.unitTag = self.unitTag
+	data.unitType = self.unitType
+
+	return data
+
+end
 
 local UnitCache = {}
 lib.UnitCache = UnitCache
@@ -82,9 +160,7 @@ local resultVars = {
 	[ACTION_RESULT_KNOCKBACK] = "KNOCKBACK",
 	[ACTION_RESULT_LEVITATED] = "LEVITATED",
 	[ACTION_RESULT_LINKED_CAST] = "LINKED_CAST",
-	[ACTION_RESULT_MAX_VALUE] = "MAX_VALUE",
 	[ACTION_RESULT_MERCENARY_LIMIT] = "MERCENARY_LIMIT",
-	[ACTION_RESULT_MIN_VALUE] = "MIN_VALUE",
 	[ACTION_RESULT_MISS] = "MISS",
 	[ACTION_RESULT_MISSING_EMPTY_SOUL_GEM] = "MISSING_EMPTY_SOUL_GEM",
 	[ACTION_RESULT_MISSING_FILLED_SOUL_GEM] = "MISSING_FILLED_SOUL_GEM",
@@ -184,13 +260,13 @@ local unitDetectionResults = {
 	[ACTION_RESULT_DOT_TICK] = true,
 	[ACTION_RESULT_DOT_TICK_CRITICAL] = true,
 	[ACTION_RESULT_HOT_TICK] = true,
-	[ACTION_RESULT_MAX_VALUE] = true,
+	[ACTION_RESULT_HOT_TICK_CRITICAL] = true,
 
 }
 
 lib.resultVars = resultVars
 
-local function onCombatEvent(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId, overflow)
+local function onUnitCombatEvent(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId, overflow)
 
 	local UnitInfoResult = LibCombat_Save.UnitInfoResult
 
@@ -208,20 +284,21 @@ local function onCombatEvent(eventCode, result, isError, abilityName, abilityGra
 
 		if UnitInfoResult[sourceType][result] == nil then
 
-			-- lib.Print("dev", 3, "New source result (%d) with full unit info: %d - %s", sourceType, result, resultVar)
+			-- Print("dev", 3, "New source result (%d) with full unit info: %d - %s", sourceType, result, resultVar)
 			UnitInfoResult[sourceType][result] = resultVar .. " " .. sourceName
 			LibCombat_Save.timestamp = GetTimeStamp()
 
 		end
 
 	end
+
 	if isTarget then
 
 		if UnitInfoResult[targetType] == nil then UnitInfoResult[targetType] = {} end
 
 		if UnitInfoResult[targetType][result] == nil then
 
-			-- lib.Print("dev", 3, "New target result (%d) with full unit info: %d - %s", targetType, result, resultVar)
+			-- Print("dev", 3, "New target result (%d) with full unit info: %d - %s", targetType, result, resultVar)
 			UnitInfoResult[targetType][result] = resultVar .. " " .. targetName
 			LibCombat_Save.timestamp = GetTimeStamp()
 
@@ -231,5 +308,63 @@ local function onCombatEvent(eventCode, result, isError, abilityName, abilityGra
 
 end
 
-lib.internal.onCombatEvent = onCombatEvent
-lib.internal.unitDetectionResults = unitDetectionResults
+libint.onUnitCombatEvent = onUnitCombatEvent
+libint.unitDetectionResults = unitDetectionResults
+
+function libint.CheckUnit(unitName, unitId, unitType, timems)
+
+	local currentunits = libint.currentfight.units
+
+	if currentunits[unitId] == nil then currentunits[unitId] = UnitHandler:New(unitName, unitId, unitType) end
+	local unit = currentunits[unitId]
+
+	if unit.name == "Offline" or unit.name == "" then unit.name = ZO_CachedStrFormat(SI_UNIT_NAME, unitName) end
+
+	if unit.unitType ~= COMBAT_UNIT_TYPE_GROUP and unitType==COMBAT_UNIT_TYPE_GROUP then
+
+		unit.unitType = COMBAT_UNIT_TYPE_GROUP
+		unit.isFriendly = true
+
+	end
+
+	if unit.isFriendly == false then
+
+		local bossId = libdata.bossInfo[unit.name]		-- if this is a boss, add the id (e.g. 1 for unitTag == "boss1")
+
+		if bossId then
+
+			unit.bossId = bossId
+			libint.currentfight.bosses[bossId] = unitId
+
+			unit.unitTag = ZO_CachedStrFormat("boss<<1>>", bossId)
+
+		end
+	end
+
+	unit.dpsstart = unit.dpsstart or timems
+	unit.dpsend = timems
+
+	unit.starttime = unit.starttime or timems
+	unit.endtime = timems
+end
+
+function libint.CheckUnitFromTag(unitName, unitId, unitTag, timems, isGroup)
+
+	if unitId == nil or unitId <= 0 or libint.currentfight.units[unitId] ~= nil then return end
+
+	local unitType = COMBAT_UNIT_TYPE_NONE
+
+	if unitTag == "player" then
+
+		unitType = COMBAT_UNIT_TYPE_PLAYER
+
+	elseif unitTag and string.sub(unitTag, 1, 9) == "playerpet" then unitType = COMBAT_UNIT_TYPE_PLAYER_PET end
+	if isGroup then unitType = COMBAT_UNIT_TYPE_GROUP end
+
+	-- IsUnitGrouped(unitTag), GetGroupIndexByUnitTag(unitTag), IsPlayerInGroup(GetUnitDisplayName(unitTag))
+
+	Print("dev", LOG_LEVEL_INFO, "New Unit detected: %s (%d), tag: %s, type: %d", unitName or "", unitId or 0, unitTag or "", unitType or 0)
+
+	libint.CheckUnit(unitName, unitId, unitType, timems)
+
+end
