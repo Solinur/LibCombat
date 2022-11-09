@@ -1,4 +1,8 @@
-﻿61 DL: 2.536.688  (12.06.2022) 23:16
+﻿62 DL: 2.743.782 (10.11.2022) 00:00
+[*] Removed some obsolete code
+[*] API Bump to Firesong (100036)
+
+61 DL: 2.536.688  (12.06.2022) 23:16
 [*] Adjusted crit damage bonus from Backstabber to new value. (Thx to Complicative for the hint)
 
 60 DL: 2.490.988 (10.06.2022) 22:05

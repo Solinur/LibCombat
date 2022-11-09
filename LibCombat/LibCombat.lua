@@ -15,7 +15,7 @@ local dx = math.ceil(GuiRoot:GetWidth()/tonumber(GetCVar("WindowedWidth"))*1000)
 LIBCOMBAT_LINE_SIZE = dx
 
 local lib = {}
-lib.version = 61
+lib.version = 62
 LibCombat = lib
 
 -- Basic values
@@ -601,7 +601,7 @@ function FightHandler:Initialize()
 	self.playerid = data.playerid
 	self.bosses = {}
 	self.dataVersion = 2
-	self.special = {}
+	self.special = {}	-- for storing special information (like glacial presence before update 36)
 end
 
 local onCombatState
@@ -653,21 +653,6 @@ local function GetShadowBonus(effectSlot)
 	data.critBonusMundus = calcBonus - ZOSBonus -- mundus bonus difference
 
 	Print("other", LOG_LEVEL_INFO, "Shadow Mundus Offset: %d%% (calc %d%% - ZOS %d%%)", data.critBonusMundus, calcBonus, ZOSBonus)
-end
-
-local function GetGlacialPresence()
-
-	if GetUnitClassId("player") ~= 4 then return 0 end
-
-	local skillDataTable = SKILLS_DATA_MANAGER.abilityIdToProgressionDataMap
-	local skillData = skillDataTable and skillDataTable[86192] and skillDataTable[86192].skillData
-
-	local rank = skillData.currentRank	-- Glacial Presence
-	local purchased = skillData.isPurchased	-- Glacial Presence
-
-	local bonus = purchased and rank or 0
-
-	return bonus * 0.5
 end
 
 local function GetPlayerBuffs(timems)
@@ -980,7 +965,6 @@ function FightHandler:PrepareFight()
 		data.resources[COMBAT_MECHANIC_FLAGS_ULTIMATE] = GetUnitPower("player", COMBAT_MECHANIC_FLAGS_ULTIMATE)
 
 		data.backstabber = GetCritBonusFromCP(self.CP)
-		self.special.glacial = GetGlacialPresence()
 
 		self.prepared = true
 
@@ -1104,7 +1088,7 @@ local function GetStats()
 	statData[LIBCOMBAT_STAT_SPELLPOWER]			= GetStat(STAT_SPELL_POWER)
 	statData[LIBCOMBAT_STAT_SPELLCRIT]			= mathmin(GetStat(STAT_SPELL_CRITICAL), maxcrit)
 	statData[LIBCOMBAT_STAT_SPELLCRITBONUS]		= spellcritbonus
-	statData[LIBCOMBAT_STAT_SPELLPENETRATION]	= GetStat(STAT_SPELL_PENETRATION)
+	statData[LIBCOMBAT_STAT_SPELLPENETRATION]	= GetStat(STAT_SPELL_PENETRATION) + TFSBonus
 
 	statData[LIBCOMBAT_STAT_MAXSTAMINA]			= GetStat(STAT_STAMINA_MAX)
 	statData[LIBCOMBAT_STAT_WEAPONPOWER]		= GetStat(STAT_POWER)
