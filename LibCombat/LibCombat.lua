@@ -15,7 +15,7 @@ local dx = math.ceil(GuiRoot:GetWidth()/tonumber(GetCVar("WindowedWidth"))*1000)
 LIBCOMBAT_LINE_SIZE = dx
 
 local lib = {}
-lib.version = 62
+lib.version = 63
 LibCombat = lib
 
 -- Basic values
@@ -79,6 +79,7 @@ local CustomAbilityTypeList = {}
 local currentfight
 local Events = {}
 local EffectBuffer = {}
+local abilityIdZen = 126597
 local lastdeaths = {}
 local SlotSkills = {}
 local IdToReducedSlot = {}
@@ -225,7 +226,8 @@ local SpecialBuffs = {	-- buffs that the API doesn't show via EVENT_EFFECT_CHANG
 	75726,	-- Tava's Favor
 	75746,	-- Clever Alchemist
 	61870,	-- Armor Master Resistance
-	71107,  -- Briarheart
+	71107,	-- Briarheart
+	122729,	-- Seething Fury Stat Buff
 
 }
 
@@ -431,11 +433,15 @@ local CustomAbilityName = {
 	[61919] = zo_strformat(SI_LIBCOMBAT_CUSTOM_ABILITY_FORMAT, GetAbilityName(61919), GetString(SI_ABILITY_TOOLTIP_TOGGLE_DURATION)),	-- Merciless Resolve Toggle
 	[61927] = zo_strformat(SI_LIBCOMBAT_CUSTOM_ABILITY_FORMAT, GetAbilityName(61927), GetString(SI_ABILITY_TOOLTIP_TOGGLE_DURATION)),	-- Relentless Focus Toggle
 
+	[122729] = zo_strformat(SI_LIBCOMBAT_CUSTOM_ABILITY_FORMAT, GetAbilityName(122729), GetString(SI_LIBCOMBAT_LOG_BUFF)), --  Name for separate stats buff of Seething Fury
+
+
 }
 
 local CustomAbilityIcon = {
 
-	[0] = "esoui/art/icons/achievement_wrothgar_046.dds"
+	[0] = "esoui/art/icons/achievement_wrothgar_046.dds",
+	[122729] = "esoui/art/icons/ability_warrior_025.dds",
 
 }
 
@@ -522,6 +528,8 @@ function UnitHandler:Initialize(name, unitId, unitType)
 	self.groupDamageOut  = 0
 	self.dpsstart = nil 				-- start of dps in ms
 	self.dpsend = nil				 	-- end of dps in ms
+	self.zenEffectSlot = nil
+	self.stacksOfZen = 0
 
 	if self.unitType == COMBAT_UNIT_TYPE_GROUP then self:UpdateGroupData() end
 end
@@ -555,6 +563,40 @@ function UnitHandler:GetUnitInfo()
 
 	return data
 
+end
+
+function UnitHandler:UpdateZenData(callbackKeys, eventid, timems, unitId, abilityId, changeType, effectType, _, sourceType, effectSlot, abilityType)
+
+	if abilityId == abilityIdZen then
+
+		local isActive = (changeType == EFFECT_RESULT_GAINED) or (changeType == EFFECT_RESULT_UPDATED)
+		local stacks = isActive and self.stacksOfZen or 0
+
+		lib.cm:FireCallbacks((CallbackKeys[eventid]), eventid, timems, unitId, abilityIdZen, changeType, effectType, stacks, sourceType, effectSlot)	-- stack count is 1 to 6, with 1 meaning 0% bonus, and 6 meaning 5% bonus from Z'en
+		Print("other", LOG_LEVEL_WARNING, table.concat({eventid, timems, unitId, abilityIdZen, changeType, effectType, stacks, sourceType, effectSlot}, ", "))
+		self.zenEffectSlot = (isActive and effectSlot) or nil
+
+
+	elseif abilityType == ABILITY_TYPE_DAMAGE then
+
+		if changeType == EFFECT_RESULT_GAINED or changeType == EFFECT_RESULT_UPDATED then
+			
+			self.stacksOfZen = self.stacksOfZen + 1
+
+		else
+
+			--if self.stacksOfZen - 1 < 0 then Print("other", LOG_LEVEL_WARNING, "Encountererd negative Z'en stacks: %s (%d)", GetFormattedAbilityName(abilityId), abilityId) end
+			self.stacksOfZen = math.max(0, self.stacksOfZen - 1)
+
+		end
+
+		if self.zenEffectSlot then
+
+			local stacks = math.min(self.stacksOfZen, 5)
+			lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_EFFECTS_OUT]), LIBCOMBAT_EVENT_EFFECTS_OUT, timems, unitId, abilityIdZen, EFFECT_RESULT_UPDATED, effectType, stacks, sourceType, self.zenEffectSlot)
+			Print("other", LOG_LEVEL_WARNING, table.concat({LIBCOMBAT_EVENT_EFFECTS_OUT, timems, unitId, abilityIdZen, EFFECT_RESULT_UPDATED, effectType, stacks, sourceType, self.zenEffectSlot}, ", "))
+		end
+	end
 end
 
 local FightHandler = ZO_Object:Subclass()
@@ -705,16 +747,23 @@ local function GetOtherBuffs(timems)
 
 	local newtime = timems
 
-	for _, unit in pairs(EffectBuffer) do
+	for unitId, unitData in pairs(EffectBuffer) do
 
-		for id, ability in pairs(unit) do
+		for abilityId, abilityData in pairs(unitData) do
 
-			local endTime, logdata = unpack(ability)
+			local endTime, logdata, abilityType = unpack(abilityData)
 
 			logdata[2] = newtime
+			local sourceType = logdata[8]
 
-			lib.cm:FireCallbacks((CallbackKeys[logdata[1]]), unpack(logdata))
+			if sourceType ~= COMBAT_UNIT_TYPE_PLAYER or abilityId ~= abilityIdZen then lib.cm:FireCallbacks((CallbackKeys[logdata[1]]), unpack(logdata)) end
 
+			if sourceType == COMBAT_UNIT_TYPE_PLAYER and (abilityId == abilityIdZen or abilityType == ABILITY_TYPE_DAMAGE) then 
+				
+				local unit = currentfight.units[unitId]
+				if unit then unit:UpdateZenData((CallbackKeys[logdata[1]]), unpack(logdata), abilityType) end
+			
+			end
 		end
 	end
 
@@ -1725,9 +1774,9 @@ local GROUP_EFFECT_OUT = 2
 
 local lastPurge = 0
 
-local function AddtoEffectBuffer(endTime, eventid, timems, unitId, abilityId, ...)
+local function AddtoEffectBuffer(endTime, abilityType, eventid, timems, unitId, abilityId, ...)
 
-	local data = {endTime, {eventid, timems, unitId, abilityId, ...}}
+	local data = {endTime, {eventid, timems, unitId, abilityId, ...}, abilityType}
 
 	local unit = EffectBuffer[unitId]
 
@@ -1797,32 +1846,34 @@ local function BuffEventHandler(isspecial, groupeffect, _, changeType, effectSlo
 
 	local timems = GetGameTimeMilliseconds()
 
-	local eventid = groupeffect == GROUP_EFFECT_IN and LIBCOMBAT_EVENT_GROUPEFFECTS_IN or groupeffect == GROUP_EFFECT_OUT and LIBCOMBAT_EVENT_GROUPEFFECTS_OUT or stringsub(unitTag, 1, 6) == "player" and LIBCOMBAT_EVENT_EFFECTS_IN or LIBCOMBAT_EVENT_EFFECTS_OUT
-	local stacks = (isspecial and 0) or mathmax(1, stackCount)
+	local eventid = groupeffect == GROUP_EFFECT_IN and LIBCOMBAT_EVENT_GROUPEFFECTS_IN or groupeffect == GROUP_EFFECT_OUT and LIBCOMBAT_EVENT_GROUPEFFECTS_OUT or unitTag and stringsub(unitTag, 1, 6) == "player" and LIBCOMBAT_EVENT_EFFECTS_IN or LIBCOMBAT_EVENT_EFFECTS_OUT
+	local stacks = mathmax(1, stackCount)
 
 	local inCombat = currentfight.prepared
 
+	
 	-- local hitValue = (abilityId == 75753 and changeType == EFFECT_RESULT_GAINED and AlkoshData[unitId]) or nil
 
 	if inCombat ~= true and unitTag ~= "player" and (changeType == EFFECT_RESULT_GAINED or changeType == EFFECT_RESULT_UPDATED) then
 
-		AddtoEffectBuffer(endTime, eventid, timems, unitId, abilityId, changeType, effectType, stacks, sourceType, effectSlot, hitValue)	-- hitValue is Alkosh only for now
+		AddtoEffectBuffer(endTime, abilityType, eventid, timems, unitId, abilityId, changeType, effectType, stacks, sourceType, effectSlot)
 		return
 
 	elseif inCombat == true then
 
 		local unit = currentfight.units[unitId]
 
+		if unitTag == "player" or unitId == data.playerid then currentfight:GetNewStats(timems) end
+		if sourceType ~= COMBAT_UNIT_TYPE_PLAYER or abilityId ~= abilityIdZen then lib.cm:FireCallbacks((CallbackKeys[eventid]), eventid, timems, unitId, abilityId, changeType, effectType, stacks, sourceType, effectSlot) end
+
 		if unit then
 
 			unit.starttime = unit.starttime or timems
 			unit.endtime = timems
 
+			if sourceType == COMBAT_UNIT_TYPE_PLAYER and (abilityId == abilityIdZen or abilityType == ABILITY_TYPE_DAMAGE) then stacks = unit:UpdateZenData((CallbackKeys[eventid]), eventid, timems, unitId, abilityId, changeType, effectType, stacks, sourceType, effectSlot, abilityType) end
+
 		end
-
-		if unitTag == "player" then currentfight:GetNewStats(timems) end
-		lib.cm:FireCallbacks((CallbackKeys[eventid]), eventid, timems, unitId, abilityId, changeType, effectType, stacks, sourceType, effectSlot)
-
 	end
 end
 
@@ -1842,17 +1893,54 @@ local function onSourceBuggedEffectChanged(eventCode, changeType, effectSlot, ef
 	BuffEventHandler(false, GROUP_EFFECT_OUT, eventCode, changeType, effectSlot, effectName, unitTag, beginTime, endTime, stackCount, iconName, buffType, effectType, abilityType, statusEffectType, unitName, unitId, abilityId, COMBAT_UNIT_TYPE_GROUP)
 end
 
-local function SpecialBuffEventHandler(isdebuff, _, result, _, _, _, _, _, sourceType, unitName, targetType, _, _, damageType, _, _, unitId, abilityId)
+local resultTochangeType = {
 
-	if BadAbility[abilityId] == true then return end
+	[ACTION_RESULT_EFFECT_GAINED_DURATION] = EFFECT_RESULT_GAINED,
+	[ACTION_RESULT_EFFECT_FADED] = EFFECT_RESULT_FADED,
+	[ACTION_RESULT_EFFECT_GAINED] = EFFECT_RESULT_UPDATED,
+}
+
+local DurationCache = {}
+
+local function SpecialBuffEventHandler(isdebuff, _, result, _, _, _, _, _, sourceType, unitName, targetType, hitValue, _, damageType, _, _, unitId, abilityId)
+	--(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
+
+	local now = GetGameTimeSeconds()
+
+	if BadAbility[abilityId] == true or (result == ACTION_RESULT_EFFECT_GAINED and hitValue < 2) then return end
+
+	if result == ACTION_RESULT_EFFECT_GAINED_DURATION then 
+		
+		DurationCache[abilityId] = hitValue 
+	
+	elseif DurationCache[abilityId] == nil and result == ACTION_RESULT_EFFECT_FADED then 
+		
+		DurationCache[abilityId] = hitValue
+
+	end
+
+	local stackCount = 1
+	local duration = hitValue
+	
+	if result == ACTION_RESULT_EFFECT_GAINED then
+
+		duration = DurationCache[abilityId]
+		stackCount = hitValue
+
+	end
 
 	-- if unitName ~= data.rawPlayername then return end
 	
-	local changeType = result == ACTION_RESULT_EFFECT_GAINED_DURATION and 1 or result == ACTION_RESULT_EFFECT_FADED and 2 or nil
+	local changeType = resultTochangeType[result] or nil
 	-- Print("debug", LOG_LEVEL_INFO, "%s (%d): %d (%d)", GetFormattedAbilityName(abilityId), abilityId, changeType, result)
 
 	local effectType = isdebuff and BUFF_EFFECT_TYPE_DEBUFF or BUFF_EFFECT_TYPE_BUFF
-	BuffEventHandler(true, GROUP_EFFECT_NONE, _, changeType, 0, _, _, _, _, _, _, _, effectType, ABILITY_TYPE_BONUS, _, unitName, unitId, abilityId, sourceType)
+	
+	local endTime = now + duration/1000
+
+	local unitTag = currentfight.units and currentfight.units[unitId] and currentfight.units[unitId].unitTag or nil
+
+	BuffEventHandler(true, GROUP_EFFECT_NONE, _, changeType, 0, _, unitTag, _, endTime, stackCount, _, _, effectType, ABILITY_TYPE_BONUS, _, unitName, unitId, abilityId, sourceType)
 
 end
 
@@ -2793,7 +2881,7 @@ local function onPlayerActivated2()
 
 end
 
-local function onPlayerDeativated()
+local function onPlayerDeactivated()
 	em:UnregisterForUpdate("LibCombat_Frames")
 end
 
@@ -3200,17 +3288,13 @@ Events.Effects = EventHandler:New(
 		for i=1,#SpecialBuffs do
 			self:RegisterEvent(EVENT_COMBAT_EVENT, onSpecialBuffEvent, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_GAINED_DURATION, REGISTER_FILTER_ABILITY_ID, SpecialBuffs[i], REGISTER_FILTER_IS_ERROR, false)
 			self:RegisterEvent(EVENT_COMBAT_EVENT, onSpecialBuffEvent, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_FADED, REGISTER_FILTER_ABILITY_ID, SpecialBuffs[i], REGISTER_FILTER_IS_ERROR, false)
-
-			self:RegisterEvent(EVENT_COMBAT_EVENT, onSpecialBuffEventOnSelf, REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_GAINED_DURATION, REGISTER_FILTER_ABILITY_ID, SpecialBuffs[i], REGISTER_FILTER_IS_ERROR, false)
-			self:RegisterEvent(EVENT_COMBAT_EVENT, onSpecialBuffEventOnSelf, REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_FADED, REGISTER_FILTER_ABILITY_ID, SpecialBuffs[i], REGISTER_FILTER_IS_ERROR, false)
+			self:RegisterEvent(EVENT_COMBAT_EVENT, onSpecialBuffEvent, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_GAINED, REGISTER_FILTER_ABILITY_ID, SpecialBuffs[i], REGISTER_FILTER_IS_ERROR, false)
 		end
 
 		for i=1,#SpecialDebuffs do
 			self:RegisterEvent(EVENT_COMBAT_EVENT, onSpecialDebuffEvent, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_GAINED_DURATION, REGISTER_FILTER_ABILITY_ID, SpecialDebuffs[i], REGISTER_FILTER_IS_ERROR, false)
 			self:RegisterEvent(EVENT_COMBAT_EVENT, onSpecialDebuffEvent, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_FADED, REGISTER_FILTER_ABILITY_ID, SpecialDebuffs[i], REGISTER_FILTER_IS_ERROR, false)
-
-			self:RegisterEvent(EVENT_COMBAT_EVENT, onSpecialDebuffEventOnSelf, REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_GAINED_DURATION, REGISTER_FILTER_ABILITY_ID, SpecialDebuffs[i], REGISTER_FILTER_IS_ERROR, false)
-			self:RegisterEvent(EVENT_COMBAT_EVENT, onSpecialDebuffEventOnSelf, REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_FADED, REGISTER_FILTER_ABILITY_ID, SpecialDebuffs[i], REGISTER_FILTER_IS_ERROR, false)
+			self:RegisterEvent(EVENT_COMBAT_EVENT, onSpecialDebuffEvent, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_GAINED, REGISTER_FILTER_ABILITY_ID, SpecialDebuffs[i], REGISTER_FILTER_IS_ERROR, false)
 		end
 
 		for i=1,#SourceBuggedBuffs do
@@ -3382,7 +3466,7 @@ Events.BossHP = EventHandler:New(
 Events.Performance = EventHandler:New(
 	{LIBCOMBAT_EVENT_PERFORMANCE},
 	function (self)
-		self:RegisterEvent(EVENT_PLAYER_DEACTIVATED, onPlayerDeativated)
+		self:RegisterEvent(EVENT_PLAYER_DEACTIVATED, onPlayerDeactivated)
 		self:RegisterEvent(EVENT_PLAYER_ACTIVATED, onPlayerActivated2)
 		self.active = true
 	end
@@ -3439,9 +3523,8 @@ local function GetAbilityString(abilityId, damageType, fontsize, showIds, stacks
 	local name = GetFormattedAbilityName(abilityId)
 	local damageColor = lib.GetDamageColor(damageType)
 
-	local format = showIds and "<<5[//$dx ]>><<1>> <<2>><<3>> (<<4>>)|r" or "<<5[//$dx ]>><<1>> <<2>><<3>>|r"
-
-	local abilityString = ZO_CachedStrFormat(format, icon, damageColor, name, showIds and abilityId or nil, stacks)
+	local format = abilityId == abilityIdZen and "<<5[/$dx /$dx ]>><<1>> <<2>><<3>><<4[/ ($d)/ ($d)]>>|r" or "<<5[//$dx ]>><<1>> <<2>><<3>><<4[/ ($d)/ ($d)]>>|r"
+	local abilityString = ZO_CachedStrFormat(format, icon, damageColor, name, showIds and abilityId or 0, stacks)
 
 	return abilityString
 end
@@ -3794,16 +3877,7 @@ local function Initialize()
 	currentfight = FightHandler:New()
 
 	InitResources()
-
-	-- make addon options menu
-
-	data.CustomAbilityIcon = {}
-	data.CustomAbilityName = {
-	[46539]	= "Major Force",
-	}
-
 	onBossesChanged()
-
 	InitAdvancedStats()
 
 	if data.LoadCustomizations then data.LoadCustomizations() end
