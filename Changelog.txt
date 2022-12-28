@@ -1,4 +1,7 @@
-﻿63 DL: 2.837.486 (19.12.2022) 22:10
+﻿64 DL: 2.885.122 (28.12.2022) 20:29
+[*] Added a fix for an issue that caused a Lua error on rare occasions. (Thx to ithildae for the report)
+
+63 DL: 2.837.486 (19.12.2022) 22:10
 [*] Added support for tracking stacks of Z'en and the spell and weapon damage buff of seething fury.
 [*] Slight changes for tracking of special buffs to include stacks (via Combat Events).
 
