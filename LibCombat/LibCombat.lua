@@ -15,7 +15,7 @@ local dx = math.ceil(GuiRoot:GetWidth()/tonumber(GetCVar("WindowedWidth"))*1000)
 LIBCOMBAT_LINE_SIZE = dx
 
 local lib = {}
-lib.version = 63
+lib.version = 64
 LibCombat = lib
 
 -- Basic values
@@ -1902,7 +1902,7 @@ local resultTochangeType = {
 
 local DurationCache = {}
 
-local function SpecialBuffEventHandler(isdebuff, _, result, _, _, _, _, _, sourceType, unitName, targetType, hitValue, _, damageType, _, _, unitId, abilityId)
+local function SpecialBuffEventHandler(isdebuff, _, result, _, _, _, _, sourceName, sourceType, targetName, targetType, hitValue, _, damageType, _, sourceUnitId, targetUnitId, abilityId)
 	--(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
 
 	local now = GetGameTimeSeconds()
@@ -1921,26 +1921,29 @@ local function SpecialBuffEventHandler(isdebuff, _, result, _, _, _, _, _, sourc
 
 	local stackCount = 1
 	local duration = hitValue
-	
+
 	if result == ACTION_RESULT_EFFECT_GAINED then
 
-		duration = DurationCache[abilityId]
-		stackCount = hitValue
+		if DurationCache[abilityId] then
 
+			duration = DurationCache[abilityId]
+			stackCount = hitValue
+
+		else return end
 	end
 
 	-- if unitName ~= data.rawPlayername then return end
-	
+
 	local changeType = resultTochangeType[result] or nil
 	-- Print("debug", LOG_LEVEL_INFO, "%s (%d): %d (%d)", GetFormattedAbilityName(abilityId), abilityId, changeType, result)
 
 	local effectType = isdebuff and BUFF_EFFECT_TYPE_DEBUFF or BUFF_EFFECT_TYPE_BUFF
-	
+
 	local endTime = now + duration/1000
 
-	local unitTag = currentfight.units and currentfight.units[unitId] and currentfight.units[unitId].unitTag or nil
+	local unitTag = currentfight.units and currentfight.units[targetUnitId] and currentfight.units[targetUnitId].unitTag or nil
 
-	BuffEventHandler(true, GROUP_EFFECT_NONE, _, changeType, 0, _, unitTag, _, endTime, stackCount, _, _, effectType, ABILITY_TYPE_BONUS, _, unitName, unitId, abilityId, sourceType)
+	BuffEventHandler(true, GROUP_EFFECT_NONE, _, changeType, 0, _, unitTag, _, endTime, stackCount, _, _, effectType, ABILITY_TYPE_BONUS, _, targetName, targetUnitId, abilityId, sourceType)
 
 end
 
