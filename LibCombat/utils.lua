@@ -1,4 +1,6 @@
 local lib = LibCombat
+local libint = lib.internal
+local Print = libint.Print
 
 -- Cache formatted Ability Names and Icons. Makes sure they stay consistent, since some addons like to meddle with them.
 
@@ -25,11 +27,13 @@ local CustomAbilityName = {
 	[61919] = zo_strformat(SI_LIBCOMBAT_CUSTOM_ABILITY_FORMAT, GetAbilityName(61919), GetString(SI_ABILITY_TOOLTIP_TOGGLE_DURATION)),	-- Merciless Resolve Toggle
 	[61927] = zo_strformat(SI_LIBCOMBAT_CUSTOM_ABILITY_FORMAT, GetAbilityName(61927), GetString(SI_ABILITY_TOOLTIP_TOGGLE_DURATION)),	-- Relentless Focus Toggle
 
+	[122729] = zo_strformat(SI_LIBCOMBAT_CUSTOM_ABILITY_FORMAT, GetAbilityName(122729), GetString(SI_LIBCOMBAT_LOG_BUFF)), --  Name for separate stats buff of Seething Fury
 }
 
 local CustomAbilityIcon = {
 
-	[0] = "esoui/art/icons/achievement_wrothgar_046.dds"
+	[0] = "esoui/art/icons/achievement_wrothgar_046.dds",
+	[122729] = "esoui/art/icons/ability_warrior_025.dds",
 
 }
 
@@ -144,9 +148,9 @@ local function GetAbilityString(abilityId, damageType, fontsize, showIds, stacks
 	local name = GetFormattedAbilityName(abilityId)
 	local damageColor = lib.GetDamageColor(damageType)
 
-	local format = showIds and "<<5[//$dx ]>><<1>> <<2>><<3>> (<<4>>)|r" or "<<5[//$dx ]>><<1>> <<2>><<3>>|r"
+	local format = abilityId == libint.abilityIdZen and "<<5[/$dx /$dx ]>><<1>> <<2>><<3>><<4[/ ($d)/ ($d)]>>|r" or "<<5[//$dx ]>><<1>> <<2>><<3>><<4[/ ($d)/ ($d)]>>|r"
+	local abilityString = ZO_CachedStrFormat(format, icon, damageColor, name, showIds and abilityId or 0, stacks)
 
-	local abilityString = ZO_CachedStrFormat(format, icon, damageColor, name, showIds and abilityId or nil, stacks)
 
 	return abilityString
 end
@@ -395,7 +399,7 @@ function lib:GetCombatLogString(fight, logline, fontsize, showIds)
 
 		if reducedslot == nil then
 
-			Print("events", LOG_LEVEL_INFO, "Invalid Slot: %s (%d), Status: %d)", GetAbilityName(abilityId), abilityId, status)
+			Print("events","INFO", "Invalid Slot: %s (%d), Status: %d)", GetAbilityName(abilityId), abilityId, status)
 
 			return
 

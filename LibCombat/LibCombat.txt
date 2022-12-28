@@ -1,8 +1,8 @@
 ﻿## Title: LibCombat
-## APIVersion: 101035
+## APIVersion: 101036
 ## Author: Solinur
-## Version: 61
-## AddOnVersion: 61
+## Version: 64
+## AddOnVersion: 64
 ## IsLibrary: true
 ## DependsOn: 
 ## OptionalDependsOn: LibDebugLogger
@@ -24,5 +24,9 @@ utils.lua
 events.lua
 effects.lua
 stats.lua
-LibCombat.lua
 units.lua
+combat.lua
+skills.lua
+resources.lua
+performance.lua
+LibCombat.lua

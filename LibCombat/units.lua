@@ -43,6 +43,8 @@ function UnitHandler:Initialize(name, unitId, unitType)
 	self.groupDamageOut  = 0
 	self.dpsstart = nil 				-- start of dps in ms
 	self.dpsend = nil				 	-- end of dps in ms
+	self.zenEffectSlot = nil
+	self.stacksOfZen = 0
 
 	if self.unitType == COMBAT_UNIT_TYPE_GROUP then self:UpdateGroupData() end
 end
@@ -78,6 +80,40 @@ function UnitHandler:GetUnitInfo()
 
 end
 
+function UnitHandler:UpdateZenData(eventid, timems, unitId, abilityId, changeType, effectType, _, sourceType, effectSlot, abilityType)
+
+	if abilityId == libint.abilityIdZen then
+
+		local isActive = (changeType == EFFECT_RESULT_GAINED) or (changeType == EFFECT_RESULT_UPDATED)
+		local stacks = isActive and self.stacksOfZen or 0
+
+		lib.cm:FireCallbacks((libint.callbackKeys[eventid]), eventid, timems, unitId, libint.abilityIdZen, changeType, effectType, stacks, sourceType, effectSlot)	-- stack count is 1 to 6, with 1 meaning 0% bonus, and 6 meaning 5% bonus from Z'en
+		Print("other","WARNING", table.concat({eventid, timems, unitId, libint.abilityIdZen, changeType, effectType, stacks, sourceType, effectSlot}, ", "))
+		self.zenEffectSlot = (isActive and effectSlot) or nil
+
+
+	elseif abilityType == ABILITY_TYPE_DAMAGE then
+
+		if changeType == EFFECT_RESULT_GAINED or changeType == EFFECT_RESULT_UPDATED then
+			
+			self.stacksOfZen = self.stacksOfZen + 1
+
+		else
+
+			--if self.stacksOfZen - 1 < 0 then Print("other","WARNING", "Encountererd negative Z'en stacks: %s (%d)", GetFormattedAbilityName(abilityId), abilityId) end
+			self.stacksOfZen = math.max(0, self.stacksOfZen - 1)
+
+		end
+
+		if self.zenEffectSlot then
+
+			local stacks = math.min(self.stacksOfZen, 5)
+			lib.cm:FireCallbacks((libint.callbackKeys[LIBCOMBAT_EVENT_EFFECTS_OUT]), LIBCOMBAT_EVENT_EFFECTS_OUT, timems, unitId, libint.abilityIdZen, EFFECT_RESULT_UPDATED, effectType, stacks, sourceType, self.zenEffectSlot)
+			Print("other","WARNING", table.concat({LIBCOMBAT_EVENT_EFFECTS_OUT, timems, unitId, libint.abilityIdZen, EFFECT_RESULT_UPDATED, effectType, stacks, sourceType, self.zenEffectSlot}, ", "))
+		end
+	end
+end
+
 local UnitCache = {}
 lib.UnitCache = UnitCache
 
@@ -90,12 +126,6 @@ local resultVars = {
 	[ACTION_RESULT_ABILITY_ON_COOLDOWN] = "ABILITY_ON_COOLDOWN",
 	[ACTION_RESULT_ABSORBED] = "ABSORBED",
 	[ACTION_RESULT_BAD_TARGET] = "BAD_TARGET",
-	[ACTION_RESULT_BATTLE_STANDARD_ALREADY_EXISTS_FOR_GUILD] = "BATTLE_STANDARD_ALREADY_EXISTS_FOR_GUILD",
-	[ACTION_RESULT_BATTLE_STANDARD_LIMIT] = "BATTLE_STANDARD_LIMIT",
-	[ACTION_RESULT_BATTLE_STANDARD_NO_PERMISSION] = "BATTLE_STANDARD_NO_PERMISSION",
-	[ACTION_RESULT_BATTLE_STANDARD_TABARD_MISMATCH] = "BATTLE_STANDARD_TABARD_MISMATCH",
-	[ACTION_RESULT_BATTLE_STANDARD_TOO_CLOSE_TO_CAPTURABLE] = "BATTLE_STANDARD_TOO_CLOSE_TO_CAPTURABLE",
-	[ACTION_RESULT_BATTLE_STANDARDS_DISABLED] = "BATTLE_STANDARDS_DISABLED",
 	[ACTION_RESULT_BEGIN] = "BEGIN",
 	[ACTION_RESULT_BEGIN_CHANNEL] = "BEGIN_CHANNEL",
 	[ACTION_RESULT_BLADETURN] = "BLADETURN",
@@ -128,9 +158,6 @@ local resultVars = {
 	[ACTION_RESULT_FALL_DAMAGE] = "FALL_DAMAGE",
 	[ACTION_RESULT_FALLING] = "FALLING",
 	[ACTION_RESULT_FEARED] = "FEARED",
-	[ACTION_RESULT_FORWARD_CAMP_ALREADY_EXISTS_FOR_GUILD] = "FORWARD_CAMP_ALREADY_EXISTS_FOR_GUILD",
-	[ACTION_RESULT_FORWARD_CAMP_NO_PERMISSION] = "FORWARD_CAMP_NO_PERMISSION",
-	[ACTION_RESULT_FORWARD_CAMP_TABARD_MISMATCH] = "FORWARD_CAMP_TABARD_MISMATCH",
 	[ACTION_RESULT_GRAVEYARD_DISALLOWED_IN_INSTANCE] = "GRAVEYARD_DISALLOWED_IN_INSTANCE",
 	[ACTION_RESULT_GRAVEYARD_TOO_CLOSE] = "GRAVEYARD_TOO_CLOSE",
 	[ACTION_RESULT_HEAL] = "HEAL",
@@ -363,7 +390,7 @@ function libint.CheckUnitFromTag(unitName, unitId, unitTag, timems, isGroup)
 
 	-- IsUnitGrouped(unitTag), GetGroupIndexByUnitTag(unitTag), IsPlayerInGroup(GetUnitDisplayName(unitTag))
 
-	Print("dev", LOG_LEVEL_INFO, "New Unit detected: %s (%d), tag: %s, type: %d", unitName or "", unitId or 0, unitTag or "", unitType or 0)
+	Print("dev","INFO", "New Unit detected: %s (%d), tag: %s, type: %d", unitName or "", unitId or 0, unitTag or "", unitType or 0)
 
 	libint.CheckUnit(unitName, unitId, unitType, timems)
 

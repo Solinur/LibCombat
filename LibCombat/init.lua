@@ -7,13 +7,17 @@ LIBCOMBAT_LINE_SIZE = dx
 
 -- Basic values
 lib.name = "LibCombat"
-lib.version = 61
+lib.version = 64
 lib.data = {skillBars= {}}
 lib.cm = ZO_CallbackObject:New()
 lib.internal = {}
 local libint = lib.internal
 libint.functions = {}
 libint.debug = false or GetDisplayName() == "@Solinur"
+
+-- variables
+
+libint.abilityIdZen = 126597
 
 -- Logger
 
@@ -33,11 +37,11 @@ if LibDebugLogger then
 
 	levelKeys = {
 
-		[1] = LibDebugLogger.LOG_LEVEL_VERBOSE,
-		[2] = LibDebugLogger.LOG_LEVEL_DEBUG,
-		[3] = LibDebugLogger.LOG_LEVEL_INFO,
-		[4] = LibDebugLogger.LOG_LEVEL_WARNING,
-		[5] = LibDebugLogger.LOG_LEVEL_ERROR
+		["VERBOSE"] = LibDebugLogger.LOG_LEVEL_VERBOSE,
+		["DEBUG"] = LibDebugLogger.LOG_LEVEL_DEBUG,
+		["INFO"] = LibDebugLogger.LOG_LEVEL_INFO,
+		["WARNING"] = LibDebugLogger.LOG_LEVEL_WARNING,
+		["ERROR"] = LibDebugLogger.LOG_LEVEL_ERROR,
 
 	}
 

@@ -6,6 +6,7 @@ local strings = {
 	SI_LIBCOMBAT_LOG_NOGAINED = "gained no", -- "gained no"
 	SI_LIBCOMBAT_LOG_LOST = "lost", -- "lost"
 
+	SI_LIBCOMBAT_LOG_BUFF = "Buff",
 	SI_LIBCOMBAT_LOG_DEBUFF = "Debuff",
 
 	SI_LIBCOMBAT_LOG_UNITTYPE_PLAYER = "yourself", -- "You"

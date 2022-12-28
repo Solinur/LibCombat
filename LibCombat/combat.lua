@@ -12,7 +12,7 @@ local function CheckForShield(timems, sourceUnitId, targetUnitId)
 
 		local shieldTimems, shieldSourceUnitId, shieldTargetUnitId, shieldHitValue = unpack(DamageShieldBuffer[i])
 
-		Print("dev", LOG_LEVEL_VERBOSE, "Eval Shield Index %d: Source: %s, Target: %s, Time: %d", i, tostring(shieldSourceUnitId == sourceUnitId), tostring(shieldTargetUnitId == targetUnitId), timems - shieldTimems)
+		Print("dev","VERBOSE", "Eval Shield Index %d: Source: %s, Target: %s, Time: %d", i, tostring(shieldSourceUnitId == sourceUnitId), tostring(shieldTargetUnitId == targetUnitId), timems - shieldTimems)
 
 		if shieldSourceUnitId == sourceUnitId and shieldTargetUnitId == targetUnitId and timems - shieldTimems < 100 then
 
@@ -52,7 +52,7 @@ local function CombatEventHandler(isheal, _, result, _, _, _, _, sourceName, sou
 
 	local eventid = LIBCOMBAT_EVENT_DAMAGE_OUT + (isheal and 3 or 0) + ((isout and isin) and 2 or isin and 1 or 0)
 
-	if libint.currentfight.dpsstart == nil then libint.currentfight:PrepareFight() end -- get stats before the damage event
+	if libint.currentfight.prepared ~= true then libint.currentfight:PrepareFight() end -- get stats before the damage event
 
 	damageType = (isheal and powerType) or damageType
 
@@ -60,7 +60,7 @@ local function CombatEventHandler(isheal, _, result, _, _, _, _, sourceName, sou
 
 	libint.currentfight:AddCombatEvent(timems, result, targetUnitId, hitValue, eventid, overflow)
 
-	lib.cm:FireCallbacks((libint.CallbackKeys[eventid]), eventid, timems, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType, (overflow or 0))
+	lib.cm:FireCallbacks((libint.callbackKeys[eventid]), eventid, timems, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType, (overflow or 0))
 
 end
 
@@ -72,7 +72,7 @@ local function onCombatEventShield(eventCode, result, isError, abilityName, abil
 
 	DamageShieldBuffer[#DamageShieldBuffer + 1] = {GetGameTimeMilliseconds(), sourceUnitId, targetUnitId, hitValue}
 
-	Print("dev", LOG_LEVEL_DEBUG, "Add %d Shield: %d -> %d  (%d)", hitValue, sourceUnitId, targetUnitId, #DamageShieldBuffer)
+	Print("dev","DEBUG", "Add %d Shield: %d -> %d  (%d)", hitValue, sourceUnitId, targetUnitId, #DamageShieldBuffer)
 
 end
 
@@ -108,7 +108,7 @@ local function onCombatEventDmgGrp(_, _, _, _, _, _, _, _, targetName, targetTyp
 
 	if hitValue > 200000 then
 
-		Print("dev", LOG_LEVEL_WARNING, "Big Damage Event: (%d) %s did %d damage to %s", abilityId, libint.GetFormattedAbilityName(abilityId), hitValue, tostring(targetName))
+		Print("dev","WARNING", "Big Damage Event: (%d) %s did %d damage to %s", abilityId, libint.GetFormattedAbilityName(abilityId), hitValue, tostring(targetName))
 
 		return
 
@@ -132,6 +132,8 @@ end
 libint.Events.DmgOut = libint.EventHandler:New(
 	{LIBCOMBAT_EVENT_FIGHTRECAP, LIBCOMBAT_EVENT_FIGHTSUMMARY, LIBCOMBAT_EVENT_DAMAGE_OUT, LIBCOMBAT_EVENT_DAMAGE_SELF},
 	function (self)
+
+		Print("dev", "INFO", "Register Damage Events")
 
 		local filters = {
 			ACTION_RESULT_DAMAGE,
