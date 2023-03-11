@@ -1,4 +1,8 @@
-﻿64 DL: 2.885.122 (28.12.2022) 20:29
+﻿65 DL: 3.019.152 (11.03.2023) 10:46
+[*] Removed some unnecessary debug messages (Thx to DakJaniels for reporting this)
+[*] Added "damageOutTotal" entry to the table provided with the LIBCOMBAT_EVENT_FIGHTRECAP callback.
+
+64 DL: 2.885.122 (28.12.2022) 20:29
 [*] Added a fix for an issue that caused a Lua error on rare occasions. (Thx to ithildae for the report)
 
 63 DL: 2.837.486 (19.12.2022) 22:10

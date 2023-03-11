@@ -15,7 +15,7 @@ local dx = math.ceil(GuiRoot:GetWidth()/tonumber(GetCVar("WindowedWidth"))*1000)
 LIBCOMBAT_LINE_SIZE = dx
 
 local lib = {}
-lib.version = 64
+lib.version = 65
 LibCombat = lib
 
 -- Basic values
@@ -565,15 +565,15 @@ function UnitHandler:GetUnitInfo()
 
 end
 
-function UnitHandler:UpdateZenData(callbackKeys, eventid, timems, unitId, abilityId, changeType, effectType, _, sourceType, effectSlot, abilityType)
+function UnitHandler:UpdateZenData(callbackKeys, eventid, timeMs, unitId, abilityId, changeType, effectType, _, sourceType, effectSlot, abilityType)
 
 	if abilityId == abilityIdZen then
 
 		local isActive = (changeType == EFFECT_RESULT_GAINED) or (changeType == EFFECT_RESULT_UPDATED)
 		local stacks = isActive and self.stacksOfZen or 0
 
-		lib.cm:FireCallbacks((CallbackKeys[eventid]), eventid, timems, unitId, abilityIdZen, changeType, effectType, stacks, sourceType, effectSlot)	-- stack count is 1 to 6, with 1 meaning 0% bonus, and 6 meaning 5% bonus from Z'en
-		Print("other", LOG_LEVEL_WARNING, table.concat({eventid, timems, unitId, abilityIdZen, changeType, effectType, stacks, sourceType, effectSlot}, ", "))
+		lib.cm:FireCallbacks((CallbackKeys[eventid]), eventid, timeMs, unitId, abilityIdZen, changeType, effectType, stacks, sourceType, effectSlot)	-- stack count is 1 to 6, with 1 meaning 0% bonus, and 6 meaning 5% bonus from Z'en
+		Print("debug", LOG_LEVEL_VERBOSE, table.concat({eventid, timeMs, unitId, abilityIdZen, changeType, effectType, stacks, sourceType, effectSlot}, ", "))
 		self.zenEffectSlot = (isActive and effectSlot) or nil
 
 
@@ -585,7 +585,7 @@ function UnitHandler:UpdateZenData(callbackKeys, eventid, timems, unitId, abilit
 
 		else
 
-			--if self.stacksOfZen - 1 < 0 then Print("other", LOG_LEVEL_WARNING, "Encountererd negative Z'en stacks: %s (%d)", GetFormattedAbilityName(abilityId), abilityId) end
+			if self.stacksOfZen - 1 < 0 then Print("debug", LOG_LEVEL_WARNING, "Encountererd negative Z'en stacks: %s (%d)", GetFormattedAbilityName(abilityId), abilityId) end
 			self.stacksOfZen = math.max(0, self.stacksOfZen - 1)
 
 		end
@@ -593,8 +593,8 @@ function UnitHandler:UpdateZenData(callbackKeys, eventid, timems, unitId, abilit
 		if self.zenEffectSlot then
 
 			local stacks = math.min(self.stacksOfZen, 5)
-			lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_EFFECTS_OUT]), LIBCOMBAT_EVENT_EFFECTS_OUT, timems, unitId, abilityIdZen, EFFECT_RESULT_UPDATED, effectType, stacks, sourceType, self.zenEffectSlot)
-			Print("other", LOG_LEVEL_WARNING, table.concat({LIBCOMBAT_EVENT_EFFECTS_OUT, timems, unitId, abilityIdZen, EFFECT_RESULT_UPDATED, effectType, stacks, sourceType, self.zenEffectSlot}, ", "))
+			lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_EFFECTS_OUT]), LIBCOMBAT_EVENT_EFFECTS_OUT, timeMs, unitId, abilityIdZen, EFFECT_RESULT_UPDATED, effectType, stacks, sourceType, self.zenEffectSlot)
+			Print("debug", LOG_LEVEL_VERBOSE, table.concat({LIBCOMBAT_EVENT_EFFECTS_OUT, timeMs, unitId, abilityIdZen, EFFECT_RESULT_UPDATED, effectType, stacks, sourceType, self.zenEffectSlot}, ", "))
 		end
 	end
 end
@@ -1399,6 +1399,7 @@ function FightHandler:UpdateStats()
 		["HPSAOut"] = self.HPSAOut,
 		["HPSIn"] = self.HPSIn,
 		["healingOutTotal"] = self.healingOutTotal,
+		["damageOutTotal"] = self.damageOutTotal,
 		["dpstime"] = dpstime,
 		["hpstime"] = hpstime,
 		["bossfight"] = self.bossfight,
