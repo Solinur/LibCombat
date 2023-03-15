@@ -15,7 +15,7 @@ local dx = math.ceil(GuiRoot:GetWidth()/tonumber(GetCVar("WindowedWidth"))*1000)
 LIBCOMBAT_LINE_SIZE = dx
 
 local lib = {}
-lib.version = 65
+lib.version = 66
 LibCombat = lib
 
 -- Basic values
@@ -569,21 +569,20 @@ function UnitHandler:UpdateZenData(callbackKeys, eventid, timeMs, unitId, abilit
 
 	if abilityId == abilityIdZen then
 
-		local isActive = (changeType == EFFECT_RESULT_GAINED) or (changeType == EFFECT_RESULT_UPDATED)
-		local stacks = isActive and self.stacksOfZen or 0
+		local isActive = changeType == EFFECT_RESULT_GAINED -- or (changeType == EFFECT_RESULT_UPDATED)
+		local stacks = isActive and math.min(self.stacksOfZen, 5) or 0
 
 		lib.cm:FireCallbacks((CallbackKeys[eventid]), eventid, timeMs, unitId, abilityIdZen, changeType, effectType, stacks, sourceType, effectSlot)	-- stack count is 1 to 6, with 1 meaning 0% bonus, and 6 meaning 5% bonus from Z'en
 		Print("debug", LOG_LEVEL_VERBOSE, table.concat({eventid, timeMs, unitId, abilityIdZen, changeType, effectType, stacks, sourceType, effectSlot}, ", "))
 		self.zenEffectSlot = (isActive and effectSlot) or nil
 
-
 	elseif abilityType == ABILITY_TYPE_DAMAGE then
 
-		if changeType == EFFECT_RESULT_GAINED or changeType == EFFECT_RESULT_UPDATED then
+		if changeType == EFFECT_RESULT_GAINED then
 			
 			self.stacksOfZen = self.stacksOfZen + 1
 
-		else
+		elseif changeType == EFFECT_RESULT_FADED then
 
 			if self.stacksOfZen - 1 < 0 then Print("debug", LOG_LEVEL_WARNING, "Encountererd negative Z'en stacks: %s (%d)", GetFormattedAbilityName(abilityId), abilityId) end
 			self.stacksOfZen = math.max(0, self.stacksOfZen - 1)
