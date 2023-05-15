@@ -15,7 +15,7 @@ local dx = math.ceil(GuiRoot:GetWidth()/tonumber(GetCVar("WindowedWidth"))*1000)
 LIBCOMBAT_LINE_SIZE = dx
 
 local lib = {}
-lib.version = 66
+lib.version = 67
 LibCombat = lib
 
 -- Basic values
@@ -80,6 +80,7 @@ local currentfight
 local Events = {}
 local EffectBuffer = {}
 local abilityIdZen = 126597
+local abilityIdForceOfNature = 174250
 local lastdeaths = {}
 local SlotSkills = {}
 local IdToReducedSlot = {}
@@ -234,13 +235,32 @@ local SpecialBuffs = {	-- buffs that the API doesn't show via EVENT_EFFECT_CHANG
 
 local SpecialDebuffs = {   -- debuffs that the API doesn't show via EVENT_EFFECT_CHANGED and need to be specially tracked via EVENT_COMBAT_EVENT
 
-	95136,  -- Chilled (used for tracking Warden crit damage buff)
+178118,	-- Status Effect Magic (Overcharged)
+95136,  -- Status Effect Frost (Chill, used for tracking Warden crit damage buff)
+95134,  -- Status Effect Lightning (Concussion)
+178123,  -- Status Effect Physical (Sundered)
+178127,  -- Status Effect Foulness (Diseased)
+148801,  -- Status Effect Bleeding (Hemorrhaging)
+
 
 }
 
 local SourceBuggedBuffs = {   -- buffs where ZOS messed up the source, causing CMX to falsely not track them
 
 	88401,  -- Minor Magickasteal
+
+}
+
+local StatusEffectIds = {
+
+	[178118] = true, -- Magic (Overcharged)
+	[18084]  = true, -- Fire (Burning)
+	[95136]  = true, -- Frost (Chill)
+	[95134]  = true, -- Lightning (Concussion)
+	[178123] = true, -- Physical (Sundered)
+	[21929]  = true, -- Poison (Poisoned)
+	[178127] = true, -- Foulness (Diseased)
+	[148801] = true, -- Bleeding (Hemorrhaging)
 
 }
 
@@ -442,6 +462,7 @@ local CustomAbilityIcon = {
 
 	[0] = "esoui/art/icons/achievement_wrothgar_046.dds",
 	[122729] = "esoui/art/icons/ability_warrior_025.dds",
+	[abilityIdForceOfNature] = "esoui/art/icons/ability_healer_018.dds",
 
 }
 
@@ -530,6 +551,8 @@ function UnitHandler:Initialize(name, unitId, unitType)
 	self.dpsend = nil				 	-- end of dps in ms
 	self.zenEffectSlot = nil
 	self.stacksOfZen = 0
+	self.forceOfNature = {}
+	self.forceOfNatureStacks = 0
 
 	if self.unitType == COMBAT_UNIT_TYPE_GROUP then self:UpdateGroupData() end
 end
@@ -572,7 +595,7 @@ function UnitHandler:UpdateZenData(callbackKeys, eventid, timeMs, unitId, abilit
 		local isActive = changeType == EFFECT_RESULT_GAINED -- or (changeType == EFFECT_RESULT_UPDATED)
 		local stacks = isActive and math.min(self.stacksOfZen, 5) or 0
 
-		lib.cm:FireCallbacks((CallbackKeys[eventid]), eventid, timeMs, unitId, abilityIdZen, changeType, effectType, stacks, sourceType, effectSlot)	-- stack count is 1 to 6, with 1 meaning 0% bonus, and 6 meaning 5% bonus from Z'en
+		lib.cm:FireCallbacks(callbackKeys, eventid, timeMs, unitId, abilityIdZen, changeType, effectType, stacks, sourceType, effectSlot)	-- stack count is 1 to 6, with 1 meaning 0% bonus, and 6 meaning 5% bonus from Z'en
 		Print("debug", LOG_LEVEL_VERBOSE, table.concat({eventid, timeMs, unitId, abilityIdZen, changeType, effectType, stacks, sourceType, effectSlot}, ", "))
 		self.zenEffectSlot = (isActive and effectSlot) or nil
 
@@ -584,7 +607,7 @@ function UnitHandler:UpdateZenData(callbackKeys, eventid, timeMs, unitId, abilit
 
 		elseif changeType == EFFECT_RESULT_FADED then
 
-			if self.stacksOfZen - 1 < 0 then Print("debug", LOG_LEVEL_WARNING, "Encountererd negative Z'en stacks: %s (%d)", GetFormattedAbilityName(abilityId), abilityId) end
+			if self.stacksOfZen - 1 < 0 then Print("debug", LOG_LEVEL_WARNING, "Encountered negative Z'en stacks: %s (%d)", GetFormattedAbilityName(abilityId), abilityId) end
 			self.stacksOfZen = math.max(0, self.stacksOfZen - 1)
 
 		end
@@ -593,9 +616,44 @@ function UnitHandler:UpdateZenData(callbackKeys, eventid, timeMs, unitId, abilit
 
 			local stacks = math.min(self.stacksOfZen, 5)
 			lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_EFFECTS_OUT]), LIBCOMBAT_EVENT_EFFECTS_OUT, timeMs, unitId, abilityIdZen, EFFECT_RESULT_UPDATED, effectType, stacks, sourceType, self.zenEffectSlot)
-			Print("debug", LOG_LEVEL_VERBOSE, table.concat({LIBCOMBAT_EVENT_EFFECTS_OUT, timeMs, unitId, abilityIdZen, EFFECT_RESULT_UPDATED, effectType, stacks, sourceType, self.zenEffectSlot}, ", "))
+			
 		end
 	end
+end
+
+function UnitHandler:UpdateForceOfNatureData(_, _, timeMs, unitId, abilityId, changeType, _, _, _, _)
+
+	if StatusEffectIds[abilityId] == nil or currentfight.CP[1]["slotted"] == nil or currentfight.CP[1]["slotted"][276] ~= true then return end
+
+	local forceOfNatureChangeType = EFFECT_RESULT_UPDATED
+
+	local debugChangeType = "o"
+
+	if changeType == EFFECT_RESULT_GAINED and self.forceOfNature[abilityId] == nil then
+
+		self.forceOfNature[abilityId] = true
+
+		self.forceOfNatureStacks = self.forceOfNatureStacks + 1
+
+		if self.forceOfNatureStacks == 1 then forceOfNatureChangeType = EFFECT_RESULT_GAINED end
+		if self.forceOfNatureStacks > 8 then Print("debug", LOG_LEVEL_WARNING, "Encountered too many Force of Nature stacks (%d): %s (%d)", self.forceOfNatureStacks, GetFormattedAbilityName(abilityId), abilityId) end
+		debugChangeType = "+"
+
+	elseif changeType == EFFECT_RESULT_FADED and self.forceOfNature[abilityId] == true then
+
+		self.forceOfNature[abilityId] = nil
+
+		if self.forceOfNatureStacks == 0 then forceOfNatureChangeType = EFFECT_RESULT_FADED end
+		if self.forceOfNatureStacks - 1 < 0 then Print("debug", LOG_LEVEL_WARNING, "Encountered negative Force of Nature stacks: %s (%d)", GetFormattedAbilityName(abilityId), abilityId) end
+
+		self.forceOfNatureStacks = math.max(0, self.forceOfNatureStacks - 1)
+		debugChangeType = "-"
+
+	end
+
+	local stacks = math.min(self.forceOfNatureStacks, 8)
+	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_EFFECTS_OUT]), LIBCOMBAT_EVENT_EFFECTS_OUT, timeMs, unitId, abilityIdForceOfNature, forceOfNatureChangeType, BUFF_EFFECT_TYPE_DEBUFF, stacks, COMBAT_UNIT_TYPE_PLAYER, 0)
+	Print("debug", LOG_LEVEL_VERBOSE, "Force of Nature: %s (%d) x%d, %s%s", self.name, self.unitId, stacks, GetFormattedAbilityName(abilityId), debugChangeType)
 end
 
 local FightHandler = ZO_Object:Subclass()
@@ -762,6 +820,13 @@ local function GetOtherBuffs(timems)
 				local unit = currentfight.units[unitId]
 				if unit then unit:UpdateZenData((CallbackKeys[logdata[1]]), unpack(logdata), abilityType) end
 			
+			end
+
+			if sourceType == COMBAT_UNIT_TYPE_PLAYER and StatusEffectIds[abilityId] then
+
+				local unit = currentfight.units[unitId]
+				if unit then unit:UpdateForceOfNatureData((CallbackKeys[logdata[1]]), unpack(logdata)) end
+
 			end
 		end
 	end
@@ -1851,7 +1916,7 @@ local function BuffEventHandler(isspecial, groupeffect, _, changeType, effectSlo
 
 	local inCombat = currentfight.prepared
 
-	
+
 	-- local hitValue = (abilityId == 75753 and changeType == EFFECT_RESULT_GAINED and AlkoshData[unitId]) or nil
 
 	if inCombat ~= true and unitTag ~= "player" and (changeType == EFFECT_RESULT_GAINED or changeType == EFFECT_RESULT_UPDATED) then
@@ -1871,7 +1936,8 @@ local function BuffEventHandler(isspecial, groupeffect, _, changeType, effectSlo
 			unit.starttime = unit.starttime or timems
 			unit.endtime = timems
 
-			if sourceType == COMBAT_UNIT_TYPE_PLAYER and (abilityId == abilityIdZen or abilityType == ABILITY_TYPE_DAMAGE) then stacks = unit:UpdateZenData((CallbackKeys[eventid]), eventid, timems, unitId, abilityId, changeType, effectType, stacks, sourceType, effectSlot, abilityType) end
+			if sourceType == COMBAT_UNIT_TYPE_PLAYER and (abilityId == abilityIdZen or abilityType == ABILITY_TYPE_DAMAGE) then unit:UpdateZenData((CallbackKeys[eventid]), eventid, timems, unitId, abilityId, changeType, effectType, stacks, sourceType, effectSlot, abilityType) end
+			if StatusEffectIds[abilityId] and (sourceType == COMBAT_UNIT_TYPE_PLAYER or (unitName == "" and unit.forceOfNature[abilityId] and SpecialDebuffs[abilityId])) then unit:UpdateForceOfNatureData((CallbackKeys[eventid]), eventid, timems, unitId, abilityId, changeType, effectType, stacks, sourceType, effectSlot) end
 
 		end
 	end

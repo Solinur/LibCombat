@@ -1,4 +1,7 @@
-﻿66 DL: 3.072.976 (16.03.2023) 00:09
+﻿67 DL: 3,206,960 (16.05.2023) 00:18
+[*] Added support for Force of Nature (by popular request)
+
+66 DL: 3.072.976 (16.03.2023) 00:09
 [*] Fixed an issue where Z'en stacks could go higher than 5.
 [*] Fixed an issue where each stack of Relequen would add a Z'en stack.
 
