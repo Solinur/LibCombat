@@ -13,7 +13,7 @@ Add more debug Functions
 ]]
 
 local lib = {}
-lib.version = 67
+lib.version = 70
 LibCombat = lib
 
 -- Basic values
@@ -378,9 +378,12 @@ local abilityConversions = {	-- Ability conversions for tracking skill activatio
 	[40493] = {163236, 2240, nil, nil}, --Shooting Star --> Shooting Star
 	[40489] = {163238, 2240, nil, nil}, --Ice Comet --> Meteor
 
-	[201286] = {185838, 2240, nil, nil}, --The Imperfect Ring --> The Imperfect Ring
-	[201293] = {185841, 2240, nil, nil}, --Rune of Displacement --> Rune of Displacement
-	[201296] = {182989, 2240, nil, nil}, --Fulminating Rune --> Fulminating Rune
+	[185836] = {185838, 2240, nil, nil}, --The Imperfect Ring (Stam) --> The Imperfect Ring
+	[201286] = {185838, 2240, nil, nil}, --The Imperfect Ring (Mag) --> The Imperfect Ring
+	[185839] = {185841, 2240, nil, nil}, --Rune of Displacement (Stam) --> Rune of Displacement
+	[201293] = {185841, 2240, nil, nil}, --Rune of Displacement (Mag) --> Rune of Displacement
+	[182988] = {182989, 2240, nil, nil}, --Fulminating Rune (Stam) --> Fulminating Rune
+	[201296] = {182989, 2240, nil, nil}, --Fulminating Rune (Mag) --> Fulminating Rune
 
 	[185912] = {185913, 2240, nil, nil}, --Runic Defense --> Minor Resolve
 	[186489] = {186490, 2240, nil, nil}, --Runeguard of Freedom --> Minor Resolve
@@ -390,10 +393,49 @@ local abilityConversions = {	-- Ability conversions for tracking skill activatio
 local abilityAdditions = { -- Abilities to register additionally because they change in fight
 
 	[61902] = 61907,    -- Grim Focus --> Assasins Will
+	[61907] = 61902,    -- Assasins Will --> Grim Focus
 	[61919] = 61930,    -- Merciless Resolve --> Assasins Will
+	[61930] = 61919,    -- Assasins Will --> Merciless Resolve
 	[61927] = 61932,    -- Relentless Focus --> Assasins Scourge
+	[61932] = 61927,    -- Assasins Scourge --> Relentless Focus
 	[46324] = 114716,  	-- Crystal Fragments Proc
-
+	[114716] = 46324,  	-- Crystal Fragments Proc
+	[185836] = 201286,  	-- The Imperfect Ring (Stam) --> (Mag)
+	[201286] = 185836,  	-- The Imperfect Ring (Mag) --> (Stam)
+	[185839] = 201293,  	-- Rune of Displacement (Stam) --> (Mag)
+	[201293] = 185839,  	-- Rune of Displacement (Mag) --> (Stam)
+	[182988] = 201296,  	-- Fulminating Rune (Stam) --> (Mag)s
+	[201296] = 182988,  	-- Fulminating Rune (Mag) --> (Stam)
+	[185794] = 188658,  	-- Runeblades (Stam) --> (Mag)
+	[188658] = 185794,  	-- Runeblades (Mag) --> (Stam)
+	[185805] = 193331,  	-- Fatecarver (Stam) --> (Mag)
+	[193331] = 185805,  	-- Fatecarver (Mag) --> (Stam)
+	[183261] = 198282,  	-- Runemend (Stam) --> (Mag)
+	[198282] = 183261,  	-- Runemend (Mag) --> (Stam)
+	[183537] = 198309,  	-- Remedy Cascade (Stam) --> (Mag)
+	[198309] = 183537,  	-- Remedy Cascade (Mag) --> (Stam)
+	[183447] = 198563,  	-- Chakram Shields (Stam) --> (Mag)
+	[198563] = 183447,  	-- Chakram Shields (Mag) --> (Stam)
+	[185803] = 188787,  	-- Writhing Runeblades (Stam) --> (Mag)
+	[188787] = 185803,  	-- Writhing Runeblades (Mag) --> (Stam)
+	[183122] = 193397,  	-- Exhausting Fatecarver (Stam) --> (Mag)
+	[193397] = 183122,  	-- Exhausting Fatecarver (Mag) --> (Stam)
+	[186189] = 198288,  	-- Evolving Runemend (Stam) --> (Mag)
+	[198288] = 186189,  	-- Evolving Runemend (Mag) --> (Stam)
+	[186193] = 198330,  	-- Cascading Fortune (Stam) --> (Mag)
+	[198330] = 186193,  	-- Cascading Fortune (Mag) --> (Stam)
+	[186207] = 198564,  	-- Chakram of Destiny (Stam) --> (Mag)
+	[198564] = 186207,  	-- Chakram of Destiny (Mag) --> (Stam)
+	[182977] = 188780,  	-- Escalating Runeblades (Stam) --> (Mag)
+	[188780] = 182977,  	-- Escalating Runeblades (Mag) --> (Stam)
+	[186366] = 193398,  	-- Pragmatic Fatecarver (Stam) --> (Mag)
+	[193398] = 186366,  	-- Pragmatic Fatecarver (Mag) --> (Stam)
+	[186191] = 198292,  	-- Audacious Runemend (Stam) --> (Mag)
+	[198292] = 186191,  	-- Audacious Runemend (Mag) --> (Stam)
+	[186200] = 198537,  	-- Curative Surge (Stam) --> (Mag)
+	[198537] = 186200,  	-- Curative Surge (Mag) --> (Stam)
+	[186209] = 198567,  	-- Tidal Chakram (Stam) --> (Mag)
+	[198567] = 186209,  	-- Tidal Chakram (Mag) --> (Stam)
 }
 
 local abilityAdditionsReverse = {}
