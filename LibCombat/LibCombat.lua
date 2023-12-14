@@ -13,7 +13,7 @@ Add more debug Functions
 ]]
 
 local lib = {}
-lib.version = 70
+lib.version = 71
 LibCombat = lib
 
 -- Basic values
@@ -269,7 +269,6 @@ local StatusEffectIds = {
 
 }
 
-
 local abilityConversions = {	-- Ability conversions for tracking skill activations
 
 	[22178] = {22179, 2240, nil, nil}, --Sun Shield --> Sun Shield
@@ -283,6 +282,11 @@ local abilityConversions = {	-- Ability conversions for tracking skill activatio
 	[29173] = {53881, 2240, nil, nil}, --Weakness to Elements --> Major Breach
 	[39089] = {62775, 2240, nil, nil}, --Elemental Susceptibility --> Major Breach
 	[39095] = {62787, 2240, nil, nil}, --Elemental Drain --> Major Breach
+
+	[28799] = {146553, nil, nil, nil}, --Shock Impulse --> Shock Impulse
+	[39162] = {170989, nil, nil, nil}, --Flame Pulsar --> Flame Pulsar
+	[39167] = {146593, nil, nil, nil}, --Storm Pulsar --> Storm Pulsar
+	[39163] = {170990, nil, nil, nil}, --Frost Pulsar --> Frost Pulsar
 
 	[29556] = {63015, 2240, nil, nil}, --Evasion --> Major Evasion
 	[39195] = {63019, 2240, nil, nil}, --Shuffle --> Major Evasion
@@ -566,6 +570,7 @@ lib.GetFormattedAbilityIcon = GetFormattedAbilityIcon
 
 local UnitHandler = ZO_Object:Subclass()
 
+---@diagnostic disable-next-line: duplicate-set-field
 function UnitHandler:New(...)
     local object = ZO_Object.New(self)
     object:Initialize(...)
@@ -712,6 +717,7 @@ end
 
 local FightHandler = ZO_Object:Subclass()
 
+---@diagnostic disable-next-line: duplicate-set-field
 function FightHandler:New(...)
     local object = ZO_Object.New(self)
     object:Initialize(...)
@@ -2503,7 +2509,6 @@ local SpecialResults = {
 	[ACTION_RESULT_DIED] 	    	= "ACTION_RESULT_DIED",
 	[ACTION_RESULT_DIED_XP] 	    = "ACTION_RESULT_DIED_XP",
 	[ACTION_RESULT_KILLING_BLOW] 	= "ACTION_RESULT_KILLING_BLOW",
-	[ACTION_RESULT_LINKED_CAST] 	= "ACTION_RESULT_LINKED_CAST",
 	[ACTION_RESULT_PARTIAL_RESIST] 	= "ACTION_RESULT_PARTIAL_RESIST",
 	[ACTION_RESULT_PRECISE_DAMAGE] 	= "ACTION_RESULT_PRECISE_DAMAGE",
 	[ACTION_RESULT_REFLECTED] 		= "ACTION_RESULT_REFLECTED",
@@ -3427,7 +3432,6 @@ Events.General = EventHandler:New(GetAllCallbackTypes()
 			self:RegisterEvent(EVENT_COMBAT_EVENT, onWTF, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_BLOCKED)
 			self:RegisterEvent(EVENT_COMBAT_EVENT, onWTF, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_DIED_XP)
 			self:RegisterEvent(EVENT_COMBAT_EVENT, onWTF, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_KILLING_BLOW)
-			self:RegisterEvent(EVENT_COMBAT_EVENT, onWTF, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_LINKED_CAST)
 			self:RegisterEvent(EVENT_COMBAT_EVENT, onWTF, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_PARTIAL_RESIST)
 			self:RegisterEvent(EVENT_COMBAT_EVENT, onWTF, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_PRECISE_DAMAGE)
 			self:RegisterEvent(EVENT_COMBAT_EVENT, onWTF, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_REFLECTED)
@@ -3975,8 +3979,7 @@ function lib:GetCombatLogString(fight, logline, fontsize, showIds)
 
 			local ability = abilityId and ZO_CachedStrFormat("(<<1>>)", GetAbilityString(abilityId, "resource", fontsize, showIds)) or ""
 
-			color = (powerType == COMBAT_MECHANIC_FLAGS_MAGICKA and {0.7,0.7,1}) or (powerType == COMBAT_MECHANIC_FLAGS_STAMINA and {0.7,1,0.7}) or (powerType == COMBAT_MECHANIC_FLAGS_ULTIMATE and {1,1,0.7})
-
+			color = (powerType == COMBAT_MECHANIC_FLAGS_MAGICKA and {0.7,0.7,1}) or (powerType == COMBAT_MECHANIC_FLAGS_STAMINA and {0.7,1,0.7}) or (powerType == COMBAT_MECHANIC_FLAGS_ULTIMATE and {1,1,0.7}) or color
 			text = ZO_CachedStrFormat(logFormat, timeString, changeTypeString, amount, resource, ability)
 
 		else return

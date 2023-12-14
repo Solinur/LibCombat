@@ -1,8 +1,12 @@
-﻿70 DL: 3.364.832 (22.06.2023) 00:06
+﻿71 DL: 3,576,417 (14.12.2023) 21:08
+[*] Fixed tracking of Pulsar. (Thx to isiiimode for reporting)
+[*] Minor Fixes
+
+70 DL: 3.364.832 (22.06.2023) 00:06
 [*] Fixed tracking of several Arcanist abilities (incl. Fulminating Rune) when main resource is Stamina.
 
 69 DL: 3.277.057 (05.06.2023) 00:07
-[*] Added Support for weaving tracking of Arkanist Skill Lines
+[*] Added Support for weaving tracking of Arcanist Skill Lines
 [*] Fixed and improved tracking of resources.
 (v68 was accidentally published with unfinished code)
 
