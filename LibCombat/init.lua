@@ -4,7 +4,6 @@ local lib = LibCombat
 local dx = math.ceil(GuiRoot:GetWidth()/tonumber(GetCVar("WindowedWidth"))*1000)/1000
 LIBCOMBAT_LINE_SIZE = dx
 
-
 -- Basic values
 lib.name = "LibCombat"
 lib.version = 64
@@ -18,6 +17,7 @@ libint.debug = false or GetDisplayName() == "@Solinur"
 -- variables
 
 libint.abilityIdZen = 126597
+libint.abilityIdForceOfNature = 174250
 
 -- Logger
 

@@ -38,6 +38,25 @@ libint.specialBuffs = {	-- buffs that the API doesn't show via EVENT_EFFECT_CHAN
 libint.specialDebuffs = {   -- debuffs that the API doesn't show via EVENT_EFFECT_CHANGED and need to be specially tracked via EVENT_COMBAT_EVENT
 
 	95136,  -- Chilled (used for tracking Warden crit damage buff)
+	178118,	-- Status Effect Magic (Overcharged)
+	95136,  -- Status Effect Frost (Chill, used for tracking Warden crit damage buff)
+	95134,  -- Status Effect Lightning (Concussion)
+	178123,  -- Status Effect Physical (Sundered)
+	178127,  -- Status Effect Foulness (Diseased)
+	148801,  -- Status Effect Bleeding (Hemorrhaging)
+
+}
+
+libint.statusEffectIds = {
+
+	[178118] = true, -- Magic (Overcharged)
+	[18084]  = true, -- Fire (Burning)
+	[95136]  = true, -- Frost (Chill)
+	[95134]  = true, -- Lightning (Concussion)
+	[178123] = true, -- Physical (Sundered)
+	[21929]  = true, -- Poison (Poisoned)
+	[178127] = true, -- Foulness (Diseased)
+	[148801] = true, -- Bleeding (Hemorrhaging)
 
 }
 
@@ -147,7 +166,8 @@ local function BuffEventHandler(isspecial, groupeffect, _, changeType, effectSlo
 			unit.starttime = unit.starttime or timems
 			unit.endtime = timems
 
-			if sourceType == COMBAT_UNIT_TYPE_PLAYER and (abilityId == libint.abilityIdZen or abilityType == ABILITY_TYPE_DAMAGE) then stacks = unit:UpdateZenData(eventid, timems, unitId, abilityId, changeType, effectType, stacks, sourceType, effectSlot, abilityType) end
+			if sourceType == COMBAT_UNIT_TYPE_PLAYER and (abilityId == libint.abilityIdZen or abilityType == ABILITY_TYPE_DAMAGE) then unit:UpdateZenData((CallbackKeys[eventid]), eventid, timems, unitId, abilityId, changeType, effectType, stacks, sourceType, effectSlot, abilityType) end
+			if libint.StatusEffectIds[abilityId] and (sourceType == COMBAT_UNIT_TYPE_PLAYER or (unitName == "" and unit.forceOfNature[abilityId] and libint.SpecialDebuffs[abilityId])) then unit:UpdateForceOfNatureData((CallbackKeys[eventid]), eventid, timems, unitId, abilityId, changeType, effectType, stacks, sourceType, effectSlot) end
 
 		end
 
@@ -188,12 +208,12 @@ local function SpecialBuffEventHandler(isdebuff, _, result, _, _, _, _, sourceNa
 
 	if libint.badAbility[abilityId] == true or (result == ACTION_RESULT_EFFECT_GAINED and hitValue < 2) then return end
 
-	if result == ACTION_RESULT_EFFECT_GAINED_DURATION then 
-		
-		DurationCache[abilityId] = hitValue 
-	
-	elseif DurationCache[abilityId] == nil and result == ACTION_RESULT_EFFECT_FADED then 
-		
+	if result == ACTION_RESULT_EFFECT_GAINED_DURATION then
+
+		DurationCache[abilityId] = hitValue
+
+	elseif DurationCache[abilityId] == nil and result == ACTION_RESULT_EFFECT_FADED then
+
 		DurationCache[abilityId] = hitValue
 
 	end
@@ -248,20 +268,20 @@ libint.Events.Effects = libint.EventHandler:New(
 
 			self:RegisterEvent(EVENT_COMBAT_EVENT, onSpecialBuffEvent, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_GAINED_DURATION, REGISTER_FILTER_ABILITY_ID, libint.specialBuffs[i], REGISTER_FILTER_IS_ERROR, false)
 			self:RegisterEvent(EVENT_COMBAT_EVENT, onSpecialBuffEvent, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_FADED, REGISTER_FILTER_ABILITY_ID, libint.specialBuffs[i], REGISTER_FILTER_IS_ERROR, false)
-		
+
 		end
 
 		for i=1,#libint.specialDebuffs do
 
 			self:RegisterEvent(EVENT_COMBAT_EVENT, onSpecialDebuffEvent, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_GAINED_DURATION, REGISTER_FILTER_ABILITY_ID, libint.specialDebuffs[i], REGISTER_FILTER_IS_ERROR, false)
 			self:RegisterEvent(EVENT_COMBAT_EVENT, onSpecialDebuffEvent, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_FADED, REGISTER_FILTER_ABILITY_ID, libint.specialDebuffs[i], REGISTER_FILTER_IS_ERROR, false)
-		
+
 		end
 
 		for i=1,#libint.sourceBuggedBuffs do
 
 			self:RegisterEvent(EVENT_EFFECT_CHANGED, onSourceBuggedEffectChanged, REGISTER_FILTER_ABILITY_ID, libint.sourceBuggedBuffs[i])
-		
+
 		end
 
 		-- self:RegisterEvent(EVENT_COMBAT_EVENT, onAlkoshDmg, REGISTER_FILTER_ABILITY_ID, 75752, REGISTER_FILTER_IS_ERROR, false)

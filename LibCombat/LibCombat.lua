@@ -13,9 +13,9 @@ Add more debug Functions
 ]]
 
 local lib = LibCombat
+local libdata = lib.data
 local libint = lib.internal
 local libfunc = libint.functions
-local libdata = lib.data
 local EventHandler = libint.EventHandler
 local Events = libint.Events
 
@@ -69,6 +69,11 @@ libint.abilityConversions = {	-- Ability conversions for tracking skill activati
 	[29173] = {53881, 2240, nil, nil}, --Weakness to Elements --> Major Breach
 	[39089] = {62775, 2240, nil, nil}, --Elemental Susceptibility --> Major Breach
 	[39095] = {62787, 2240, nil, nil}, --Elemental Drain --> Major Breach
+
+	[28799] = {146553, nil, nil, nil}, --Shock Impulse --> Shock Impulse
+	[39162] = {170989, nil, nil, nil}, --Flame Pulsar --> Flame Pulsar
+	[39167] = {146593, nil, nil, nil}, --Storm Pulsar --> Storm Pulsar
+	[39163] = {170990, nil, nil, nil}, --Frost Pulsar --> Frost Pulsar
 
 	[29556] = {63015, 2240, nil, nil}, --Evasion --> Major Evasion
 	[39195] = {63019, 2240, nil, nil}, --Shuffle --> Major Evasion
@@ -164,14 +169,64 @@ libint.abilityConversions = {	-- Ability conversions for tracking skill activati
 	[40493] = {163236, 2240, nil, nil}, --Shooting Star --> Shooting Star
 	[40489] = {163238, 2240, nil, nil}, --Ice Comet --> Meteor
 
+	[185836] = {185838, 2240, nil, nil}, --The Imperfect Ring (Stam) --> The Imperfect Ring
+	[201286] = {185838, 2240, nil, nil}, --The Imperfect Ring (Mag) --> The Imperfect Ring
+	[185839] = {185841, 2240, nil, nil}, --Rune of Displacement (Stam) --> Rune of Displacement
+	[201293] = {185841, 2240, nil, nil}, --Rune of Displacement (Mag) --> Rune of Displacement
+	[182988] = {182989, 2240, nil, nil}, --Fulminating Rune (Stam) --> Fulminating Rune
+	[201296] = {182989, 2240, nil, nil}, --Fulminating Rune (Mag) --> Fulminating Rune
+
+	[185912] = {185913, 2240, nil, nil}, --Runic Defense --> Minor Resolve
+	[186489] = {186490, 2240, nil, nil}, --Runeguard of Freedom --> Minor Resolve
+
 }
 
 local abilityAdditions = { -- Abilities to register additionally because they change in fight
 
-	[61902] = 61907,    -- Grim Focus --> Assasins Will
+[61902] = 61907,    -- Grim Focus --> Assasins Will
+	[61907] = 61902,    -- Assasins Will --> Grim Focus
 	[61919] = 61930,    -- Merciless Resolve --> Assasins Will
+	[61930] = 61919,    -- Assasins Will --> Merciless Resolve
 	[61927] = 61932,    -- Relentless Focus --> Assasins Scourge
+	[61932] = 61927,    -- Assasins Scourge --> Relentless Focus
 	[46324] = 114716,  	-- Crystal Fragments Proc
+	[114716] = 46324,  	-- Crystal Fragments Proc Fades
+	[185836] = 201286,  	-- The Imperfect Ring (Stam) --> (Mag)
+	[201286] = 185836,  	-- The Imperfect Ring (Mag) --> (Stam)
+	[185839] = 201293,  	-- Rune of Displacement (Stam) --> (Mag)
+	[201293] = 185839,  	-- Rune of Displacement (Mag) --> (Stam)
+	[182988] = 201296,  	-- Fulminating Rune (Stam) --> (Mag)s
+	[201296] = 182988,  	-- Fulminating Rune (Mag) --> (Stam)
+	[185794] = 188658,  	-- Runeblades (Stam) --> (Mag)
+	[188658] = 185794,  	-- Runeblades (Mag) --> (Stam)
+	[185805] = 193331,  	-- Fatecarver (Stam) --> (Mag)
+	[193331] = 185805,  	-- Fatecarver (Mag) --> (Stam)
+	[183261] = 198282,  	-- Runemend (Stam) --> (Mag)
+	[198282] = 183261,  	-- Runemend (Mag) --> (Stam)
+	[183537] = 198309,  	-- Remedy Cascade (Stam) --> (Mag)
+	[198309] = 183537,  	-- Remedy Cascade (Mag) --> (Stam)
+	[183447] = 198563,  	-- Chakram Shields (Stam) --> (Mag)
+	[198563] = 183447,  	-- Chakram Shields (Mag) --> (Stam)
+	[185803] = 188787,  	-- Writhing Runeblades (Stam) --> (Mag)
+	[188787] = 185803,  	-- Writhing Runeblades (Mag) --> (Stam)
+	[183122] = 193397,  	-- Exhausting Fatecarver (Stam) --> (Mag)
+	[193397] = 183122,  	-- Exhausting Fatecarver (Mag) --> (Stam)
+	[186189] = 198288,  	-- Evolving Runemend (Stam) --> (Mag)
+	[198288] = 186189,  	-- Evolving Runemend (Mag) --> (Stam)
+	[186193] = 198330,  	-- Cascading Fortune (Stam) --> (Mag)
+	[198330] = 186193,  	-- Cascading Fortune (Mag) --> (Stam)
+	[186207] = 198564,  	-- Chakram of Destiny (Stam) --> (Mag)
+	[198564] = 186207,  	-- Chakram of Destiny (Mag) --> (Stam)
+	[182977] = 188780,  	-- Escalating Runeblades (Stam) --> (Mag)
+	[188780] = 182977,  	-- Escalating Runeblades (Mag) --> (Stam)
+	[186366] = 193398,  	-- Pragmatic Fatecarver (Stam) --> (Mag)
+	[193398] = 186366,  	-- Pragmatic Fatecarver (Mag) --> (Stam)
+	[186191] = 198292,  	-- Audacious Runemend (Stam) --> (Mag)
+	[198292] = 186191,  	-- Audacious Runemend (Mag) --> (Stam)
+	[186200] = 198537,  	-- Curative Surge (Stam) --> (Mag)
+	[198537] = 186200,  	-- Curative Surge (Mag) --> (Stam)
+	[186209] = 198567,  	-- Tidal Chakram (Stam) --> (Mag)
+	[198567] = 186209,  	-- Tidal Chakram (Mag) --> (Stam)
 
 }
 
@@ -225,6 +280,7 @@ local validSkillEndResults = {
 
 local FightHandler = ZO_Object:Subclass()
 
+---@diagnostic disable-next-line: duplicate-set-field
 function FightHandler:New(...)
     local object = ZO_Object.New(self)
     object:Initialize(...)
@@ -358,6 +414,13 @@ local function GetOtherBuffs(timems)
 
 				local unit = libint.currentfight.units[unitId]
 				if unit then unit:UpdateZenData(unpack(logdata), abilityType) end
+
+			end
+
+			if sourceType == COMBAT_UNIT_TYPE_PLAYER and libint.StatusEffectIds[abilityId] then
+
+				local unit = libint.currentfight.units[unitId]
+				if unit then unit:UpdateForceOfNatureData((CallbackKeys[logdata[1]]), unpack(logdata)) end
 
 			end
 		end
@@ -836,6 +899,7 @@ function FightHandler:UpdateFightStats()
 		["HPSAOut"] = self.HPSAOut,
 		["HPSIn"] = self.HPSIn,
 		["healingOutTotal"] = self.healingOutTotal,
+		["damageOutTotal"] = self.damageOutTotal,
 		["dpstime"] = dpstime,
 		["hpstime"] = hpstime,
 		["bossfight"] = self.bossfight,
@@ -1220,15 +1284,40 @@ local function onMageExplode( _, changeType, effectSlot, _, unitTag, _, endTime,
 
 end
 
-local function checkLastAbilities(powerType, powerValueChange)
+local SPRINT_STATE_ACTIVE = 1
+local SPRINT_STATE_NONE = 0
 
-	local lastabilities = libdata.lastabilities
+local function GetPlayerSprintState()
 
-	local aId = -1
+	for slot = 3,8 do
+
+		local anyAbilityActive = not (
+			ActionSlotHasTargetFailure(slot, HOTBAR_CATEGORY_PRIMARY) and
+			ActionSlotHasNonCostStateFailure(slot, HOTBAR_CATEGORY_PRIMARY) and
+			ActionSlotHasTargetFailure(slot, HOTBAR_CATEGORY_BACKUP) and
+			ActionSlotHasNonCostStateFailure(slot, HOTBAR_CATEGORY_PRIMARY)
+		)
+
+		if anyAbilityActive then return SPRINT_STATE_NONE end
+
+	end
+
+	return SPRINT_STATE_ACTIVE
+
+end
+
+local function checkLastAbilities(timems, powerType, powerValueChange, powerValue)
+
+	local lastabilities = data.lastabilities
+
+	local abilityId = -1
+	local adjustedPowerValueChange
+	-- Print("events", LOG_LEVEL_INFO, "Check %d Abilities: %d, %d, %d", #lastabilities, powerType, powerValueChange, powerValue)
 
 	for i = #lastabilities, 1, -1 do
 
 		local values = lastabilities[i]
+		-- Print("events", LOG_LEVEL_INFO, "Check: %s (%d), %d, %d", GetFormattedAbilityName(values[2]), values[2], powerValueChange / values[3], values[4])
 
 		if powerType == values[4] then
 
@@ -1238,112 +1327,237 @@ local function checkLastAbilities(powerType, powerValueChange)
 
 			if goodratio then
 
-				-- if values[3] < 0 then df("Ratio: %.3f (**%s: %d vs. %d) %d", ratio, GetFormattedAbilityName(values[2]), values[3], powerValueChange, #lastabilities-i) end
+				-- Print("events", LOG_LEVEL_INFO, "Ratio: %.3f (**%s: %d vs. %d) %d", ratio, GetFormattedAbilityName(values[2]), values[3], powerValueChange, #lastabilities-i)
 
-				aId = values[2]
+				abilityId = values[2]
 				table.remove(lastabilities, i)
 
 				break
 
-			end
+			elseif values[2] == 58431 and GetAllyUnitBlockState("player") == BLOCK_STATE_ACTIVE then	-- check if Constitution coincides with Block
 
-			-- if i == #lastabilities and values[3] < 0 then df("Ratio: %.3f (%s: %d vs. %d)", ratio, GetFormattedAbilityName(values[2]), values[3], powerValueChange) end
+				local blockCost = select(2, GetAdvancedStatValue(ADVANCED_STAT_DISPLAY_TYPE_BLOCK_COST))
+
+				local combinedPowerValueChange = values[3] - blockCost
+
+				local ratio = powerValueChange / combinedPowerValueChange
+
+				local goodratio = ratio >= 0.98 and ratio <= 1.06
+
+				if goodratio then
+
+					-- Print("events", LOG_LEVEL_INFO, "Ratio: %.3f (**%s: %d vs. %d) %d", ratio, GetFormattedAbilityName(values[2]), combinedPowerValueChange, powerValueChange, #lastabilities-i)
+
+					abilityId = 23542
+					adjustedPowerValueChange = - blockCost
+					table.remove(lastabilities, i)
+
+					-- Print("events", LOG_LEVEL_INFO, "Resource: %s (%d): %d (%d) --> %d", GetFormattedAbilityName(values[2]), values[2], values[3], powerType, powerValue - adjustedPowerValueChange)
+
+					lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_RESOURCES]), LIBCOMBAT_EVENT_RESOURCES, timems, values[2], values[3], powerType, powerValue - adjustedPowerValueChange)
+
+					break
+				end
+			end
 		end
+
+		if (values[1] - timems) > 1000 then break end
 	end
 
-	return aId
+	-- Print("events", LOG_LEVEL_INFO, "Ability Result: %s (%d), %d", GetFormattedAbilityName(abilityId), abilityId, tostring(adjustedPowerValueChange))
+
+	return abilityId, adjustedPowerValueChange
 
 end
 
-local function onBaseResourceChanged(_,unitTag,_,powerType,powerValue,_,_)
+local function checkForCombatActions(timems, powerValueChange)
 
-	if unitTag ~= "player" then return end
-	if (powerType ~= COMBAT_MECHANIC_FLAGS_HEALTH and powerType ~= COMBAT_MECHANIC_FLAGS_MAGICKA and powerType ~= COMBAT_MECHANIC_FLAGS_STAMINA and powerType ~= COMBAT_MECHANIC_FLAGS_ULTIMATE) or (libdata.inCombat == false) then return end
+	if powerValueChange > 0 then return -1 end
+
+	if GetAllyUnitBlockState("player") == BLOCK_STATE_ACTIVE then
+
+		local blockRatio = select(2, GetAdvancedStatValue(ADVANCED_STAT_DISPLAY_TYPE_BLOCK_COST)) / -powerValueChange
+
+		if blockRatio >= 0.98 and blockRatio <= 1.02 then
+
+			-- Print("events", LOG_LEVEL_INFO, "Skill cost: %d Stamina (Block)", powerValueChange)
+			return 23542
+
+		end
+	end
+
+	local bashRatio = select(2, GetAdvancedStatValue(ADVANCED_STAT_DISPLAY_TYPE_BASH_COST))     / -powerValueChange
+	if bashRatio >= 0.98 and bashRatio <= 1.02 then
+
+		-- Print("events", LOG_LEVEL_INFO, "Skill cost: %d Stamina (Bash)", powerValueChange)
+		return 21970
+
+	end
+
+	local dodgeRatio = select(2, GetAdvancedStatValue(ADVANCED_STAT_DISPLAY_TYPE_DODGE_COST))    / -powerValueChange
+	if dodgeRatio >= 0.98 and dodgeRatio <= 1.02 then
+
+		-- Print("events", LOG_LEVEL_INFO, "Skill cost: %d Stamina (Dodge)", powerValueChange)
+		return 28549
+
+	end
+
+	local breakFreeRatio = select(2, GetAdvancedStatValue(ADVANCED_STAT_DISPLAY_TYPE_CC_BREAK_COST)) / -powerValueChange
+	if breakFreeRatio >= 0.98 and breakFreeRatio <= 1.02 then
+
+		-- Print("events", LOG_LEVEL_INFO, "Skill cost: %d Stamina (Break Free)", powerValueChange)
+		return 16565
+
+	end
+
+	if GetUnitStealthState("player") == STEALTH_STATE_HIDING or GetUnitStealthState("player") == STEALTH_STATE_HIDDEN and powerValueChange < 0 and powerValueChange > -20 then
+
+		-- Print("events", LOG_LEVEL_INFO, "Skill cost: %d Stamina (Sneak)", powerValueChange)
+		return  20299
+
+	end
+
+	if GetPlayerSprintState() == SPRINT_STATE_ACTIVE and powerValueChange < 0 and powerValueChange > -20 then
+
+		-- Print("events", LOG_LEVEL_INFO, "Skill cost: %d Stamina (Sprint)", powerValueChange)
+		return  15617
+
+	end
+end
+
+local function onBaseResourceChanged(powerType, powerValue, powerValueChange)
 
 	local timems = GetGameTimeMilliseconds()
-	local aId
+	local abilityId, adjustedPowerValueChange
+
+ 	if powerType == COMBAT_MECHANIC_FLAGS_MAGICKA then
+
+		local regenerationTick = libfunc.GetStat(STAT_MAGICKA_REGEN_COMBAT)
+
+		-- Print("events", LOG_LEVEL_INFO, "Magicka change: %d", powerValueChange)
+
+		-- Check for recently used skills
+
+		abilityId = checkLastAbilities(timems, powerType, powerValueChange, powerValue)
+
+		-- Check for regeneration tick
+
+		if abilityId == -1 and powerValueChange == regenerationTick or (powerValueChange > 0 and powerValueChange <= regenerationTick and powerValue == data.stats[LIBCOMBAT_STAT_MAXMAGICKA]) then
+
+			abilityId = 0
+
+			-- Print("events", LOG_LEVEL_INFO, "Magicka Regeneration  (%d)", powerValueChange)
+
+		elseif abilityId == -1 then	-- Check for combination of skill and regeneration tick
+
+			abilityId = checkLastAbilities(timems, powerType, powerValueChange + regenerationTick, powerValue)
+
+			if abilityId ~= -1 then
+
+				-- Print("events", LOG_LEVEL_INFO, "Resource: %s (%d): %d (%d) --> %d", "Regeneration", 0, regenerationTick, powerType, powerValue + regenerationTick)
+
+				lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_RESOURCES]), LIBCOMBAT_EVENT_RESOURCES, timems, 0, regenerationTick, powerType, powerValue + regenerationTick)
+				powerValueChange = powerValueChange - regenerationTick
+
+			end
+		end
+
+	elseif powerType == COMBAT_MECHANIC_FLAGS_STAMINA then
+
+		local regenerationTick = libfunc.GetStat(STAT_STAMINA_REGEN_COMBAT)
+
+		-- Print("events", LOG_LEVEL_INFO, "Stamina change: %d", powerValueChange)
+
+		-- Check for recently used skills
+
+		abilityId, adjustedPowerValueChange = checkLastAbilities(timems, powerType, powerValueChange, powerValue)
+
+		if adjustedPowerValueChange then powerValueChange = adjustedPowerValueChange end
+
+		-- Check for regeneration tick
+
+		if abilityId == -1 and powerValueChange == regenerationTick or (powerValueChange > 0 and powerValueChange <= regenerationTick and powerValue == libdata.stats[LIBCOMBAT_STAT_MAXMAGICKA]) then
+
+			abilityId = 0
+
+			-- Print("events", LOG_LEVEL_INFO, "Stamina Regeneration (%d)", powerValueChange)
+
+		elseif abilityId == -1 then -- Check for combat actions
+
+			abilityId = checkForCombatActions(timems, powerValueChange)
+
+			if abilityId == -1 then	-- Check for combination of skill and regeneration tick
+
+				abilityId, adjustedPowerValueChange = checkLastAbilities(timems, powerType, powerValueChange + regenerationTick, powerValue)
+
+				if adjustedPowerValueChange then powerValueChange = adjustedPowerValueChange end
+
+				if abilityId ~= -1 then
+
+					-- Print("events", LOG_LEVEL_INFO, "Resource: %s (%d): %d (%d) --> %d", "Regeneration", 0, regenerationTick, powerType, powerValue + regenerationTick)
+
+					lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_RESOURCES]), LIBCOMBAT_EVENT_RESOURCES, timems, 0, regenerationTick, powerType, powerValue + regenerationTick)
+					powerValueChange = powerValueChange - regenerationTick
+
+				end
+			end
+		end
+
+	elseif powerType == COMBAT_MECHANIC_FLAGS_ULTIMATE then
+
+		abilityId = 0
+
+	elseif powerType == COMBAT_MECHANIC_FLAGS_HEALTH then
+
+		abilityId = -1
+
+		if powerValueChange == libfunc.GetStat(STAT_HEALTH_REGEN_COMBAT) and libdata.playerid then
+
+			abilityId = 0
+
+			lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_HEAL_SELF]), LIBCOMBAT_EVENT_HEAL_SELF, timems, ACTION_RESULT_HOT_TICK, libdata.playerid, libdata.playerid, abilityId, powerValueChange, powerType, 0)
+			return
+
+		end
+	end
+
+	-- Print("events", LOG_LEVEL_INFO, "Resource: %s (%d): %d (%d) --> %d", GetFormattedAbilityName(abilityId), abilityId, powerValueChange, powerType, powerValue)
+
+	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_RESOURCES]), LIBCOMBAT_EVENT_RESOURCES, timems, abilityId, powerValueChange, powerType, powerValue)
+end
+
+local function onBaseResourceChangedDelayed(_,unitTag,_,powerType,powerValue,_,_)
+
+	-- Print("events", LOG_LEVEL_INFO, "onBaseResourceChangedDelayed?")
+
+	if unitTag ~= "player" or (libdata.inCombat == false) then return end
+	if powerType ~= COMBAT_MECHANIC_FLAGS_HEALTH and powerType ~= COMBAT_MECHANIC_FLAGS_MAGICKA and powerType ~= COMBAT_MECHANIC_FLAGS_STAMINA and powerType ~= COMBAT_MECHANIC_FLAGS_ULTIMATE then return end
 
 	local powerValueChange = powerValue - (libdata.resources[powerType] or powerValue)
 	libdata.resources[powerType] = powerValue
 
 	if powerValueChange == 0 then return end
 
-	if powerType == COMBAT_MECHANIC_FLAGS_MAGICKA then
+	-- Print("events", LOG_LEVEL_INFO, "onBaseResourceChangedDelayed: %s, %d, %d", unitTag, powerType, powerValueChange)
 
-		Print("events","VERBOSE", "Skill cost: %d", powerValueChange)
-
-		aId = checkLastAbilities(powerType, powerValueChange)
-
-		if aId == -1 and powerValueChange == libfunc.GetStat(STAT_MAGICKA_REGEN_COMBAT) then
-
-			aId = 0
-
-		end
-
-	elseif powerType == COMBAT_MECHANIC_FLAGS_STAMINA then
-
-		aId = checkLastAbilities(powerType, powerValueChange)
-
-		if powerValueChange == libfunc.GetStat(STAT_STAMINA_REGEN_COMBAT) and aId == -1 then
-
-			aId = 0
-
-		elseif aId == -1 then
-
-			local bashratio = -GetAbilityCost(21970) * 5/3 / powerValueChange
-			local dodgeratio = -GetAbilityCost(28549) / powerValueChange
-
-			local goodbashratio = bashratio >= 0.98 and bashratio <= 1.02
-			local gooddodgeratio = dodgeratio >= 0.98 and dodgeratio <= 1.02
-
-			if goodbashratio then
-
-				aId = 21970
-
-			elseif gooddodgeratio then
-
-				aId = 28549
-
-			end
-		end
-
-	elseif powerType == COMBAT_MECHANIC_FLAGS_ULTIMATE then
-
-		aId = 0
-
-	elseif powerType == COMBAT_MECHANIC_FLAGS_HEALTH then
-
-		aId = -1
-
-		if powerValueChange == libfunc.GetStat(STAT_HEALTH_REGEN_COMBAT) and libdata.playerid then
-
-			aId = 0
-
-			lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_HEAL_SELF]), LIBCOMBAT_EVENT_HEAL_SELF, timems, ACTION_RESULT_HOT_TICK, libdata.playerid, libdata.playerid, aId, powerValueChange, powerType, 0)
-			return
-
-		end
-	end
-
-	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_RESOURCES]), LIBCOMBAT_EVENT_RESOURCES, timems, aId, powerValueChange, powerType, powerValue)
+	zo_callLater(function() onBaseResourceChanged(powerType, powerValue, powerValueChange) end, 0)
 end
 
 --(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId, overflow)
 local function onResourceChanged (_, result, _, _, _, _, _, _, targetName, _, powerValueChange, powerType, _, _, sourceUnitId, targetUnitId, abilityId)
 
-	local lastabilities = libdata.lastabilities
-
 	if libdata.playerid == nil and targetName == libdata.rawPlayername then libdata.playerid = targetUnitId end
 
-	local timems = GetGameTimeMilliseconds()
+	if (powerType ~= COMBAT_MECHANIC_FLAGS_MAGICKA and powerType ~= COMBAT_MECHANIC_FLAGS_STAMINA) or libdata.inCombat == false or powerValueChange < 1 then return end
 
-	if (powerType ~= 0 and powerType ~= 6) or libdata.inCombat == false or powerValueChange < 1 then return end
+	local timems = GetGameTimeMilliseconds()
+	local lastabilities = libdata.lastabilities
 
 	if result == ACTION_RESULT_POWER_DRAIN then powerValueChange = -powerValueChange end
 
 	table.insert(lastabilities,{timems, abilityId, powerValueChange, powerType})
 
-	if #lastabilities > 10 then table.remove(lastabilities, 1) end
+	if #lastabilities > libint.ABILITY_RESOURCE_CACHE_SIZE then table.remove(lastabilities, 1) end
 end
 
 local function onWeaponSwap(_, isHotbarSwap)
@@ -1453,7 +1667,6 @@ local SpecialResults = {
 	[ACTION_RESULT_DIED] 	    	= "ACTION_RESULT_DIED",
 	[ACTION_RESULT_DIED_XP] 	    = "ACTION_RESULT_DIED_XP",
 	[ACTION_RESULT_KILLING_BLOW] 	= "ACTION_RESULT_KILLING_BLOW",
-	[ACTION_RESULT_LINKED_CAST] 	= "ACTION_RESULT_LINKED_CAST",
 	[ACTION_RESULT_PARTIAL_RESIST] 	= "ACTION_RESULT_PARTIAL_RESIST",
 	[ACTION_RESULT_PRECISE_DAMAGE] 	= "ACTION_RESULT_PRECISE_DAMAGE",
 	[ACTION_RESULT_REFLECTED] 		= "ACTION_RESULT_REFLECTED",
@@ -1738,11 +1951,11 @@ local function GetPowerTypes(abilityId)
 
 		for i = 1, 4 do
 
-			local powerType = GetNextAbilityMechanicFlag(abilityId)
+			local powerType = GetNextAbilityMechanicFlag(abilityId, lastPowerType)
 
 			if powerType and (powerType == COMBAT_MECHANIC_FLAGS_HEALTH or powerType == COMBAT_MECHANIC_FLAGS_MAGICKA or powerType == COMBAT_MECHANIC_FLAGS_STAMINA) then
 
-				newData[powerType] = GetAbilityCost(abilityId,powerType)	-- add cost over time ??
+				newData[powerType] = GetAbilityCost(abilityId,powerType, nil, "player")	-- add cost over time ??
 
 			elseif powerType == nil then
 
@@ -1763,10 +1976,11 @@ local function onSlotUsed(_, slot)
 
 	local timems = GetGameTimeMilliseconds()
 	local abilityId = GetSlotBoundId(slot, GetActiveHotbarCategory())
+	-- Print("events", LOG_LEVEL_INFO, "Ability Used: %s (%d)", GetFormattedAbilityName(abilityId), abilityId)
 	local powerTypes = GetPowerTypes(abilityId)
 	local lastabilities = libdata.lastabilities
 
-	if Events.Resources.active and slot > 2 and #powerTypes > 0 then
+	if Events.Resources.active and slot > 2 and NonContiguousCount(powerTypes) > 0 then
 
 		for powerType, cost in pairs(powerTypes) do
 
@@ -1774,7 +1988,7 @@ local function onSlotUsed(_, slot)
 
 		end
 
-		if #lastabilities > 10 then table.remove(lastabilities, 1) end
+		if #lastabilities > ABILITY_RESOURCE_CACHE_SIZE  then table.remove(lastabilities, 1) end
 
 	end
 
@@ -2085,7 +2299,6 @@ Events.General = EventHandler:New(
 			self:RegisterEvent(EVENT_COMBAT_EVENT, onWTF, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_BLOCKED)
 			self:RegisterEvent(EVENT_COMBAT_EVENT, onWTF, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_DIED_XP)
 			self:RegisterEvent(EVENT_COMBAT_EVENT, onWTF, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_KILLING_BLOW)
-			self:RegisterEvent(EVENT_COMBAT_EVENT, onWTF, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_LINKED_CAST)
 			self:RegisterEvent(EVENT_COMBAT_EVENT, onWTF, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_PARTIAL_RESIST)
 			self:RegisterEvent(EVENT_COMBAT_EVENT, onWTF, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_PRECISE_DAMAGE)
 			self:RegisterEvent(EVENT_COMBAT_EVENT, onWTF, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_REFLECTED)
@@ -2101,7 +2314,7 @@ Events.General = EventHandler:New(
 Events.Resources = EventHandler:New(
 	{LIBCOMBAT_EVENT_RESOURCES},
 	function (self)
-		self:RegisterEvent(EVENT_POWER_UPDATE, onBaseResourceChanged, REGISTER_FILTER_UNIT_TAG, "player")
+		self:RegisterEvent(EVENT_POWER_UPDATE, onBaseResourceChangedDelayed, REGISTER_FILTER_UNIT_TAG, "player")
 		self:RegisterEvent(EVENT_COMBAT_EVENT, onResourceChanged, REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_POWER_ENERGIZE, REGISTER_FILTER_IS_ERROR, false)
 		self:RegisterEvent(EVENT_COMBAT_EVENT, onResourceChanged, REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_POWER_DRAIN, REGISTER_FILTER_IS_ERROR, false)
 		self.active = true

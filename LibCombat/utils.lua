@@ -34,6 +34,7 @@ local CustomAbilityIcon = {
 
 	[0] = "esoui/art/icons/achievement_wrothgar_046.dds",
 	[122729] = "esoui/art/icons/ability_warrior_025.dds",
+	[libint.abilityIdForceOfNature] = "esoui/art/icons/ability_healer_018.dds",
 
 }
 
@@ -320,7 +321,7 @@ function lib:GetCombatLogString(fight, logline, fontsize, showIds)
 
 			local ability = abilityId and ZO_CachedStrFormat("(<<1>>)", GetAbilityString(abilityId, "resource", fontsize, showIds)) or ""
 
-			color = (powerType == COMBAT_MECHANIC_FLAGS_MAGICKA and {0.7,0.7,1}) or (powerType == COMBAT_MECHANIC_FLAGS_STAMINA and {0.7,1,0.7}) or (powerType == COMBAT_MECHANIC_FLAGS_ULTIMATE and {1,1,0.7})
+			color = (powerType == COMBAT_MECHANIC_FLAGS_MAGICKA and {0.7,0.7,1}) or (powerType == COMBAT_MECHANIC_FLAGS_STAMINA and {0.7,1,0.7}) or (powerType == COMBAT_MECHANIC_FLAGS_ULTIMATE and {1,1,0.7}) or color
 	
 			text = ZO_CachedStrFormat(logFormat, timeString, changeTypeString, amount, resource, ability)
 
