@@ -1060,6 +1060,7 @@ end
 
 local UnitDeathCacheHandler = ZO_Object:Subclass()	-- holds all recent events + info to send on death
 
+---@diagnostic disable-next-line: duplicate-set-field
 function UnitDeathCacheHandler:New(...)
     local object = ZO_Object.New(self)
     object:Initialize(...)
@@ -1308,7 +1309,7 @@ end
 
 local function checkLastAbilities(timems, powerType, powerValueChange, powerValue)
 
-	local lastabilities = data.lastabilities
+	local lastabilities = libdata.lastabilities
 
 	local abilityId = -1
 	local adjustedPowerValueChange
@@ -1442,7 +1443,7 @@ local function onBaseResourceChanged(powerType, powerValue, powerValueChange)
 
 		-- Check for regeneration tick
 
-		if abilityId == -1 and powerValueChange == regenerationTick or (powerValueChange > 0 and powerValueChange <= regenerationTick and powerValue == data.stats[LIBCOMBAT_STAT_MAXMAGICKA]) then
+		if abilityId == -1 and powerValueChange == regenerationTick or (powerValueChange > 0 and powerValueChange <= regenerationTick and powerValue == libdata.stats[LIBCOMBAT_STAT_MAXMAGICKA]) then
 
 			abilityId = 0
 
@@ -1988,7 +1989,7 @@ local function onSlotUsed(_, slot)
 
 		end
 
-		if #lastabilities > ABILITY_RESOURCE_CACHE_SIZE  then table.remove(lastabilities, 1) end
+		if #lastabilities > libint.ABILITY_RESOURCE_CACHE_SIZE  then table.remove(lastabilities, 1) end
 
 	end
 

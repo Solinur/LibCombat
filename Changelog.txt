@@ -1,4 +1,38 @@
-﻿61 DL: 2.536.688  (12.06.2022) 23:16
+﻿71 DL: 3,576,417 (14.12.2023) 21:08
+[*] Fixed tracking of Pulsar. (Thx to isiiimode for reporting)
+[*] Minor Fixes
+
+70 DL: 3.364.832 (22.06.2023) 00:06
+[*] Fixed tracking of several Arcanist abilities (incl. Fulminating Rune) when main resource is Stamina.
+
+69 DL: 3.277.057 (05.06.2023) 00:07
+[*] Added Support for weaving tracking of Arcanist Skill Lines
+[*] Fixed and improved tracking of resources.
+(v68 was accidentally published with unfinished code)
+
+67 DL: 3,206,960 (16.05.2023) 00:18
+[*] Added support for Force of Nature (by popular request)
+
+66 DL: 3.072.976 (16.03.2023) 00:09
+[*] Fixed an issue where Z'en stacks could go higher than 5.
+[*] Fixed an issue where each stack of Relequen would add a Z'en stack.
+
+65 DL: 3.019.152 (11.03.2023) 10:46
+[*] Removed some unnecessary debug messages (Thx to DakJaniels for reporting this)
+[*] Added "damageOutTotal" entry to the table provided with the LIBCOMBAT_EVENT_FIGHTRECAP callback.
+
+64 DL: 2.885.122 (28.12.2022) 20:29
+[*] Added a fix for an issue that caused a Lua error on rare occasions. (Thx to ithildae for the report)
+
+63 DL: 2.837.486 (19.12.2022) 22:10
+[*] Added support for tracking stacks of Z'en and the spell and weapon damage buff of seething fury.
+[*] Slight changes for tracking of special buffs to include stacks (via Combat Events).
+
+62 DL: 2.743.782 (10.11.2022) 00:00
+[*] Removed some obsolete code
+[*] API Bump to Firesong (100036)
+
+61 DL: 2.536.688  (12.06.2022) 23:16
 [*] Adjusted crit damage bonus from Backstabber to new value. (Thx to Complicative for the hint)
 
 60 DL: 2.490.988 (10.06.2022) 22:05
