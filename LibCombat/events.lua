@@ -9,6 +9,7 @@ libint.Events = Events
 local EventHandler = ZO_Object:Subclass()
 libint.EventHandler = EventHandler
 
+---@diagnostic disable-next-line: duplicate-set-field
 function EventHandler:New(...)
     local object = ZO_Object.New(self)
     object:Initialize(...)

@@ -3,7 +3,7 @@ local libint = lib.internal
 local libdata = lib.data
 local Print = libint.Print
 local CallbackKeys = libint.callbackKeys
-local GetFormattedAbilityName = libint.GetFormattedAbilityName
+local GetFormattedAbilityName = lib.GetFormattedAbilityName
 
 local UnitHandler = ZO_Object:Subclass()
 libint.UnitHandler = UnitHandler
@@ -335,8 +335,8 @@ local function onUnitCombatEvent(eventCode, result, isError, abilityName, abilit
 
 	local UnitInfoResult = LibCombat_Save.UnitInfoResult
 
-	if sourceName == lib.data.rawPlayername then sourceType = COMBAT_UNIT_TYPE_PLAYER end
-	if targetName == lib.data.rawPlayername then targetType = COMBAT_UNIT_TYPE_PLAYER end
+	if sourceName == libdata.rawPlayername then sourceType = COMBAT_UNIT_TYPE_PLAYER end
+	if targetName == libdata.rawPlayername then targetType = COMBAT_UNIT_TYPE_PLAYER end
 
 	local isSource = sourceName and sourceName ~= "" and sourceType and sourceUnitId and sourceUnitId >= 0
 	local isTarget = targetName and targetName ~= "" and targetType and targetUnitId and targetUnitId >= 0

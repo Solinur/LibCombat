@@ -108,7 +108,7 @@ local function onCombatEventDmgGrp(_, _, _, _, _, _, _, _, targetName, targetTyp
 
 	if hitValue > 200000 then
 
-		Print("dev","WARNING", "Big Damage Event: (%d) %s did %d damage to %s", abilityId, libint.GetFormattedAbilityName(abilityId), hitValue, tostring(targetName))
+		Print("dev","WARNING", "Big Damage Event: (%d) %s did %d damage to %s", abilityId, lib.GetFormattedAbilityName(abilityId), hitValue, tostring(targetName))
 
 		return
 

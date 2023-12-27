@@ -1,18 +1,18 @@
 LibCombat = LibCombat or {}
+
 local lib = LibCombat
 
-local dx = math.ceil(GuiRoot:GetWidth()/tonumber(GetCVar("WindowedWidth"))*1000)/1000
-LIBCOMBAT_LINE_SIZE = dx
+LIBCOMBAT_LINE_SIZE = math.ceil(GuiRoot:GetWidth()/tonumber(GetCVar("WindowedWidth"))*1000)/1000
 
 -- Basic values
 lib.name = "LibCombat"
 lib.version = 64
-lib.data = {skillBars= {}}
 lib.cm = ZO_CallbackObject:New()
 lib.internal = {}
 local libint = lib.internal
 libint.functions = {}
 libint.debug = false or GetDisplayName() == "@Solinur"
+libint.data = {skillBars= {}}
 
 -- variables
 

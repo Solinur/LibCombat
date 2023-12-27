@@ -257,9 +257,9 @@ local function GetSkillRegistrationData(abilityId)
 	local convertedId = convertedId or abilityId
 	local convertedId2 = convertedId2 or abilityId
 
-	local data = result2 and {convertedId, result, convertedId2, result2} or {convertedId, result}
+	local skillData = result2 and {convertedId, result, convertedId2, result2} or {convertedId, result}
 
-	return data
+	return skillData
 
 end
 
