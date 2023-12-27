@@ -1,4 +1,4 @@
--- buffs and debuffs
+-- This file provides combat log entries regarding buffs and debuffs
 
 local lib = LibCombat
 local libint = lib.internal

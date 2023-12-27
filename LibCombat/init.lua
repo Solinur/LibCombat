@@ -1,3 +1,5 @@
+-- This file contains the initialziation code 
+
 LibCombat = LibCombat or {}
 
 local lib = LibCombat

@@ -1,3 +1,5 @@
+-- This file contains definitions of global variables
+
 local lib = LibCombat
 
 -- types of callbacks: Units, DPS/HPS, DPS/HPS for Group, Logevents

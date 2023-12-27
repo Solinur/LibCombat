@@ -1,6 +1,8 @@
+-- This file provides info on player and group member deaths and resurrection
+
 local lib = LibCombat
 local libint = lib.internal
-local CallbackKeys = lib.internal.callbackKeys
+local CallbackKeys = libint.callbackKeys
 local libfunc = libint.functions
 local libdata = lib.data
 local Print = libint.Print
@@ -29,7 +31,36 @@ libint.SpecialResults = {
 
 }
 
+function libfunc.ProcessDeathRecaps()
 
+	local timems = GetGameTimeMilliseconds()
+
+	for unitId, UnitDeathCache in pairs(UnitDeathsToProcess) do
+
+		if timems - UnitDeathCache.timems > 200 then
+
+			Print("dev","INFO", "ProcessDeath: %s (%d)", libint.currentfight.units[unitId].name, unitId)
+			UnitDeathCache:ProcessDeath()
+
+		end
+
+	end
+
+end
+
+function libfunc.ClearUnitCaches()
+
+	Print("dev","INFO", "ClearUnitCaches (%d)", NonContiguousCount(CombatEventCache))
+
+	for unitId, UnitDeathCache in pairs(CombatEventCache) do
+
+		CombatEventCache[unitId] = nil
+
+	end
+
+	UnitDeathsToProcess = {}
+
+end
 
 local UnitDeathCacheHandler = ZO_Object:Subclass()	-- holds all recent events + info to send on death
 

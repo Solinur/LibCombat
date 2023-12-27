@@ -1,8 +1,6 @@
 local lib = LibCombat
 local libint = lib.internal
-local CallbackKeys = lib.internal.callbackKeys
-local libfunc = libint.functions
-local libdata = lib.data
+local CallbackKeys = libint.callbackKeys
 local Print = libint.Print
 
 local playerActivatedTime = 10000

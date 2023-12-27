@@ -30,4 +30,5 @@ skillcasting.lua
 resources.lua
 performance.lua
 deaths.lua
+calculations.lua
 LibCombat.lua

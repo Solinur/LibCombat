@@ -8,7 +8,7 @@ TBD: Save replacements per patch or relearn on use?
 
 local lib = LibCombat
 local libint = lib.internal
-local CallbackKeys = lib.internal.callbackKeys
+local CallbackKeys = libint.callbackKeys
 local libfunc = libint.functions
 local libdata = lib.data
 local Print = libint.Print

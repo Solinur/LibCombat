@@ -1,3 +1,5 @@
+-- This file provides combat log entries regarding damage and heal events
+
 local lib = LibCombat
 local libint = lib.internal
 local libdata = lib.data

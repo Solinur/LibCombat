@@ -1,4 +1,4 @@
---[[
+--[[ Main addon file (loaded last)
 This lib is supposed to act as a interface between the API of Eso and potential addons that want to display Combat Data (e.g. dps)
 I extracted it from Combat Metrics, for which most of the functions are designed. I believe however that it's possible that others can use it.
 
@@ -6,8 +6,8 @@ Todo:
 Falling Damage (also save routine!!)
 Check what events fire on death
 Implement tracking when players are resurrecting
-implement group info function
-work on the addon description
+Implement group info function
+Work on the addon description
 Add more debug Functions
 
 ]]
@@ -23,7 +23,7 @@ local Events = libint.Events
 
 local _
 local Print = libint.Print
-local CallbackKeys = lib.internal.callbackKeys
+local CallbackKeys = libint.callbackKeys
 local reset = false
 local timeout = 800
 local GetFormattedAbilityName = lib.GetFormattedAbilityName
@@ -526,40 +526,9 @@ function FightHandler:AddCombatEvent(timems, result, targetUnitId, value, eventi
 	end
 end
 
-local function ProcessDeathRecaps()
-
-	local timems = GetGameTimeMilliseconds()
-
-	for unitId, UnitDeathCache in pairs(UnitDeathsToProcess) do
-
-		if timems - UnitDeathCache.timems > 200 then
-
-			Print("dev","INFO", "ProcessDeath: %s (%d)", libint.currentfight.units[unitId].name, unitId)
-			UnitDeathCache:ProcessDeath()
-
-		end
-
-	end
-
-end
-
-function libint.ClearUnitCaches()
-
-	Print("dev","INFO", "ClearUnitCaches (%d)", NonContiguousCount(CombatEventCache))
-
-	for unitId, UnitDeathCache in pairs(CombatEventCache) do
-
-		CombatEventCache[unitId] = nil
-
-	end
-
-	UnitDeathsToProcess = {}
-
-end
-
 function FightHandler:UpdateFightStats()
 
-	ProcessDeathRecaps()
+	libfunc.ProcessDeathRecaps()
 
 	if (self.dpsend == nil and self.hpsend == nil) or (self.dpsstart == nil and self.hpsstart == nil) then return end
 
@@ -731,7 +700,7 @@ function FightHandler:onUpdate()
 		lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_FIGHTSUMMARY]), LIBCOMBAT_EVENT_FIGHTSUMMARY, self)
 
 		libint.currentfight = FightHandler:New()
-		libint.ClearUnitCaches()
+		libfunc.ClearUnitCaches()
 
 		EVENT_MANAGER:UnregisterForUpdate("LibCombat_update")
 
@@ -974,7 +943,7 @@ Events.General = EventHandler:New(
 		self:RegisterEvent(EVENT_EFFECT_CHANGED, onMageExplode, REGISTER_FILTER_ABILITY_ID, 50184)
 		self:RegisterEvent(EVENT_EFFECT_CHANGED, onPortalWorld, REGISTER_FILTER_ABILITY_ID, 108045)
 		self:RegisterEvent(EVENT_EFFECT_CHANGED, onPortalWorld, REGISTER_FILTER_ABILITY_ID, 121216)
-		self:RegisterEvent(EVENT_COMBAT_EVENT, lib.internal.onUnitCombatEvent)
+		self:RegisterEvent(EVENT_COMBAT_EVENT, libint.onUnitCombatEvent)
 
 
 		if libint.debug == true then

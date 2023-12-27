@@ -1,3 +1,5 @@
+-- This file provides the framework to (de-)register the required set of events
+
 local lib = LibCombat
 local libint = lib.internal
 local libdata = lib.data
