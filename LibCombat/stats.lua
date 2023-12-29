@@ -3,7 +3,7 @@
 local lib = LibCombat
 local libint = lib.internal
 local libfunc = libint.functions
-local libdata = lib.data
+local libdata = libint.data
 local Print = libint.Print
 local CallbackKeys = libint.callbackKeys
 
@@ -259,3 +259,14 @@ libint.Events.AdvancedStats = libint.EventHandler:New(
 		self.active = true
 	end
 )
+
+local isFileInitialized = false
+
+function lib.InitializeStats()
+
+	if isFileInitialized == true then return false end
+
+    isFileInitialized = true
+	return true
+
+end

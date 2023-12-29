@@ -84,3 +84,14 @@ LIBCOMBAT_STAT_CRITICALRESISTANCE = 24
 LIBCOMBAT_CPTYPE_PASSIVE = 0
 LIBCOMBAT_CPTYPE_UNSLOTTED = 1
 LIBCOMBAT_CPTYPE_SLOTTED = 2
+
+local isFileInitialized = false
+
+function lib.InitializeGlobals()
+
+	if isFileInitialized == true then return false end
+
+    isFileInitialized = true
+	return true
+
+end

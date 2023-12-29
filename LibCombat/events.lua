@@ -2,7 +2,7 @@
 
 local lib = LibCombat
 local libint = lib.internal
-local libdata = lib.data
+local libdata = libint.data
 local Print = libint.Print
 
 local Events = {}
@@ -122,5 +122,16 @@ function libint.GetAllCallbackTypes()
 	end
 
 	return t
+
+end
+
+local isFileInitialized = false
+
+function lib.InitializeEvents()
+
+	if isFileInitialized == true then return false end
+
+    isFileInitialized = true
+	return true
 
 end

@@ -4,7 +4,7 @@ local lib = LibCombat
 local libint = lib.internal
 local CallbackKeys = libint.callbackKeys
 local libfunc = libint.functions
-local libdata = lib.data
+local libdata = libint.data
 local Print = libint.Print
 
 local lastdeaths = {}
@@ -488,3 +488,14 @@ libint.Events.DeathRecap = libint.EventHandler:New(
 		self.active = true
 	end
 )
+
+local isFileInitialized = false
+
+function lib.InitializeDeaths()
+
+	if isFileInitialized == true then return false end
+
+    isFileInitialized = true
+	return true
+
+end

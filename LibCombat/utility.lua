@@ -481,3 +481,14 @@ function lib:GetCombatLogString(fight, logline, fontsize, showIds)
 
 	return text, color
 end
+
+local isFileInitialized = false
+
+function lib.InitializeUtility()
+
+	if isFileInitialized == true then return false end
+
+    isFileInitialized = true
+	return true
+
+end

@@ -2,7 +2,7 @@
 
 local lib = LibCombat
 local libint = lib.internal
-local libdata = lib.data
+local libdata = libint.data
 local Print = libint.Print
 
 local DamageShieldBuffer = {}
@@ -257,3 +257,14 @@ libint.Events.CombatGrp = libint.EventHandler:New(
 
 	end
 )
+
+local isFileInitialized = false
+
+function lib.InitializeCombat()
+
+	if isFileInitialized == true then return false end
+
+    isFileInitialized = true
+	return true
+
+end

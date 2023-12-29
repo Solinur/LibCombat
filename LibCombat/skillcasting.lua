@@ -10,7 +10,7 @@ local lib = LibCombat
 local libint = lib.internal
 local CallbackKeys = libint.callbackKeys
 local libfunc = libint.functions
-local libdata = lib.data
+local libdata = libint.data
 local Print = libint.Print
 libint.ABILITY_RESOURCE_CACHE_SIZE = 20
 local maxSkillDelay = 2000
@@ -563,3 +563,14 @@ libint.Events.Skills = libint.EventHandler:New(
 
 	end
 )
+
+local isFileInitialized = false
+
+function lib.InitializeSkillcasting()
+
+	if isFileInitialized == true then return false end
+
+    isFileInitialized = true
+	return true
+
+end

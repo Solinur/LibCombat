@@ -20,7 +20,7 @@ lang/$(language).lua
 
 init.lua
 global.lua
-utils.lua
+utility.lua
 events.lua
 effects.lua
 stats.lua

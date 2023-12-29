@@ -83,3 +83,14 @@ libint.Events.Performance = libint.EventHandler:New(
 		self.active = true
 	end
 )
+
+local isFileInitialized = false
+
+function lib.InitializePerformance()
+
+	if isFileInitialized == true then return false end
+
+    isFileInitialized = true
+	return true
+
+end

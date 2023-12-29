@@ -13,8 +13,8 @@ Add more debug Functions
 ]]
 
 local lib = LibCombat
-local libdata = lib.data
 local libint = lib.internal
+local libdata = libint.data
 local libfunc = libint.functions
 local EventHandler = libint.EventHandler
 local Events = libint.Events
@@ -983,7 +983,11 @@ Events.BossHP = EventHandler:New(
 	end
 )
 
-local function Initialize()
+local isFileInitialized = false
+
+function lib.InitializeMain()
+
+	if isFileInitialized == true then return false end
 
 	Print("dev", "DEBUG", "Initialize")
 
@@ -1014,6 +1018,7 @@ local function Initialize()
 
 	EVENT_MANAGER:RegisterForEvent("LibCombatActive", EVENT_PLAYER_ACTIVATED, function() libdata.isUIActivated = true end)
 	EVENT_MANAGER:RegisterForEvent("LibCombatActive", EVENT_PLAYER_DEACTIVATED, function() libdata.isUIActivated = false end)
-end
 
-Initialize()
+	isFileInitialized = true
+	return true
+end
