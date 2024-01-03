@@ -5,6 +5,7 @@ local libint = lib.internal
 local CallbackKeys = libint.callbackKeys
 local libfunc = libint.functions
 local libdata = libint.data
+local libunits = libdata.units
 local Print = libint.Print
 
 local lastdeaths = {}
@@ -231,26 +232,28 @@ local function GetUnitCache(unitId)
 
 end
 
-local function CheckForWipe()
+local function CheckForWipe()	-- TODO use preassembled group unit tags
 
 	if not IsUnitDeadOrReincarnating("player") then return end -- maybe it's enough if player is dead on combat end? (Unless it bugs, like Sunspire ... ¯\_(ツ)_/¯)
 
-	if libdata.inGroup == false then
+	if libunits.inGroup == false then
 
 		libint.currentfight.isWipe = true
 
-	elseif libdata.inGroup == true then
+	elseif libunits.inGroup == true then
 
-		local loc = GetUnitZoneIndex("player")
+		local playerZoneIndex = GetUnitZoneIndex("player")
+
+		local GroupUnitTags = libunits.GroupUnitTags
 
 		for i = 1, GetGroupSize() do
 
-			local tag = ZO_CachedStrFormat("group<<1>>", i)
+			local unitTag = GroupUnitTags[i]
 
-			local unitId = libdata.groupInfo.tagToId[tag]
-			local unit = unitId and libint.currentfight.units[unitId]
+			local unitId = libunits.unitIdsByTag[unitTag]
+			local unit = unitId and libunits.unitCache[unitId]
 
-			if unit and (not unit.isDead) and GetUnitZoneIndex(tag) == loc then return end	-- if there is a group member in the zame zone but not dead then it's not a wipe
+			if unit and (not unit.isDead) and GetUnitZoneIndex(unitTag) == playerZoneIndex then return end	-- if there is a group member in the same zone but not dead then it's not a wipe
 
 		end
 	end
@@ -263,7 +266,7 @@ end
 
 local function OnDeathStateChanged(_, unitTag, isDead) 	-- death (for group display, also works for different zones)
 
-	local unitId = unitTag == "player" and libdata.playerid or libdata.groupInfo.tagToId[unitTag]
+	local unitId = unitTag == "player" and libunits.playerId or libunits.unitIdsByTag[unitTag]
 
 	Print("dev","INFO", "OnDeathStateChanged: %s (%s) is dead: %s", unitTag, tostring(unitId), tostring(isDead))
 
@@ -354,11 +357,11 @@ local function OnResurrectResult(_, targetCharacterName, result, targetDisplayNa
 
 	local name = ZO_CachedStrFormat(SI_UNIT_NAME, targetCharacterName) or ""
 
-	local unitId = libdata.groupInfo.nameToId[name]
+	local unitId = libunits.unitIdsByName[name]
 
 	if not unitId then return end
 
-	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_DEATH]), LIBCOMBAT_EVENT_DEATH, timems, LIBCOMBAT_STATE_RESURRECTED, unitId, libdata.playerid)
+	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_DEATH]), LIBCOMBAT_EVENT_DEATH, timems, LIBCOMBAT_STATE_RESURRECTED, unitId, libunits.playerId)
 
 end
 
@@ -370,11 +373,11 @@ local function OnResurrectRequest(_, requesterCharacterName, timeLeftToAccept, r
 
 	local name = ZO_CachedStrFormat(SI_UNIT_NAME, requesterCharacterName) or ""
 
-	local unitId = libdata.groupInfo.nameToId[name]
+	local unitId = libunits.unitIdsByName[name]
 
 	if not unitId then return end
 
-	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_DEATH]), LIBCOMBAT_EVENT_DEATH, timems, LIBCOMBAT_STATE_RESURRECTED, libdata.playerid, unitId)
+	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_DEATH]), LIBCOMBAT_EVENT_DEATH, timems, LIBCOMBAT_STATE_RESURRECTED, libunits.playerId, unitId)
 
 end
 local function GroupCombatEventHandler(isheal, result, _, abilityName, _, _, sourceName, sourceType, targetName, _, hitValue, powerType, damageType, _, sourceUnitId, targetUnitId, abilityId, overflow)  -- called by Event
@@ -426,7 +429,7 @@ end
 
 local function onBaseResourceChangedGroup(event, unitTag, powerIndex, powerType, powerValue, powerMax, powerEffectiveMax)
 
-	local unitId = unitTag == "player" and libdata.playerid or libdata.groupInfo.tagToId[unitTag]
+	local unitId = unitTag == "player" and libunits.playerId or libunits.unitIdsByTag
 
 	if unitId then GetUnitCache(unitId):UpdateResource(powerType, powerValue, powerMax) end
 

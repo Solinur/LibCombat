@@ -287,11 +287,11 @@ local function onBaseResourceChanged(powerType, powerValue, powerValueChange)
 
 		abilityId = -1
 
-		if powerValueChange == libfunc.GetStat(STAT_HEALTH_REGEN_COMBAT) and libdata.playerid then
+		if powerValueChange == libfunc.GetStat(STAT_HEALTH_REGEN_COMBAT) and libdata.units.playerId then
 
 			abilityId = 0
 
-			lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_HEAL_SELF]), LIBCOMBAT_EVENT_HEAL_SELF, timems, ACTION_RESULT_HOT_TICK, libdata.playerid, libdata.playerid, abilityId, powerValueChange, powerType, 0)
+			lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_HEAL_SELF]), LIBCOMBAT_EVENT_HEAL_SELF, timems, ACTION_RESULT_HOT_TICK, libdata.units.playerId, libdata.units.playerId, abilityId, powerValueChange, powerType, 0)
 			return
 
 		end
@@ -321,8 +321,6 @@ end
 
 --(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId, overflow)
 local function onResourceChanged (_, result, _, _, _, _, _, _, targetName, _, powerValueChange, powerType, _, _, sourceUnitId, targetUnitId, abilityId)
-
-	if libdata.playerid == nil and targetName == libdata.rawPlayername then libdata.playerid = targetUnitId end
 
 	if (powerType ~= COMBAT_MECHANIC_FLAGS_MAGICKA and powerType ~= COMBAT_MECHANIC_FLAGS_STAMINA) or libdata.inCombat == false or powerValueChange < 1 then return end
 

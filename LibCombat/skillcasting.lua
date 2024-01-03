@@ -570,6 +570,8 @@ function lib.InitializeSkillcasting()
 
 	if isFileInitialized == true then return false end
 
+	libdata.skillBars= {}
+
     isFileInitialized = true
 	return true
 

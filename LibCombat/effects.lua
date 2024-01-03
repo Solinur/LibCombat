@@ -12,7 +12,7 @@ libint.badAbility = {
 	[69168] = true,
 	[52515] = true,
 	[41189] = true,
-	-- [61898] = true, -- Minor Savagery, too spammy
+	[61898] = true, -- Minor Savagery, too spammy
 	[63601] = true, -- ESO Plus
 }
 
@@ -142,8 +142,6 @@ local function BuffEventHandler(isspecial, groupeffect, _, changeType, effectSlo
 
 	local timems = GetGameTimeMilliseconds()
 
-	libint.CheckUnitFromTag(unitName, unitId, unitTag, timems, isGroup)
-
 	local eventid = groupeffect == GROUP_EFFECT_IN and LIBCOMBAT_EVENT_GROUPEFFECTS_IN or groupeffect == GROUP_EFFECT_OUT and LIBCOMBAT_EVENT_GROUPEFFECTS_OUT or unitTag and string.sub(unitTag, 1, 6) == "player" and LIBCOMBAT_EVENT_EFFECTS_IN or LIBCOMBAT_EVENT_EFFECTS_OUT
 	local stacks = math.max(1, stackCount)
 
@@ -158,7 +156,7 @@ local function BuffEventHandler(isspecial, groupeffect, _, changeType, effectSlo
 
 		local unit = libint.currentfight.units[unitId]
 
-		if unitTag == "player" or unitId == libdata.playerid then libint.currentfight:QueueStatUpdate(timems) end
+		if unitTag == "player" or unitId == libdata.units.playerId then libint.currentfight:QueueStatUpdate(timems) end
 		if sourceType ~= COMBAT_UNIT_TYPE_PLAYER or abilityId ~= libint.abilityIdZen then lib.cm:FireCallbacks((CallbackKeys[eventid]), eventid, timems, unitId, abilityId, changeType, effectType, stacks, sourceType, effectSlot) end
 
 		if unit then
@@ -231,7 +229,7 @@ local function SpecialBuffEventHandler(isdebuff, _, result, _, _, _, _, sourceNa
 		else return end
 	end
 
-	-- if unitName ~= data.rawPlayername then return end
+	-- if unitName ~= data.units.rawPlayername then return end
 
 	local changeType = resultTochangeType[result] or nil
 	-- Print("debug","INFO", "%s (%d): %d (%d)", GetFormattedAbilityName(abilityId), abilityId, changeType, result)
@@ -253,6 +251,78 @@ end
 local function onSpecialDebuffEvent(...)
 	SpecialBuffEventHandler(true, ...)		-- (isdebuff, ...)
 end
+
+--[[ TODO: implement Z'en and FoN tracking on analysis side
+
+function UnitHandler:UpdateZenData(callbackKeys, eventid, timeMs, unitId, abilityId, changeType, effectType, _, sourceType, effectSlot, abilityType)
+
+	if abilityId == libint.abilityIdZen then
+
+		local isActive = changeType == EFFECT_RESULT_GAINED -- or (changeType == EFFECT_RESULT_UPDATED)
+		local stacks = isActive and math.min(self.stacksOfZen, 5) or 0
+
+		lib.cm:FireCallbacks(callbackKeys, eventid, timeMs, unitId, libint.abilityIdZen, changeType, effectType, stacks, sourceType, effectSlot)	-- stack count is 1 to 6, with 1 meaning 0% bonus, and 6 meaning 5% bonus from Z'en
+		Print("debug", "VERBOSE", table.concat({eventid, timeMs, unitId, libint.abilityIdZen, changeType, effectType, stacks, sourceType, effectSlot}, ", "))
+		self.zenEffectSlot = (isActive and effectSlot) or nil
+
+	elseif abilityType == ABILITY_TYPE_DAMAGE then
+
+		if changeType == EFFECT_RESULT_GAINED then
+
+			self.stacksOfZen = self.stacksOfZen + 1
+
+		elseif changeType == EFFECT_RESULT_FADED then
+
+			if self.stacksOfZen - 1 < 0 then Print("debug", "WARNING", "Encountered negative Z'en stacks: %s (%d)", GetFormattedAbilityName(abilityId), abilityId) end
+			self.stacksOfZen = math.max(0, self.stacksOfZen - 1)
+
+		end
+
+		if self.zenEffectSlot then
+
+			local stacks = math.min(self.stacksOfZen, 5)
+			lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_EFFECTS_OUT]), LIBCOMBAT_EVENT_EFFECTS_OUT, timeMs, unitId, libint.abilityIdZen, EFFECT_RESULT_UPDATED, effectType, stacks, sourceType, self.zenEffectSlot)
+
+		end
+	end
+end
+
+function UnitHandler:UpdateForceOfNatureData(_, _, timeMs, unitId, abilityId, changeType, _, _, _, _)
+
+	if libint.StatusEffectIds[abilityId] == nil or libint.currentfight.CP[1]["slotted"] == nil or libint.currentfight.CP[1]["slotted"][276] ~= true then return end
+
+	local forceOfNatureChangeType = EFFECT_RESULT_UPDATED
+
+	local debugChangeType = "o"
+
+	if changeType == EFFECT_RESULT_GAINED and self.forceOfNature[abilityId] == nil then
+
+		self.forceOfNature[abilityId] = true
+
+		self.forceOfNatureStacks = self.forceOfNatureStacks + 1
+
+		if self.forceOfNatureStacks == 1 then forceOfNatureChangeType = EFFECT_RESULT_GAINED end
+		if self.forceOfNatureStacks > 8 then Print("debug", "WARNING", "Encountered too many Force of Nature stacks (%d): %s (%d)", self.forceOfNatureStacks, GetFormattedAbilityName(abilityId), abilityId) end
+		debugChangeType = "+"
+
+	elseif changeType == EFFECT_RESULT_FADED and self.forceOfNature[abilityId] == true then
+
+		self.forceOfNature[abilityId] = nil
+
+		if self.forceOfNatureStacks == 0 then forceOfNatureChangeType = EFFECT_RESULT_FADED end
+		if self.forceOfNatureStacks - 1 < 0 then Print("debug", "WARNING", "Encountered negative Force of Nature stacks: %s (%d)", GetFormattedAbilityName(abilityId), abilityId) end
+
+		self.forceOfNatureStacks = math.max(0, self.forceOfNatureStacks - 1)
+		debugChangeType = "-"
+
+	end
+
+	local stacks = math.min(self.forceOfNatureStacks, 8)
+	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_EFFECTS_OUT]), LIBCOMBAT_EVENT_EFFECTS_OUT, timeMs, unitId, libint.abilityIdForceOfNature, forceOfNatureChangeType, BUFF_EFFECT_TYPE_DEBUFF, stacks, COMBAT_UNIT_TYPE_PLAYER, 0)
+	Print("debug", "VERBOSE", "Force of Nature: %s (%d) x%d, %s%s", self.name, self.unitId, stacks, GetFormattedAbilityName(abilityId), debugChangeType)
+end
+	
+--]]
 
 libint.Events.Effects = libint.EventHandler:New(
 	{LIBCOMBAT_EVENT_EFFECTS_IN,LIBCOMBAT_EVENT_EFFECTS_OUT,LIBCOMBAT_EVENT_GROUPEFFECTS_IN,LIBCOMBAT_EVENT_GROUPEFFECTS_OUT},

@@ -12,11 +12,10 @@ lib.cm = ZO_CallbackObject:New()
 
 local libint = {}
 libint.debug = false or GetDisplayName() == "@Solinur"
-if libint.debug then lib.internal = libint end
 
-libint.functions = {}
-libint.debug = false or GetDisplayName() == "@Solinur"
-libint.data = {skillBars= {}}
+local libfunc = {}
+libint.functions = libfunc
+libint.data = {}
 
 -- variables
 
@@ -62,6 +61,32 @@ function libint.Print(category, level, ...)
 	if type(logger.Log)=="function" then logger:Log(levelKeys[level], ...) end
 
 end
+
+local function spairs(t, order) -- from https://stackoverflow.com/questions/15706270/sort-a-table-in-lua
+
+    -- collect the keys
+    local keys = {}
+    for k in pairs(t) do keys[#keys+1] = k end
+
+    -- if order function given, sort by it by passing the table and keys a, b,
+    -- otherwise just sort the keys
+    if order then
+        table.sort(keys, function(a,b) return order(t, a, b) end)
+    else
+        table.sort(keys)
+    end
+
+    -- return the iterator function
+    local i = 0
+    return function()
+        i = i + 1
+        if keys[i] then
+            return keys[i], t[keys[i]]
+        end
+    end
+end
+
+libfunc.spairs = spairs
 
 local function Initialize(eventId, addon)
 

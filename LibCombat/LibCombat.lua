@@ -15,6 +15,7 @@ Add more debug Functions
 local lib = LibCombat
 local libint = lib.internal
 local libdata = libint.data
+local libunits = libdata.units
 local libfunc = libint.functions
 local EventHandler = libint.EventHandler
 local Events = libint.Events
@@ -52,7 +53,7 @@ function FightHandler:New(...)
 end
 
 function FightHandler:Initialize()
-	self.char = libdata.playername
+	self.char = libunits.playername
 	self.combatstart = 0 - timeout - 1	-- start of combat in ms
 	self.combatend = -150				-- end of combat in ms
 	self.combattime = 0 				-- total combat time
@@ -83,8 +84,8 @@ function FightHandler:Initialize()
 	self.HPSAOut = 0					-- hps including Overheal
 	self.DPSIn = 0						-- incoming dps
 	self.HPSIn = 0						-- incoming hps
-	self.group = libdata.inGroup
-	self.playerid = libdata.playerid
+	self.group = libunits.inGroup
+	self.playerId = libunits.playerId
 	self.bosses = {}
 	self.dataVersion = 2
 	self.special = {}	-- for storing special information (like glacial presence before update 36)
@@ -117,7 +118,7 @@ local function GetPlayerBuffs(timems)
 	
 	local newtime = timems
 
-	if libdata.playerid == nil then
+	if libunits.playerId == nil then
 
 		zo_callLater(function() GetPlayerBuffs(timems) end, 100)
 		return
@@ -138,11 +139,11 @@ local function GetPlayerBuffs(timems)
 
 		local stacks = math.max(stackCount,1)
 
-		local playerid = libdata.playerid
+		local playerId = libunits.playerId
 
 		if (not libint.badAbility[abilityId]) then
 
-			lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_EFFECTS_IN]), LIBCOMBAT_EVENT_EFFECTS_IN, newtime, playerid, abilityId, EFFECT_RESULT_GAINED, effectType, stacks, unitType, effectSlot)
+			lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_EFFECTS_IN]), LIBCOMBAT_EVENT_EFFECTS_IN, newtime, playerId, abilityId, EFFECT_RESULT_GAINED, effectType, stacks, unitType, effectSlot)
 			--timems, unitId, abilityId, changeType, effectType, stacks, sourceType
 
 		end
@@ -296,35 +297,6 @@ local function onBossesChanged(_) -- Detect Bosses
 	end
 end
 
-local function onGroupChange()
-
-	libdata.inGroup = IsUnitGrouped("player")
-
-	local groupdata = libdata.groupInfo
-
-	groupdata.nameToDisplayname = {}
-	groupdata.nameToTag = {}
-
-	if libdata.inGroup == true then
-
-		for i = 1, GetGroupSize() do
-
-			local unitTag = "group"..i
-
-			local name = ZO_CachedStrFormat(SI_UNIT_NAME, GetUnitName(unitTag))
-			local displayname = ZO_CachedStrFormat(SI_UNIT_NAME, GetUnitDisplayName(unitTag))
-
-			groupdata.nameToDisplayname[name] = displayname
-			groupdata.nameToTag[name] = unitTag
-
-			local unitId = groupdata.nameToId[name]
-			local unit = unitId and libint.currentfight.units[unitId] or nil
-
-			if unit then unit:UpdateGroupData() end
-		end
-	end
-end
-
 function FightHandler:GetMetaData()
 
 	self.date = GetTimeStamp()
@@ -334,12 +306,12 @@ function FightHandler:GetMetaData()
 	self.zoneId = GetUnitWorldPosition("player")
 	self.ESOversion = GetESOVersionString()
 	self.APIversion = GetAPIVersion()
-	self.account = libdata.accountname
+	self.account = libunits.accountname
 
 	local charData = {}
 	self.charData = charData
 
-	charData.name = libdata.playername
+	charData.name = libunits.playername
 	charData.raceId = GetUnitRaceId("player")
 	charData.gender = GetUnitGender("player")
 	charData.classId = GetUnitClassId("player")
@@ -568,7 +540,7 @@ end
 
 function FightHandler:UpdateGrpStats() -- called by onUpdate
 
-	if not (libdata.inGroup and Events.CombatGrp.active) then return end
+	if not (libunits.inGroup and Events.CombatGrp.active) then return end
 
 	local iend = (self.grplog and #self.grplog) or 0
 
@@ -684,7 +656,7 @@ function FightHandler:onUpdate()
 			Print("fight","DEBUG", "IncDmg: %d (Shield: %d, IncDPS: %d)", self.damageInTotal, self.damageInShielded, self.DPSIn)
 			Print("fight","DEBUG", "IncHeal: %d (IncHPS: %d)", self.healingInTotal, self.HPSIn)
 
-			if libdata.inGroup and Events.CombatGrp.active then
+			if libunits.inGroup and Events.CombatGrp.active then
 
 				Print("fight","DEBUG", "GrpDmg: %d (DPS: %d)", self.groupDamageOut, self.groupDPSOut)
 				Print("fight","DEBUG", "GrpHeal: %d (HPS: %d)", self.groupHealingOut, self.groupHPSOut)
@@ -936,14 +908,11 @@ Events.General = EventHandler:New(
 		self:RegisterEvent(EVENT_PLAYER_COMBAT_STATE, libint.onCombatState)
 		self:RegisterEvent(EVENT_BOSSES_CHANGED, onBossesChanged)
 
-		self:RegisterEvent(EVENT_GROUP_UPDATE, onGroupChange)
 		self:RegisterEvent(EVENT_HOTBAR_SLOT_CHANGE_REQUESTED, libfunc.GetCurrentSkillBars)
 		self:RegisterEvent(EVENT_PLAYER_ACTIVATED, libfunc.onPlayerActivated)
-		self:RegisterEvent(EVENT_PLAYER_ACTIVATED, onGroupChange)
 		self:RegisterEvent(EVENT_EFFECT_CHANGED, onMageExplode, REGISTER_FILTER_ABILITY_ID, 50184)
 		self:RegisterEvent(EVENT_EFFECT_CHANGED, onPortalWorld, REGISTER_FILTER_ABILITY_ID, 108045)
 		self:RegisterEvent(EVENT_EFFECT_CHANGED, onPortalWorld, REGISTER_FILTER_ABILITY_ID, 121216)
-		self:RegisterEvent(EVENT_COMBAT_EVENT, libint.onUnitCombatEvent)
 
 
 		if libint.debug == true then
@@ -992,12 +961,7 @@ function lib.InitializeMain()
 	Print("dev", "DEBUG", "Initialize")
 
 	libdata.inCombat = IsUnitInCombat("player")
-	libdata.inGroup = IsUnitGrouped("player")
-	libdata.rawPlayername = GetRawUnitName("player")
-	libdata.playername = ZO_CachedStrFormat(SI_UNIT_NAME, libdata.rawPlayername)
-	libdata.accountname = ZO_CachedStrFormat(SI_UNIT_NAME, GetDisplayName())
 	libdata.bossInfo = {}
-	libdata.groupInfo = {nameToId = {}, tagToId = {}, nameToTag = {}, nameToDisplayname = {}}
 	libdata.PlayerPets = {}
 	libdata.lastabilities = {}
 	libdata.backstabber = 0

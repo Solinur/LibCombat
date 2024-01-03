@@ -39,9 +39,6 @@ local function CombatEventHandler(isheal, _, result, _, _, _, _, sourceName, sou
 
 	if (hitValue + (overflow or 0) + shieldHitValue) <= 0 then return end
 
-	if sourceUnitId then libint.CheckUnit(sourceName, sourceUnitId, sourceType, timems) end
-	if targetUnitId then libint.CheckUnit(targetName, targetUnitId, targetType, timems) end
-
 	if result == ACTION_RESULT_DAMAGE_SHIELDED then
 
 		sourceUnitId = targetUnitId
