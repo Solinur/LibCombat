@@ -450,6 +450,8 @@ function FightHandler:QueueStatUpdate(timems)
 
 end
 
+
+--[[ TODO: 
 function FightHandler:AddCombatEvent(timems, result, targetUnitId, value, eventid, overflow)
 
 	if eventid == LIBCOMBAT_EVENT_DAMAGE_OUT then 		--outgoing dmg
@@ -601,6 +603,8 @@ function FightHandler:UpdateGrpStats() -- called by onUpdate
 	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_GROUPRECAP]), LIBCOMBAT_EVENT_GROUPRECAP, data)
 
 end
+
+--]]
 
 local function getCurrentBossHP()
 

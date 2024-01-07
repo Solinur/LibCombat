@@ -8,8 +8,9 @@ local libdata = libint.data
 local Print = libint.Print
 
 
-local LogProcessingHandler = ZO_InitializingObject:Subclass() -- object to store log proccessing routines
+libfunc.LogProcessingHandler = ZO_InitializingObject:Subclass() -- object to store log proccessing routines
 libfunc.LogTypeProcessors = {}
+libfunc.LogProcessors = {}
 
 ---@param name string
 ---@param onInitilizeFight function
@@ -27,6 +28,8 @@ function LogProcessingHandler:Initialize(name, onInitilizeFight, onCombatStarted
 	self.name = name
 	self.idCounter = 1
 	self.RegisteredLogTypes = {}
+
+	libfunc.LogProcessors[name] = self
 
 	for _, logType in pairs(AllowedLogTypes) do
 		libfunc.LogTypeProcessors[logType] = function(...) self:ProcessLogLine(...) end
