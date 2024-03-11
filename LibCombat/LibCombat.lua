@@ -13,7 +13,7 @@ Add more debug Functions
 ]]
 
 local lib = {}
-lib.version = 71
+lib.version = 72
 LibCombat = lib
 
 -- Basic values
@@ -2501,23 +2501,28 @@ local function OnPlayerReincarnated()
 
 end
 
-local SpecialResults = {
+local SpecialResultsInverse = {	
 
-	[ACTION_RESULT_ABSORBED]		= "ACTION_RESULT_ABSORBED",
-	[ACTION_RESULT_BLADETURN]		= "ACTION_RESULT_BLADETURN",
-	[ACTION_RESULT_BLOCKED_DAMAGE]	= "ACTION_RESULT_BLOCKED_DAMAGE",
-	[ACTION_RESULT_DIED] 	    	= "ACTION_RESULT_DIED",
-	[ACTION_RESULT_DIED_XP] 	    = "ACTION_RESULT_DIED_XP",
-	[ACTION_RESULT_KILLING_BLOW] 	= "ACTION_RESULT_KILLING_BLOW",
-	[ACTION_RESULT_PARTIAL_RESIST] 	= "ACTION_RESULT_PARTIAL_RESIST",
-	[ACTION_RESULT_PRECISE_DAMAGE] 	= "ACTION_RESULT_PRECISE_DAMAGE",
-	[ACTION_RESULT_REFLECTED] 		= "ACTION_RESULT_REFLECTED",
-	[ACTION_RESULT_REINCARNATING] 	= "ACTION_RESULT_REINCARNATING",
-	[ACTION_RESULT_RESIST]			= "ACTION_RESULT_RESIST",
-	[ACTION_RESULT_RESURRECT] 		= "ACTION_RESULT_RESURRECT",
-	[ACTION_RESULT_WRECKING_DAMAGE]	= "ACTION_RESULT_WRECKING_DAMAGE",
+	["ACTION_RESULT_BLADETURN"]       = ACTION_RESULT_BLADETURN,
+	["ACTION_RESULT_BLOCKED_DAMAGE"]  = ACTION_RESULT_BLOCKED_DAMAGE,
+	["ACTION_RESULT_DIED"]            = ACTION_RESULT_DIED,
+	["ACTION_RESULT_DIED_XP"]         = ACTION_RESULT_DIED_XP,
+	["ACTION_RESULT_KILLING_BLOW"]    = ACTION_RESULT_KILLING_BLOW,
+	["ACTION_RESULT_PARTIAL_RESIST"]  = ACTION_RESULT_PARTIAL_RESIST,
+	["ACTION_RESULT_PRECISE_DAMAGE"]  = ACTION_RESULT_PRECISE_DAMAGE,
+	["ACTION_RESULT_REFLECTED"]       = ACTION_RESULT_REFLECTED,
+	["ACTION_RESULT_REINCARNATING"]   = ACTION_RESULT_REINCARNATING,
+	["ACTION_RESULT_RESIST"]          = ACTION_RESULT_RESIST,
+	["ACTION_RESULT_RESURRECT"]       = ACTION_RESULT_RESURRECT,
+	["ACTION_RESULT_WRECKING_DAMAGE"] = ACTION_RESULT_WRECKING_DAMAGE,
 
 }
+
+-- This avoids errors if obsolete constants are removed
+local SpecialResults = {}
+for k,v in pairs(SpecialResultsInverse) do
+	if v then SpecialResults[v] = k end
+end
 
 local function OnDeath(_, result, _, abilityName, _, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, _, sourceUnitId, targetUnitId, abilityId, overflow)
 
@@ -2528,8 +2533,6 @@ local function OnDeath(_, result, _, abilityName, _, abilityActionSlotType, sour
 	local unitdata = currentfight.units[targetUnitId]
 
 	if unitdata == nil or (unitdata.unitType ~= COMBAT_UNIT_TYPE_PLAYER and unitdata.unitType ~= COMBAT_UNIT_TYPE_GROUP) then return end
-
-	Print("debug", LOG_LEVEL_INFO, "OnDeath (%s): %s (%d, %d) / %s (%d, %d) - %s (%d): %d (o: %d, type: %d)", SpecialResults[result], sourceName, sourceUnitId, sourceType, targetName, targetUnitId, targetType, GetFormattedAbilityName(abilityId), abilityId, hitValue or 0, overflow or 0, damageType or 0)
 
 	lastdeaths[targetUnitId] = timems
 
@@ -2542,7 +2545,6 @@ end
 
 local function OnResurrect(_, result, _, abilityName, _, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, _, sourceUnitId, targetUnitId, abilityId)
 
-	Print("debug", LOG_LEVEL_INFO, "OnResurrect (%s): %s (%d, %d) / %s (%d, %d) - %s (%d): %d (type: %d)", SpecialResults[result], sourceName, sourceUnitId, sourceType, targetName, targetUnitId, targetType, GetFormattedAbilityName(abilityId), abilityId, hitValue or 0, damageType or 0)
 
 	local timems = GetGameTimeMilliseconds()
 
@@ -3427,7 +3429,6 @@ Events.General = EventHandler:New(GetAllCallbackTypes()
 
 		if lib.debug == true then
 
-			self:RegisterEvent(EVENT_COMBAT_EVENT, onWTF, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_ABSORBED)
 			self:RegisterEvent(EVENT_COMBAT_EVENT, onWTF, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_BLADETURN)
 			self:RegisterEvent(EVENT_COMBAT_EVENT, onWTF, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_BLOCKED)
 			self:RegisterEvent(EVENT_COMBAT_EVENT, onWTF, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_DIED_XP)
