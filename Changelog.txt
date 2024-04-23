@@ -1,4 +1,4 @@
-﻿73 DL:  (23.04.2024) 19:40
+﻿73 DL: 3,827,751 (23.04.2024) 08:48
 [*] Added support for some Update 42 changes. (Thx to Anthonysc)
 
 72 DL: 3,710,833 (11.03.2024) 19:40
