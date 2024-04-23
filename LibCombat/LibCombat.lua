@@ -13,7 +13,7 @@ Add more debug Functions
 ]]
 
 local lib = {}
-lib.version = 72
+lib.version = 73
 LibCombat = lib
 
 -- Basic values
@@ -1033,6 +1033,18 @@ local function UpdateSlotSkillEvents()
 	events:Update()
 end
 
+local function GetSlottedAbilityId(actionSlotIndex, hotbarCategory)	-- thanks to Anthonysc for the snippet
+	hotbarCategory = hotbarCategory or GetActiveHotbarCategory()
+	local actionType = GetSlotType(actionSlotIndex, hotbarCategory)
+	local abilityId = GetSlotBoundId(actionSlotIndex, hotbarCategory)
+
+	if actionType == ACTION_TYPE_CRAFTED_ABILITY then
+		return GetAbilityIdForCraftedAbilityId(abilityId)
+	end
+
+	return abilityId
+end
+
 local function GetCurrentSkillBars()
 
 	local skillBars = data.skillBars
@@ -1042,10 +1054,11 @@ local function GetCurrentSkillBars()
 	skillBars[bar] = {}
 
 	local currentbar = skillBars[bar]
+	local hotbarCategory = GetActiveHotbarCategory()
 
 	for i = 1, 8 do
 
-		local id = GetSlotBoundId(i, GetActiveHotbarCategory())
+		local id = GetSlottedAbilityId(i, hotbarCategory)
 
 		currentbar[i] = id
 
@@ -3005,7 +3018,7 @@ local function onSlotUsed(_, slot)
 	if data.inCombat == false or slot > 8 then return end
 
 	local timems = GetGameTimeMilliseconds()
-	local abilityId = GetSlotBoundId(slot, GetActiveHotbarCategory())
+	local abilityId = GetSlottedAbilityId(slot)
 
 	-- Print("events", LOG_LEVEL_INFO, "Ability Used: %s (%d)", GetFormattedAbilityName(abilityId), abilityId)
 

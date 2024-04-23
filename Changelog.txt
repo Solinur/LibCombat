@@ -1,4 +1,7 @@
-﻿72 DL: 3,710,833 (11.03.2024) 19:40
+﻿73 DL:  (23.04.2024) 19:40
+[*] Added support for some Update 42 changes. (Thx to Anthonysc)
+
+72 DL: 3,710,833 (11.03.2024) 19:40
 [*] Fixed an error due to removed constants
 
 71 DL: 3,576,417 (14.12.2023) 21:08
