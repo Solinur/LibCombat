@@ -2881,11 +2881,9 @@ local function onAbilityUsed(eventCode, result, isError, abilityName, abilityGra
 
 	local origId = GetReducedSlotId(reducedslot)
 
-	local channeled, castTime, channelTime = GetAbilityCastInfo(origId)
+	local channeled, castTime = GetAbilityCastInfo(origId)
 
-	castTime = channeled and channelTime or castTime
-
-	Print("events", LOG_LEVEL_VERBOSE, "[%.3f] Skill fired: %s (%d), Duration: %ds Target: %s", timems/1000, GetAbilityName(origId), origId, castTime/1000, tostring(targetName))
+	Print("events", LOG_LEVEL_VERBOSE, "[%.3f] Skill fired: %s (%d), Duration: %ds Target: %s", timems/1000, GetAbilityName(origId), origId, (castTime or 0)/1000, tostring(targetName))
 
 	HeavyAttackCharging = DirectHeavyAttacks[origId] and origId or nil
 
