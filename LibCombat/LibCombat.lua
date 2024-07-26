@@ -13,7 +13,7 @@ Add more debug Functions
 ]]
 
 local lib = {}
-lib.version = 73
+lib.version = 74
 LibCombat = lib
 
 -- Basic values
@@ -907,24 +907,14 @@ end
 local function GetCurrentCP()
 
 	local CP = {}
-
 	CP.version = 2
-
+	
 	-- collect slotted stars
-
-	local championBarData = CHAMPION_PERKS.championBar.slots
-
 	local slotsById = {}
-
-	for i, slot in pairs(championBarData) do
-
-		local slotData = slot:GetSavedChampionSkillData()
-
-		if slotData then
-
-			local starId = slotData:GetId()
-
-			slotsById[starId] = i
+	for slotIndex = 1, 12 do
+		local starId = GetSlotBoundId(slotIndex, HOTBAR_CATEGORY_CHAMPION)
+		if starId > 0 then
+			slotsById[starId] = slotIndex
 		end
 	end
 
