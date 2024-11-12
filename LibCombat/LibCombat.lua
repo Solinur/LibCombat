@@ -13,7 +13,7 @@ Add more debug Functions
 ]]
 
 local lib = {}
-lib.version = 74
+lib.version = 75
 LibCombat = lib
 
 -- Basic values
@@ -147,7 +147,7 @@ LIBCOMBAT_EVENT_RESOURCES = 15				-- LIBCOMBAT_EVENT_RESOURCES, timems, abilityI
 LIBCOMBAT_EVENT_MESSAGES = 16				-- LIBCOMBAT_EVENT_MESSAGES, timems, combatMessage, value
 LIBCOMBAT_EVENT_DEATH = 17					-- LIBCOMBAT_EVENT_DEATH, timems, state, unitId, abilityId/unitId
 LIBCOMBAT_EVENT_PLAYERSTATS_ADVANCED = 18	-- LIBCOMBAT_EVENT_PLAYERSTATS_ADVANCED, timems, statchange, newvalue, statId
-LIBCOMBAT_EVENT_SKILL_TIMINGS = 19			-- LIBCOMBAT_EVENT_SKILL_TIMINGS, timems, reducedslot, abilityId, skillStatus, skillDelay
+LIBCOMBAT_EVENT_SKILL_TIMINGS = 19			-- LIBCOMBAT_EVENT_SKILL_TIMINGS, timems, reducedslot, abilityId, skillStatus, skillDelay, skillDuration
 LIBCOMBAT_EVENT_BOSSHP = 20					-- LIBCOMBAT_EVENT_BOSSHP, timems, bossId, currenthp, maxhp
 LIBCOMBAT_EVENT_PERFORMANCE = 21			-- LIBCOMBAT_EVENT_PERFORMANCE, timems, avg, min, max, ping
 LIBCOMBAT_EVENT_DEATHRECAP = 22				-- LIBCOMBAT_EVENT_DEATHRECAP, timems, {data}
@@ -2895,7 +2895,7 @@ local function onAbilityUsed(eventCode, result, isError, abilityName, abilityGra
 
 		local status = channeled and LIBCOMBAT_SKILLSTATUS_BEGIN_CHANNEL or LIBCOMBAT_SKILLSTATUS_BEGIN_DURATION
 
-		lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_SKILL_TIMINGS]), LIBCOMBAT_EVENT_SKILL_TIMINGS, timems, reducedslot, origId, status, skillDelay)
+		lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_SKILL_TIMINGS]), LIBCOMBAT_EVENT_SKILL_TIMINGS, timems, reducedslot, origId, status, skillDelay, hitValue)
 
 		local convertedId = abilityConversions[origId] and abilityConversions[origId][3] or abilityId
 
