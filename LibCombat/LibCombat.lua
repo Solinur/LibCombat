@@ -116,12 +116,6 @@ local onTFSChanged
 -- localize some functions for performance
 
 local stringformat = string.format
-local stringsub = string.sub
-local stringmatch = string.match
-local mathfloor = math.floor
-local mathmax = math.max
-local mathmin = math.min
-local mathabs = math.abs
 
 local ZO_CachedStrFormat = ZO_CachedStrFormat
 
@@ -806,7 +800,7 @@ local function GetShadowBonus(effectSlot)
 	local ZOSDesc = GetAbilityEffectDescription(effectSlot)
 	local ZOSBonusString = ZOSDesc:match("cffffff(%d+)[%%|]")
 
-	local calcBonus =  mathfloor(11 * (1 + totalBonus/100))
+	local calcBonus =  zo_floor(11 * (1 + totalBonus/100))
 	local ZOSBonus = tonumber(ZOSBonusString) or 0 -- value attributed by ZOS
 
 	data.critBonusMundus = calcBonus - ZOSBonus -- mundus bonus difference
@@ -839,7 +833,7 @@ local function GetPlayerBuffs(timems)
 
 		local unitType = castByPlayer and COMBAT_UNIT_TYPE_PLAYER or COMBAT_UNIT_TYPE_NONE
 
-		local stacks = mathmax(stackCount,1)
+		local stacks = zo_max(stackCount,1)
 
 		local playerid = data.playerid
 
@@ -1204,9 +1198,9 @@ function FightHandler:FinishFight()
 	self.combatend = timems
 	self.combattime = zo_round((timems - self.combatstart)/10)/100
 
-	self.starttime = mathmin(self.dpsstart or self.hpsstart or 0, self.hpsstart or self.dpsstart or 0)
-	self.endtime = mathmax(self.dpsend or 0, self.hpsend or 0)
-	self.activetime = mathmax((self.endtime - self.starttime) / 1000, 1)
+	self.starttime = zo_min(self.dpsstart or self.hpsstart or 0, self.hpsstart or self.dpsstart or 0)
+	self.endtime = zo_max(self.dpsend or 0, self.hpsend or 0)
+	self.activetime = zo_max((self.endtime - self.starttime) / 1000, 1)
 
 	EffectBuffer = {}
 
@@ -1258,17 +1252,17 @@ local statData = {
 local function GetStats()
 
 	local weaponcritbonus, spellcritbonus = GetCritbonus()
-	local maxcrit = mathfloor(100/GetCriticalStrikeChance(1)) -- Critical Strike chance of 100%
+	local maxcrit = zo_floor(100/GetCriticalStrikeChance(1)) -- Critical Strike chance of 100%
 
 	statData[LIBCOMBAT_STAT_MAXMAGICKA]			= GetStat(STAT_MAGICKA_MAX)
 	statData[LIBCOMBAT_STAT_SPELLPOWER]			= GetStat(STAT_SPELL_POWER)
-	statData[LIBCOMBAT_STAT_SPELLCRIT]			= mathmin(GetStat(STAT_SPELL_CRITICAL), maxcrit)
+	statData[LIBCOMBAT_STAT_SPELLCRIT]			= zo_min(GetStat(STAT_SPELL_CRITICAL), maxcrit)
 	statData[LIBCOMBAT_STAT_SPELLCRITBONUS]		= spellcritbonus
 	statData[LIBCOMBAT_STAT_SPELLPENETRATION]	= GetStat(STAT_SPELL_PENETRATION) + TFSBonus
 
 	statData[LIBCOMBAT_STAT_MAXSTAMINA]			= GetStat(STAT_STAMINA_MAX)
 	statData[LIBCOMBAT_STAT_WEAPONPOWER]		= GetStat(STAT_POWER)
-	statData[LIBCOMBAT_STAT_WEAPONCRIT]			= mathmin(GetStat(STAT_CRITICAL_STRIKE), maxcrit)
+	statData[LIBCOMBAT_STAT_WEAPONCRIT]			= zo_min(GetStat(STAT_CRITICAL_STRIKE), maxcrit)
 	statData[LIBCOMBAT_STAT_WEAPONCRITBONUS]	= weaponcritbonus
 	statData[LIBCOMBAT_STAT_WEAPONPENETRATION]	= GetStat(STAT_PHYSICAL_PENETRATION) + TFSBonus
 
@@ -1500,24 +1494,23 @@ local function ClearUnitCaches()
 end
 
 function FightHandler:UpdateStats()
-
 	ProcessDeathRecaps()
 
 	if (self.dpsend == nil and self.hpsend == nil) or (self.dpsstart == nil and self.hpsstart == nil) then return end
 
-	local dpstime = mathmax(((self.dpsend or 1) - (self.dpsstart or 0)) / 1000, 1)
-	local hpstime = mathmax(((self.hpsend or 1) - (self.hpsstart or 0)) / 1000, 1)
+	local dpstime = zo_max(((self.dpsend or 1) - (self.dpsstart or 0)) / 1000, 1)
+	local hpstime = zo_max(((self.hpsend or 1) - (self.hpsstart or 0)) / 1000, 1)
 
 	self.dpstime = dpstime
 	self.hpstime = hpstime
 
 	self:UpdateGrpStats()
 
-	self.DPSOut = mathfloor(self.damageOutTotal / dpstime + 0.5)
-	self.HPSOut = mathfloor(self.healingOutTotal / hpstime + 0.5)
-	self.HPSAOut = mathfloor(self.healingOutAbsolute / hpstime + 0.5)
-	self.DPSIn = mathfloor(self.damageInTotal / dpstime + 0.5)
-	self.HPSIn = mathfloor(self.healingInTotal / hpstime + 0.5)
+	self.DPSOut = zo_floor(self.damageOutTotal / dpstime + 0.5)
+	self.HPSOut = zo_floor(self.healingOutTotal / hpstime + 0.5)
+	self.HPSAOut = zo_floor(self.healingOutAbsolute / hpstime + 0.5)
+	self.DPSIn = zo_floor(self.damageInTotal / dpstime + 0.5)
+	self.HPSIn = zo_floor(self.healingInTotal / hpstime + 0.5)
 
 	local data = {
 		["DPSOut"] = self.DPSOut,
@@ -1581,9 +1574,9 @@ function FightHandler:UpdateGrpStats() -- called by onUpdate
 
 	self.groupHealingIn = self.groupHealingOut
 
-	self.groupDPSOut = mathfloor(self.groupDamageOut / dpstime + 0.5)
-	self.groupDPSIn = mathfloor(self.groupDamageIn / dpstime + 0.5)
-	self.groupHPSOut = mathfloor(self.groupHealingOut / hpstime + 0.5)
+	self.groupDPSOut = zo_floor(self.groupDamageOut / dpstime + 0.5)
+	self.groupDPSIn = zo_floor(self.groupDamageIn / dpstime + 0.5)
+	self.groupHPSOut = zo_floor(self.groupHealingOut / hpstime + 0.5)
 
 	self.groupHPSIn = self.groupHPSOut
 
@@ -1969,13 +1962,13 @@ local function BuffEventHandler(isspecial, groupeffect, _, changeType, effectSlo
 
 	if BadAbility[abilityId] == true then return end
 
-	if unitTag and stringsub(unitTag, 1, 5) == "group" and AreUnitsEqual(unitTag, "player") then return end
-	if unitTag and stringsub(unitTag, 1, 11) ~= "reticleover" and (AreUnitsEqual(unitTag, "reticleover") or AreUnitsEqual(unitTag, "reticleoverplayer") or AreUnitsEqual(unitTag, "reticleovertarget")) then return end
+	if unitTag and zo_strgsub(unitTag, 1, 5) == "group" and AreUnitsEqual(unitTag, "player") then return end
+	if unitTag and zo_strgsub(unitTag, 1, 11) ~= "reticleover" and (AreUnitsEqual(unitTag, "reticleover") or AreUnitsEqual(unitTag, "reticleoverplayer") or AreUnitsEqual(unitTag, "reticleovertarget")) then return end
 
 	local timems = GetGameTimeMilliseconds()
 
-	local eventid = groupeffect == GROUP_EFFECT_IN and LIBCOMBAT_EVENT_GROUPEFFECTS_IN or groupeffect == GROUP_EFFECT_OUT and LIBCOMBAT_EVENT_GROUPEFFECTS_OUT or unitTag and stringsub(unitTag, 1, 6) == "player" and LIBCOMBAT_EVENT_EFFECTS_IN or LIBCOMBAT_EVENT_EFFECTS_OUT
-	local stacks = mathmax(1, stackCount)
+	local eventid = groupeffect == GROUP_EFFECT_IN and LIBCOMBAT_EVENT_GROUPEFFECTS_IN or groupeffect == GROUP_EFFECT_OUT and LIBCOMBAT_EVENT_GROUPEFFECTS_OUT or unitTag and zo_strgsub(unitTag, 1, 6) == "player" and LIBCOMBAT_EVENT_EFFECTS_IN or LIBCOMBAT_EVENT_EFFECTS_OUT
+	local stacks = zo_max(1, stackCount)
 
 	local inCombat = currentfight.prepared
 
@@ -2844,7 +2837,7 @@ end
 
 local function GetReducedSlotId(reducedslot)
 
-	local bar = mathfloor(reducedslot/10) + 1
+	local bar = zo_floor(reducedslot/10) + 1
 
 	local slot = reducedslot%10
 
@@ -3975,7 +3968,7 @@ function lib:GetCombatLogString(fight, logline, fontsize, showIds)
 
 			local changeTypeString = ZO_CachedStrFormat("<<1>><<2>>|r", changeColor, changeString)
 
-			local amount = powerValueChange~=0 and tostring(mathabs(powerValueChange)) or ""
+			local amount = powerValueChange~=0 and tostring(zo_abs(powerValueChange)) or ""
 
 			local resource = (powerType == COMBAT_MECHANIC_FLAGS_MAGICKA and GetString(SI_ATTRIBUTES2)) or (powerType == COMBAT_MECHANIC_FLAGS_STAMINA and GetString(SI_ATTRIBUTES3)) or (powerType == COMBAT_MECHANIC_FLAGS_ULTIMATE and GetString(SI_LIBCOMBAT_LOG_ULTIMATE))
 
