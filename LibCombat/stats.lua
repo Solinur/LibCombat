@@ -14,7 +14,7 @@ function libfunc.GetCritBonusFromCP(CPdata)
 	local slots = CPdata[1].slotted
 	local points = CPdata[1].stars
 
-	local backstabber = slots[31] and (2 * math.floor(0.1 * points[31][1])) or 0 -- Backstabber 2% per every full 10 points (flanking!)
+	local backstabber = slots[31] and (2 * zo_floor(0.1 * points[31][1])) or 0 -- Backstabber 2% per every full 10 points (flanking!)
 
 	return backstabber
 end
@@ -40,7 +40,7 @@ function libfunc.GetShadowBonus(effectSlot)
 	local ZOSDesc = GetAbilityEffectDescription(effectSlot)
 	local ZOSBonusString = ZOSDesc:match("cffffff(%d+)[%%|]")
 
-	local calcBonus =  math.floor(11 * (1 + totalBonus/100))
+	local calcBonus =  zo_floor(11 * (1 + totalBonus/100))
 	local ZOSBonus = tonumber(ZOSBonusString) or 0 -- value attributed by ZOS
 
 	libdata.critBonusMundus = calcBonus - ZOSBonus -- mundus bonus difference
@@ -91,17 +91,17 @@ local function GetStats()
 	if libint.Events.Stats.active ~= true then return end
 
 	local weaponcritbonus, spellcritbonus = GetCritbonus()
-	local maxcrit = math.floor(100/GetCriticalStrikeChance(1)) -- Critical Strike chance of 100%
+	local maxcrit = zo_floor(100/GetCriticalStrikeChance(1)) -- Critical Strike chance of 100%
 
 	statData[LIBCOMBAT_STAT_MAXMAGICKA]			= GetStat(STAT_MAGICKA_MAX)
 	statData[LIBCOMBAT_STAT_SPELLPOWER]			= GetStat(STAT_SPELL_POWER)
-	statData[LIBCOMBAT_STAT_SPELLCRIT]			= math.min(GetStat(STAT_SPELL_CRITICAL), maxcrit)
+	statData[LIBCOMBAT_STAT_SPELLCRIT]			= zo_min(GetStat(STAT_SPELL_CRITICAL), maxcrit)
 	statData[LIBCOMBAT_STAT_SPELLCRITBONUS]		= spellcritbonus
 	statData[LIBCOMBAT_STAT_SPELLPENETRATION]	= GetStat(STAT_SPELL_PENETRATION) + TFSBonus
 
 	statData[LIBCOMBAT_STAT_MAXSTAMINA]			= GetStat(STAT_STAMINA_MAX)
 	statData[LIBCOMBAT_STAT_WEAPONPOWER]		= GetStat(STAT_POWER)
-	statData[LIBCOMBAT_STAT_WEAPONCRIT]			= math.min(GetStat(STAT_CRITICAL_STRIKE), maxcrit)
+	statData[LIBCOMBAT_STAT_WEAPONCRIT]			= zo_min(GetStat(STAT_CRITICAL_STRIKE), maxcrit)
 	statData[LIBCOMBAT_STAT_WEAPONCRITBONUS]	= weaponcritbonus
 	statData[LIBCOMBAT_STAT_WEAPONPENETRATION]	= GetStat(STAT_PHYSICAL_PENETRATION) + TFSBonus
 

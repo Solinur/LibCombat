@@ -8,7 +8,7 @@ local frameIndex = 1
 local frameData = {}
 local currentsecond
 
-local size = math.floor((1/GetCVar("MinFrameTime.2") + 40)/20)*20
+local size = zo_floor((1/GetCVar("MinFrameTime.2") + 40)/20)*20
 
 for i = 1, size do
 
@@ -41,8 +41,8 @@ local function onFrameUpdate()
 
 			sum = sum + v
 
-			min = math.min(v, min)
-			max = math.max(v, max)
+			min = zo_min(v, min)
+			max = zo_max(v, max)
 
 		end
 

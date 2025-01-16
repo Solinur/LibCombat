@@ -327,7 +327,7 @@ end
 
 local function GetReducedSlotId(reducedslot)
 
-	local bar = math.floor(reducedslot/10) + 1
+	local bar = zo_floor(reducedslot/10) + 1
 
 	local slot = reducedslot%10
 
@@ -371,7 +371,7 @@ local function onAbilityUsed(eventCode, result, isError, abilityName, abilityGra
 
 	end
 
-	local skillExecution = lastQ and math.max(lastQ, lasttime) or lasttime
+	local skillExecution = lastQ and zo_max(lastQ, lasttime) or lasttime
 	local skillDelay = timems - skillExecution
 
 	skillDelay = skillDelay < maxSkillDelay and skillDelay or nil

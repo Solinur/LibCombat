@@ -3,7 +3,7 @@
 LibCombat = LibCombat or {}
 local lib = LibCombat
 
-LIBCOMBAT_LINE_SIZE = math.ceil(GuiRoot:GetWidth()/tonumber(GetCVar("WindowedWidth"))*1000)/1000
+LIBCOMBAT_LINE_SIZE = zo_ceil(GuiRoot:GetWidth()/tonumber(GetCVar("WindowedWidth"))*1000)/1000
 
 -- Basic values
 lib.name = "LibCombat"

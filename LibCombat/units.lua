@@ -669,9 +669,9 @@ end
 
 -- Debug Utilities
 
-local logBase = math.log(5)
+local logBase = zo_log(5)
 
-local function GetUnitSummary() -- gives a list of all units with names and id and the laast seen time: 
+local function GetUnitSummary() -- gives a list of all units with names and id and the last seen time: 
 
 	local unitData = {}
 
@@ -681,7 +681,7 @@ local function GetUnitSummary() -- gives a list of all units with names and id a
 
 		unitData[unitId] = {
 			["unitName"] = unit.name,
-			["lastSeenRange"] = math.log(now - unit.lastSeen) / logBase,
+			["lastSeenRange"] = zo_log(now - unit.lastSeen) / logBase,
 
 		}
 
@@ -731,7 +731,7 @@ local function UnitSummaryOrder(table, a, b)
 	local lastSeenRangeB = table[b].lastSeenRange*10
 
 	if lastSeenRangeB - lastSeenRangeA > 0.1 then ishigher = true
-	elseif math.abs(lastSeenRangeA - lastSeenRangeB) < 0.1 then ishigher = b > a end
+	elseif zo_abs(lastSeenRangeA - lastSeenRangeB) < 0.1 then ishigher = b > a end
 
 	return ishigher
 end
@@ -758,8 +758,8 @@ local function UpdateDebugPanel()
 
 		local unit = UnitCache[unitId]
 
-		local g = (4 - math.min(math.max(2, unitData.lastSeenRange), 4)) / 2
-		local r = math.min(math.max(1, unitData.lastSeenRange), 2)-1
+		local g = (4 - zo_min(zo_max(2, unitData.lastSeenRange), 4)) / 2
+		local r = zo_min(zo_max(1, unitData.lastSeenRange), 2)-1
 
 		local tags = {}
 
@@ -772,7 +772,7 @@ local function UpdateDebugPanel()
 
 		local string = string.format("%s (%d, %s, %s): %.1f", unit.name, unitId, type, tags, now - unit.lastSeen)
 
-		stringArray[#stringArray+1] = string.format("|c%.2x%.2x%.2x%s|r", math.floor(r * 255), math.floor(g * 255), 0, string)
+		stringArray[#stringArray+1] = string.format("|c%.2x%.2x%.2x%s|r", zo_floor(r * 255), zo_floor(g * 255), 0, string)
 
 		lines = lines + 1
 

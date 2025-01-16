@@ -137,7 +137,7 @@ local function GetPlayerBuffs(timems)
 
 		local unitType = castByPlayer and COMBAT_UNIT_TYPE_PLAYER or COMBAT_UNIT_TYPE_NONE
 
-		local stacks = math.max(stackCount,1)
+		local stacks = zo_max(stackCount,1)
 
 		local playerId = libunits.playerId
 
@@ -408,9 +408,9 @@ function FightHandler:FinishFight()
 	self.combatend = timems
 	self.combattime = zo_round((timems - self.combatstart)/10)/100
 
-	self.starttime = math.min(self.dpsstart or self.hpsstart or 0, self.hpsstart or self.dpsstart or 0)
-	self.endtime = math.max(self.dpsend or 0, self.hpsend or 0)
-	self.activetime = math.max((self.endtime - self.starttime) / 1000, 1)
+	self.starttime = zo_min(self.dpsstart or self.hpsstart or 0, self.hpsstart or self.dpsstart or 0)
+	self.endtime = zo_max(self.dpsend or 0, self.hpsend or 0)
+	self.activetime = zo_max((self.endtime - self.starttime) / 1000, 1)
 
 	libint.EffectBuffer = {}
 
@@ -506,19 +506,19 @@ function FightHandler:UpdateFightStats()
 
 	if (self.dpsend == nil and self.hpsend == nil) or (self.dpsstart == nil and self.hpsstart == nil) then return end
 
-	local dpstime = math.max(((self.dpsend or 1) - (self.dpsstart or 0)) / 1000, 1)
-	local hpstime = math.max(((self.hpsend or 1) - (self.hpsstart or 0)) / 1000, 1)
+	local dpstime = zo_max(((self.dpsend or 1) - (self.dpsstart or 0)) / 1000, 1)
+	local hpstime = zo_max(((self.hpsend or 1) - (self.hpsstart or 0)) / 1000, 1)
 
 	self.dpstime = dpstime
 	self.hpstime = hpstime
 
 	self:UpdateGrpStats()
 
-	self.DPSOut = math.floor(self.damageOutTotal / dpstime + 0.5)
-	self.HPSOut = math.floor(self.healingOutTotal / hpstime + 0.5)
-	self.HPSAOut = math.floor(self.healingOutAbsolute / hpstime + 0.5)
-	self.DPSIn = math.floor(self.damageInTotal / dpstime + 0.5)
-	self.HPSIn = math.floor(self.healingInTotal / hpstime + 0.5)
+	self.DPSOut = zo_floor(self.damageOutTotal / dpstime + 0.5)
+	self.HPSOut = zo_floor(self.healingOutTotal / hpstime + 0.5)
+	self.HPSAOut = zo_floor(self.healingOutAbsolute / hpstime + 0.5)
+	self.DPSIn = zo_floor(self.damageInTotal / dpstime + 0.5)
+	self.HPSIn = zo_floor(self.healingInTotal / hpstime + 0.5)
 
 	local data = {
 		["DPSOut"] = self.DPSOut,
@@ -584,9 +584,9 @@ function FightHandler:UpdateGrpStats() -- called by onUpdate
 
 	self.groupHealingIn = self.groupHealingOut
 
-	self.groupDPSOut = math.floor(self.groupDamageOut / dpstime + 0.5)
-	self.groupDPSIn = math.floor(self.groupDamageIn / dpstime + 0.5)
-	self.groupHPSOut = math.floor(self.groupHealingOut / hpstime + 0.5)
+	self.groupDPSOut = zo_floor(self.groupDamageOut / dpstime + 0.5)
+	self.groupDPSIn = zo_floor(self.groupDamageIn / dpstime + 0.5)
+	self.groupHPSOut = zo_floor(self.groupHealingOut / hpstime + 0.5)
 
 	self.groupHPSIn = self.groupHPSOut
 

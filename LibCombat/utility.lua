@@ -315,7 +315,7 @@ function lib:GetCombatLogString(fight, logline, fontsize, showIds)
 
 			local changeTypeString = ZO_CachedStrFormat("<<1>><<2>>|r", changeColor, changeString)
 
-			local amount = powerValueChange~=0 and tostring(math.abs(powerValueChange)) or ""
+			local amount = powerValueChange~=0 and tostring(zo_abs(powerValueChange)) or ""
 
 			local resource = (powerType == COMBAT_MECHANIC_FLAGS_MAGICKA and GetString(SI_ATTRIBUTES2)) or (powerType == COMBAT_MECHANIC_FLAGS_STAMINA and GetString(SI_ATTRIBUTES3)) or (powerType == COMBAT_MECHANIC_FLAGS_ULTIMATE and GetString(SI_LIBCOMBAT_LOG_ULTIMATE))
 

@@ -143,7 +143,7 @@ local function BuffEventHandler(isspecial, groupeffect, _, changeType, effectSlo
 	local timems = GetGameTimeMilliseconds()
 
 	local eventid = groupeffect == GROUP_EFFECT_IN and LIBCOMBAT_EVENT_GROUPEFFECTS_IN or groupeffect == GROUP_EFFECT_OUT and LIBCOMBAT_EVENT_GROUPEFFECTS_OUT or unitTag and string.sub(unitTag, 1, 6) == "player" and LIBCOMBAT_EVENT_EFFECTS_IN or LIBCOMBAT_EVENT_EFFECTS_OUT
-	local stacks = math.max(1, stackCount)
+	local stacks = zo_max(1, stackCount)
 
 	local inCombat = libint.currentfight.prepared
 
@@ -259,7 +259,7 @@ function UnitHandler:UpdateZenData(callbackKeys, eventid, timeMs, unitId, abilit
 	if abilityId == libint.abilityIdZen then
 
 		local isActive = changeType == EFFECT_RESULT_GAINED -- or (changeType == EFFECT_RESULT_UPDATED)
-		local stacks = isActive and math.min(self.stacksOfZen, 5) or 0
+		local stacks = isActive and zo_min(self.stacksOfZen, 5) or 0
 
 		lib.cm:FireCallbacks(callbackKeys, eventid, timeMs, unitId, libint.abilityIdZen, changeType, effectType, stacks, sourceType, effectSlot)	-- stack count is 1 to 6, with 1 meaning 0% bonus, and 6 meaning 5% bonus from Z'en
 		Print("debug", "VERBOSE", table.concat({eventid, timeMs, unitId, libint.abilityIdZen, changeType, effectType, stacks, sourceType, effectSlot}, ", "))
@@ -274,13 +274,13 @@ function UnitHandler:UpdateZenData(callbackKeys, eventid, timeMs, unitId, abilit
 		elseif changeType == EFFECT_RESULT_FADED then
 
 			if self.stacksOfZen - 1 < 0 then Print("debug", "WARNING", "Encountered negative Z'en stacks: %s (%d)", GetFormattedAbilityName(abilityId), abilityId) end
-			self.stacksOfZen = math.max(0, self.stacksOfZen - 1)
+			self.stacksOfZen = zo_max(0, self.stacksOfZen - 1)
 
 		end
 
 		if self.zenEffectSlot then
 
-			local stacks = math.min(self.stacksOfZen, 5)
+			local stacks = zo_min(self.stacksOfZen, 5)
 			lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_EFFECTS_OUT]), LIBCOMBAT_EVENT_EFFECTS_OUT, timeMs, unitId, libint.abilityIdZen, EFFECT_RESULT_UPDATED, effectType, stacks, sourceType, self.zenEffectSlot)
 
 		end
@@ -312,12 +312,12 @@ function UnitHandler:UpdateForceOfNatureData(_, _, timeMs, unitId, abilityId, ch
 		if self.forceOfNatureStacks == 0 then forceOfNatureChangeType = EFFECT_RESULT_FADED end
 		if self.forceOfNatureStacks - 1 < 0 then Print("debug", "WARNING", "Encountered negative Force of Nature stacks: %s (%d)", GetFormattedAbilityName(abilityId), abilityId) end
 
-		self.forceOfNatureStacks = math.max(0, self.forceOfNatureStacks - 1)
+		self.forceOfNatureStacks = zo_max(0, self.forceOfNatureStacks - 1)
 		debugChangeType = "-"
 
 	end
 
-	local stacks = math.min(self.forceOfNatureStacks, 8)
+	local stacks = zo_min(self.forceOfNatureStacks, 8)
 	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_EFFECTS_OUT]), LIBCOMBAT_EVENT_EFFECTS_OUT, timeMs, unitId, libint.abilityIdForceOfNature, forceOfNatureChangeType, BUFF_EFFECT_TYPE_DEBUFF, stacks, COMBAT_UNIT_TYPE_PLAYER, 0)
 	Print("debug", "VERBOSE", "Force of Nature: %s (%d) x%d, %s%s", self.name, self.unitId, stacks, GetFormattedAbilityName(abilityId), debugChangeType)
 end

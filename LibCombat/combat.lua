@@ -131,8 +131,8 @@ local function UpdateDamageAbilityData(abilitydata, hitValue, overflow, result)
 	abilitydata[resultkey] = abilitydata[resultkey] + fullValue
 	abilitydata[hitKey] = abilitydata[hitKey] + 1
 
-	abilitydata.max = math.max(abilitydata.max, fullValue)
-	abilitydata.min = math.min(abilitydata.min, fullValue)
+	abilitydata.max = zo_max(abilitydata.max, fullValue)
+	abilitydata.min = zo_min(abilitydata.min, fullValue)
 
 	if overflow > 0 then -- shielded damage
 
@@ -203,8 +203,8 @@ local function UpdateHealAbilityData(abilitydata, hitValue, overflow, result)
 	abilitydata[resultkey] = abilitydata[resultkey] + fullValue
 	abilitydata[hitKey] = abilitydata[hitKey] + 1
 
-	abilitydata.max = math.max(abilitydata.max, fullValue)
-	abilitydata.min = math.min(abilitydata.min, fullValue)
+	abilitydata.max = zo_max(abilitydata.max, fullValue)
+	abilitydata.min = zo_min(abilitydata.min, fullValue)
 
 	if overflow > 0 then -- shielded damage
 
