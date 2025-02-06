@@ -91,7 +91,6 @@ local SlotSkills = {}
 local IdToReducedSlot = {}
 local lastAbilityActivations = {}
 local isProjectile = {}
-local AlkoshData = {}
 local isInPortalWorld = false	-- used to prevent fight reset in Cloudrest/Sunspire when using a portal.
 
 local lastBossHealthValue = 2
@@ -193,6 +192,7 @@ LIBCOMBAT_STAT_MAXHEALTH = 21
 LIBCOMBAT_STAT_PHYSICALRESISTANCE = 22
 LIBCOMBAT_STAT_SPELLRESISTANCE = 23
 LIBCOMBAT_STAT_CRITICALRESISTANCE = 24
+LIBCOMBAT_STAT_STATUS_EFFECT_CHANCE = 25
 
 -- CP type
 
@@ -1230,93 +1230,104 @@ local function GetCritbonus()
 
 end
 
+
+local function GetStatusEffectChance()
+	local bonus = 0
+
+	if GetUnitClassId("player") == 6 then
+		-- TODO: check for psychic lesion
+		-- type: 1
+		-- index: 9
+		-- id: 184873
+	end
+
+	-- check for charged / modified by heartland conq
+	-- check for Symmetry of the Weald (hopefully some buff)
+	-- check for Staff + Elemental Force
+	-- check for CP
+	-- check for Focused efforts (buff!)
+
+
+	return statusEffectBonus
+
+end
+
 local statData = {
-	[LIBCOMBAT_STAT_MAXMAGICKA]			= 0,
-	[LIBCOMBAT_STAT_SPELLPOWER]			= 0,
-	[LIBCOMBAT_STAT_SPELLCRIT]			= 0,
-	[LIBCOMBAT_STAT_SPELLCRITBONUS]		= 0,
-	[LIBCOMBAT_STAT_SPELLPENETRATION]	= 0,
+	[LIBCOMBAT_STAT_MAXMAGICKA]				= 0,
+	[LIBCOMBAT_STAT_SPELLPOWER]				= 0,
+	[LIBCOMBAT_STAT_SPELLCRIT]				= 0,
+	[LIBCOMBAT_STAT_SPELLCRITBONUS]			= 0,
+	[LIBCOMBAT_STAT_SPELLPENETRATION]		= 0,
 
-	[LIBCOMBAT_STAT_MAXSTAMINA]			= 0,
-	[LIBCOMBAT_STAT_WEAPONPOWER]		= 0,
-	[LIBCOMBAT_STAT_WEAPONCRIT]			= 0,
-	[LIBCOMBAT_STAT_WEAPONCRITBONUS]	= 0,
-	[LIBCOMBAT_STAT_WEAPONPENETRATION]	= 0,
+	[LIBCOMBAT_STAT_MAXSTAMINA]				= 0,
+	[LIBCOMBAT_STAT_WEAPONPOWER]			= 0,
+	[LIBCOMBAT_STAT_WEAPONCRIT]				= 0,
+	[LIBCOMBAT_STAT_WEAPONCRITBONUS]		= 0,
+	[LIBCOMBAT_STAT_WEAPONPENETRATION]		= 0,
 
-	[LIBCOMBAT_STAT_MAXHEALTH]			= 0,
-	[LIBCOMBAT_STAT_PHYSICALRESISTANCE]	= 0,
-	[LIBCOMBAT_STAT_SPELLRESISTANCE]	= 0,
-	[LIBCOMBAT_STAT_CRITICALRESISTANCE]	= 0,
+	[LIBCOMBAT_STAT_MAXHEALTH]				= 0,
+	[LIBCOMBAT_STAT_PHYSICALRESISTANCE]		= 0,
+	[LIBCOMBAT_STAT_SPELLRESISTANCE]		= 0,
+	[LIBCOMBAT_STAT_CRITICALRESISTANCE]		= 0,
+	[LIBCOMBAT_STAT_STATUS_EFFECT_CHANCE]	= 0,
 }
 
 local function GetStats()
 
 	local weaponcritbonus, spellcritbonus = GetCritbonus()
 	local maxcrit = zo_floor(100/GetCriticalStrikeChance(1)) -- Critical Strike chance of 100%
+	local statusEffectBonus = GetStatusEffectChance()
 
-	statData[LIBCOMBAT_STAT_MAXMAGICKA]			= GetStat(STAT_MAGICKA_MAX)
-	statData[LIBCOMBAT_STAT_SPELLPOWER]			= GetStat(STAT_SPELL_POWER)
-	statData[LIBCOMBAT_STAT_SPELLCRIT]			= zo_min(GetStat(STAT_SPELL_CRITICAL), maxcrit)
-	statData[LIBCOMBAT_STAT_SPELLCRITBONUS]		= spellcritbonus
-	statData[LIBCOMBAT_STAT_SPELLPENETRATION]	= GetStat(STAT_SPELL_PENETRATION) + TFSBonus
+	statData[LIBCOMBAT_STAT_MAXMAGICKA]				= GetStat(STAT_MAGICKA_MAX)
+	statData[LIBCOMBAT_STAT_SPELLPOWER]				= GetStat(STAT_SPELL_POWER)
+	statData[LIBCOMBAT_STAT_SPELLCRIT]				= zo_min(GetStat(STAT_SPELL_CRITICAL), maxcrit)
+	statData[LIBCOMBAT_STAT_SPELLCRITBONUS]			= spellcritbonus
+	statData[LIBCOMBAT_STAT_SPELLPENETRATION]		= GetStat(STAT_SPELL_PENETRATION) + TFSBonus
 
-	statData[LIBCOMBAT_STAT_MAXSTAMINA]			= GetStat(STAT_STAMINA_MAX)
-	statData[LIBCOMBAT_STAT_WEAPONPOWER]		= GetStat(STAT_POWER)
-	statData[LIBCOMBAT_STAT_WEAPONCRIT]			= zo_min(GetStat(STAT_CRITICAL_STRIKE), maxcrit)
-	statData[LIBCOMBAT_STAT_WEAPONCRITBONUS]	= weaponcritbonus
-	statData[LIBCOMBAT_STAT_WEAPONPENETRATION]	= GetStat(STAT_PHYSICAL_PENETRATION) + TFSBonus
+	statData[LIBCOMBAT_STAT_MAXSTAMINA]				= GetStat(STAT_STAMINA_MAX)
+	statData[LIBCOMBAT_STAT_WEAPONPOWER]			= GetStat(STAT_POWER)
+	statData[LIBCOMBAT_STAT_WEAPONCRIT]				= zo_min(GetStat(STAT_CRITICAL_STRIKE), maxcrit)
+	statData[LIBCOMBAT_STAT_WEAPONCRITBONUS]		= weaponcritbonus
+	statData[LIBCOMBAT_STAT_WEAPONPENETRATION]		= GetStat(STAT_PHYSICAL_PENETRATION) + TFSBonus
 
-	statData[LIBCOMBAT_STAT_MAXHEALTH]			= GetStat(STAT_HEALTH_MAX)
-	statData[LIBCOMBAT_STAT_PHYSICALRESISTANCE]	= GetStat(STAT_PHYSICAL_RESIST)
-	statData[LIBCOMBAT_STAT_SPELLRESISTANCE]	= GetStat(STAT_SPELL_RESIST)
-	statData[LIBCOMBAT_STAT_CRITICALRESISTANCE]	= GetStat(STAT_CRITICAL_RESISTANCE)
+	statData[LIBCOMBAT_STAT_MAXHEALTH]				= GetStat(STAT_HEALTH_MAX)
+	statData[LIBCOMBAT_STAT_PHYSICALRESISTANCE]		= GetStat(STAT_PHYSICAL_RESIST)
+	statData[LIBCOMBAT_STAT_SPELLRESISTANCE]		= GetStat(STAT_SPELL_RESIST)
+	statData[LIBCOMBAT_STAT_CRITICALRESISTANCE]		= GetStat(STAT_CRITICAL_RESISTANCE)
+	statData[LIBCOMBAT_STAT_STATUS_EFFECT_CHANCE]	= statusEffectBonus
 
 	return statData
 end
 
 function onTFSChanged(_, changeType, _, _, _, _, _, stackCount, _, _, _, _, _, _, _, _, _)
-
 	if (changeType == EFFECT_RESULT_GAINED or changeType == EFFECT_RESULT_UPDATED) and stackCount > 1 then
-
 		TFSBonus = (stackCount - 1) * 544
-
 	else
-
 		TFSBonus = 0
-
 	end
-
 	FightHandler:GetNewStats()
 end
 
 local advancedStatData = {}
 
 local function InitAdvancedStats()
-
 	if true then return {} end
 
 	for statCategoryIndex = 1, GetNumAdvancedStatCategories() do
-
 		local statCategoryId = GetAdvancedStatsCategoryId(statCategoryIndex)
 		local _, numStats = GetAdvancedStatCategoryInfo(statCategoryId)
 
 		if numStats > 0 then
-
 			for statIndex = 1, numStats do
-
 				local statType = GetAdvancedStatInfo(statCategoryId, statIndex)
-
 				local _, flatValue, percentValue = GetAdvancedStatValue(statType)
-
 				advancedStatData[statType] = {flatValue, percentValue}
-
 			end
 		end
 	end
 end
 
 local function GetAdvancedStats()
-
 	if true then return {} end
 
 	for statType, _ in pairs(advancedStatData) do
@@ -1327,7 +1338,6 @@ local function GetAdvancedStats()
 		if percentValue then advancedStatData[statType][2] = percentValue end
 
 	end
-
 	return advancedStatData
 end
 
