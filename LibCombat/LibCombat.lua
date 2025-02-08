@@ -1240,6 +1240,32 @@ local function GetStatusEffectChance()
 		-- index: 9
 		-- id: 184873
 	end
+	local slot_main_hand, slot_off_hand
+
+	local weaponPair = GetHeldWeaponPair()
+
+	if weaponPair == ACTIVE_WEAPON_PAIR_MAIN then
+		slot_main_hand = EQUIP_SLOT_MAIN_HAND
+		slot_off_hand = EQUIP_SLOT_OFF_HAND
+	elseif weaponPair == ACTIVE_WEAPON_PAIR_BACKUP then
+		slot_main_hand = EQUIP_SLOT_BACKUP_MAIN
+		slot_off_hand = EQUIP_SLOT_BACKUP_OFF
+	end
+		
+	local item_link_main = GetItemLink(BAG_WORN, slot_main_hand)
+	local item_link_off = GetItemLink(BAG_WORN, slot_off_hand)
+
+	local chargedBonus = 0
+
+	local trait, description = GetItemLinkTraitInfo(item_link_main)
+	if trait == ITEM_TRAIT_TYPE_WEAPON_CHARGED then
+		chargedBonus = chargedBonus + description:find("%d* %")
+	end
+
+	trait, description = GetItemLinkTraitInfo(slot_off_hand)
+	if trait == ITEM_TRAIT_TYPE_WEAPON_CHARGED then
+		
+	end
 
 	-- check for charged / modified by heartland conq
 	-- check for Symmetry of the Weald (hopefully some buff)
@@ -1247,8 +1273,7 @@ local function GetStatusEffectChance()
 	-- check for CP
 	-- check for Focused efforts (buff!)
 
-
-	return statusEffectBonus
+	return bonus
 
 end
 
