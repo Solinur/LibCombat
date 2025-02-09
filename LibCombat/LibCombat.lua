@@ -30,8 +30,7 @@ local ABILITY_RESOURCE_CACHE_SIZE = 20
 
 -- Logger
 
-local mainlogger
-local subloggers = {}
+local logger
 local LOG_LEVEL_VERBOSE = "V"
 local LOG_LEVEL_DEBUG = "D"
 local LOG_LEVEL_INFO = "I"
@@ -40,7 +39,8 @@ local LOG_LEVEL_ERROR = "E"
 
 if LibDebugLogger then
 
-	mainlogger = LibDebugLogger.Create(lib.name)
+	---@type Logger
+	logger = LibDebugLogger.Create(lib.name)
 
 	LOG_LEVEL_VERBOSE = LibDebugLogger.LOG_LEVEL_VERBOSE
 	LOG_LEVEL_DEBUG = LibDebugLogger.LOG_LEVEL_DEBUG
@@ -48,24 +48,19 @@ if LibDebugLogger then
 	LOG_LEVEL_WARNING = LibDebugLogger.LOG_LEVEL_WARNING
 	LOG_LEVEL_ERROR = LibDebugLogger.LOG_LEVEL_ERROR
 
-	subloggers["DoA"] = mainlogger:Create("DoA")
-	subloggers["other"] = mainlogger:Create("other")
-	subloggers["fight"] = mainlogger:Create("fight")
-	subloggers["events"] = mainlogger:Create("events")
-	subloggers["debug"] = mainlogger:Create("debug")
+	logger.doa = logger:Create("DoA")
+	logger.other = logger:Create("other")
+	logger.fight = logger:Create("fight")
+	logger.events = logger:Create("events")
+	logger.debug = logger:Create("debug")
 
 end
 
-local function Print(category, level, ...)
-
-	if mainlogger == nil then return end
-
-	local logger = category and subloggers[category] or mainlogger
-
+local function Log(category, level, ...)
+	if logger == nil then return end
+	local logger = category and logger[category] or logger
 	if category == "debug" and lib.debug ~= true then return end
-
 	if type(logger.Log)=="function" then logger:Log(level, ...) end
-
 end
 
 -- aliases
@@ -649,7 +644,7 @@ function UnitHandler:UpdateZenData(callbackKeys, eventid, timeMs, unitId, abilit
 		local stacks = isActive and math.min(self.stacksOfZen, 5) or 0
 
 		lib.cm:FireCallbacks(callbackKeys, eventid, timeMs, unitId, abilityIdZen, changeType, effectType, stacks, sourceType, effectSlot)	-- stack count is 1 to 6, with 1 meaning 0% bonus, and 6 meaning 5% bonus from Z'en
-		Print("debug", LOG_LEVEL_VERBOSE, table.concat({eventid, timeMs, unitId, abilityIdZen, changeType, effectType, stacks, sourceType, effectSlot}, ", "))
+		Log("debug", LOG_LEVEL_VERBOSE, table.concat({eventid, timeMs, unitId, abilityIdZen, changeType, effectType, stacks, sourceType, effectSlot}, ", "))
 		self.zenEffectSlot = (isActive and effectSlot) or nil
 
 	elseif abilityType == ABILITY_TYPE_DAMAGE then
@@ -660,7 +655,7 @@ function UnitHandler:UpdateZenData(callbackKeys, eventid, timeMs, unitId, abilit
 
 		elseif changeType == EFFECT_RESULT_FADED then
 
-			if self.stacksOfZen - 1 < 0 then Print("debug", LOG_LEVEL_WARNING, "Encountered negative Z'en stacks: %s (%d)", GetFormattedAbilityName(abilityId), abilityId) end
+			if self.stacksOfZen - 1 < 0 then Log("debug", LOG_LEVEL_WARNING, "Encountered negative Z'en stacks: %s (%d)", GetFormattedAbilityName(abilityId), abilityId) end
 			self.stacksOfZen = math.max(0, self.stacksOfZen - 1)
 
 		end
@@ -689,7 +684,7 @@ function UnitHandler:UpdateForceOfNatureData(_, _, timeMs, unitId, abilityId, ch
 		self.forceOfNatureStacks = self.forceOfNatureStacks + 1
 
 		if self.forceOfNatureStacks == 1 then forceOfNatureChangeType = EFFECT_RESULT_GAINED end
-		if self.forceOfNatureStacks > 8 then Print("debug", LOG_LEVEL_WARNING, "Encountered too many Force of Nature stacks (%d): %s (%d)", self.forceOfNatureStacks, GetFormattedAbilityName(abilityId), abilityId) end
+		if self.forceOfNatureStacks > 8 then Log("debug", LOG_LEVEL_WARNING, "Encountered too many Force of Nature stacks (%d): %s (%d)", self.forceOfNatureStacks, GetFormattedAbilityName(abilityId), abilityId) end
 		debugChangeType = "+"
 
 	elseif changeType == EFFECT_RESULT_FADED and self.forceOfNature[abilityId] == true then
@@ -697,7 +692,7 @@ function UnitHandler:UpdateForceOfNatureData(_, _, timeMs, unitId, abilityId, ch
 		self.forceOfNature[abilityId] = nil
 
 		if self.forceOfNatureStacks == 0 then forceOfNatureChangeType = EFFECT_RESULT_FADED end
-		if self.forceOfNatureStacks - 1 < 0 then Print("debug", LOG_LEVEL_WARNING, "Encountered negative Force of Nature stacks: %s (%d)", GetFormattedAbilityName(abilityId), abilityId) end
+		if self.forceOfNatureStacks - 1 < 0 then Log("debug", LOG_LEVEL_WARNING, "Encountered negative Force of Nature stacks: %s (%d)", GetFormattedAbilityName(abilityId), abilityId) end
 
 		self.forceOfNatureStacks = math.max(0, self.forceOfNatureStacks - 1)
 		debugChangeType = "-"
@@ -706,7 +701,7 @@ function UnitHandler:UpdateForceOfNatureData(_, _, timeMs, unitId, abilityId, ch
 
 	local stacks = math.min(self.forceOfNatureStacks, 8)
 	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_EFFECTS_OUT]), LIBCOMBAT_EVENT_EFFECTS_OUT, timeMs, unitId, abilityIdForceOfNature, forceOfNatureChangeType, BUFF_EFFECT_TYPE_DEBUFF, stacks, COMBAT_UNIT_TYPE_PLAYER, 0)
-	Print("debug", LOG_LEVEL_VERBOSE, "Force of Nature: %s (%d) x%d, %s%s", self.name, self.unitId, stacks, GetFormattedAbilityName(abilityId), debugChangeType)
+	Log("debug", LOG_LEVEL_VERBOSE, "Force of Nature: %s (%d) x%d, %s%s", self.name, self.unitId, stacks, GetFormattedAbilityName(abilityId), debugChangeType)
 end
 
 local FightHandler = ZO_Object:Subclass()
@@ -805,7 +800,7 @@ local function GetShadowBonus(effectSlot)
 
 	data.critBonusMundus = calcBonus - ZOSBonus -- mundus bonus difference
 
-	Print("other", LOG_LEVEL_INFO, "Shadow Mundus Offset: %d%% (calc %d%% - ZOS %d%%)", data.critBonusMundus, calcBonus, ZOSBonus)
+	Log("other", LOG_LEVEL_INFO, "Shadow Mundus Offset: %d%% (calc %d%% - ZOS %d%%)", data.critBonusMundus, calcBonus, ZOSBonus)
 end
 
 local function GetPlayerBuffs(timems)
@@ -829,7 +824,7 @@ local function GetPlayerBuffs(timems)
 
 		local _, _, endTime, effectSlot, stackCount, _, _, effectType, abilityType, _, abilityId, _, castByPlayer = GetUnitBuffInfo("player",i)
 
-		Print("events", LOG_LEVEL_VERBOSE, "player has the %s %d x %s (%d, ET: %d, self: %s)", effectType == BUFF_EFFECT_TYPE_BUFF and "buff" or "debuff", stackCount, GetFormattedAbilityName(abilityId), abilityId, abilityType, tostring(castByPlayer))
+		Log("events", LOG_LEVEL_VERBOSE, "player has the %s %d x %s (%d, ET: %d, self: %s)", effectType == BUFF_EFFECT_TYPE_BUFF and "buff" or "debuff", stackCount, GetFormattedAbilityName(abilityId), abilityId, abilityType, tostring(castByPlayer))
 
 		local unitType = castByPlayer and COMBAT_UNIT_TYPE_PLAYER or COMBAT_UNIT_TYPE_NONE
 
@@ -889,7 +884,6 @@ local function GetOtherBuffs(timems)
 end
 
 local function GetCritBonusFromCP(CPdata)
-
 	local slots = CPdata[1].slotted
 	local points = CPdata[1].stars
 
@@ -899,7 +893,6 @@ local function GetCritBonusFromCP(CPdata)
 end
 
 local function GetCurrentCP()
-
 	local CP = {}
 	CP.version = 2
 	
@@ -1030,36 +1023,25 @@ local function GetSlottedAbilityId(actionSlotIndex, hotbarCategory)	-- thanks to
 end
 
 local function GetCurrentSkillBars()
-
 	local skillBars = data.skillBars
-
 	local bar = data.bar
 
 	skillBars[bar] = {}
-
 	local currentbar = skillBars[bar]
 	local hotbarCategory = GetActiveHotbarCategory()
 
 	for i = 1, 8 do
-
 		local id = GetSlottedAbilityId(i, hotbarCategory)
-
 		currentbar[i] = id
-
 		local reducedslot = (bar - 1) * 10 + i
-
 		local conversion = abilityConversions[id]
-
 		local convertedId = conversion and conversion[1] or id
 
 		IdToReducedSlot[convertedId] = reducedslot
 
 		if conversion and conversion[3] then IdToReducedSlot[conversion[3]] = reducedslot end
-
 	end
-
 	UpdateSlotSkillEvents()
-
 end
 
 local function onPlayerActivated()
@@ -1093,6 +1075,112 @@ local function onBossesChanged(_) -- Detect Bosses
 		end
 	end
 end
+
+local function CheckForHeraldAbility()
+	local bonus = {[0] = 0, [1] = 0}
+	if GetUnitClassId("player") ~= 117 then return bonus end
+	local skillType, lineIndex, skillIndex  = GetSpecificSkillAbilityKeysByAbilityId(184873)
+	local abilityId = GetSkillAbilityId(skillType, lineIndex, skillIndex, false)
+	local description = GetAbilityDescription(abilityId)
+	local startindex = select(2, description:find("|cffffff([%d%.,]*)|r%%"))
+	local bonusValue = select(3, description:find("|cffffff([%d%.,]*)|r%%", startindex))
+	for hotbarCategory = 0,1 do
+		for slot = 3, 8 do
+			local abilityId = GetSlottedAbilityId(slot, hotbarCategory)
+			local skillType, lineIndex2, _ = GetSpecificSkillAbilityKeysByAbilityId(abilityId)
+			if skillType == 0 and lineIndex == lineIndex2 and abilityId ~= 0 then
+				bonus[hotbarCategory] = bonusValue
+				break
+			end
+		end
+	end
+	return bonus
+end
+
+local function GetChargedBonus()
+	local charged = {}
+	for hotbarCategory = 0,1 do
+		local slot_main_hand, slot_off_hand
+		if hotbarCategory == HOTBAR_CATEGORY_PRIMARY then
+			slot_main_hand = EQUIP_SLOT_MAIN_HAND
+			slot_off_hand = EQUIP_SLOT_OFF_HAND
+		elseif hotbarCategory == HOTBAR_CATEGORY_BACKUP then
+			slot_main_hand = EQUIP_SLOT_BACKUP_MAIN
+			slot_off_hand = EQUIP_SLOT_BACKUP_OFF
+		end
+		
+		local item_link_main = GetItemLink(BAG_WORN, slot_main_hand, LINK_STYLE_DEFAULT)
+		local item_link_off = GetItemLink(BAG_WORN, slot_off_hand, LINK_STYLE_DEFAULT)
+		local chargedBonus = 0
+		local trait, description = GetItemLinkTraitInfo(item_link_main)
+		if trait == ITEM_TRAIT_TYPE_WEAPON_CHARGED then
+			local _,_, bonus = description:find("|cffffff([%d%.,]*)|r%%")
+			chargedBonus = chargedBonus + tonumber(bonus)
+		end
+
+		trait, description = GetItemLinkTraitInfo(item_link_off)
+		if trait == ITEM_TRAIT_TYPE_WEAPON_CHARGED then
+			local _,_, bonus = description:find("|cffffff([%d%.,]*)|r%%")
+			chargedBonus = chargedBonus + tonumber(bonus)
+		end
+
+		charged[hotbarCategory] = chargedBonus
+	end
+	return charged
+end
+
+local function CheckHeartlandSet()
+	local _, heartlandDescription = GetItemSetBonusInfo(583, 4)
+	local setBonus = select(3, heartlandDescription:find("cffffff([%d%.,]*).r%%"))
+	return tonumber(setBonus) / 100
+end
+
+local DestroStaffTypes = {
+	[WEAPONTYPE_FIRE_STAFF] = true,
+	[WEAPONTYPE_FROST_STAFF] = true,
+	[WEAPONTYPE_LIGHTNING_STAFF] = true,
+}
+
+local function CheckDestroPassive()
+	local bonus = {[0] = 0, [1] = 0}
+	local skillType, lineIndex, skillIndex  = GetSpecificSkillAbilityKeysByAbilityId(45512)
+	local abilityId = GetSkillAbilityId(skillType, lineIndex, skillIndex, false)
+	local description = GetAbilityDescription(abilityId)
+	local bonusValue = tonumber(select(3,description:find("|cffffff([%d%.,]*)|r%%")))
+
+	local weaponTypeMain = GetItemWeaponType(BAG_WORN, EQUIP_SLOT_MAIN_HAND)
+	if DestroStaffTypes[weaponTypeMain] then bonus[0] = bonusValue end
+	local weaponTypeBackup = GetItemWeaponType(BAG_WORN, EQUIP_SLOT_BACKUP_MAIN)
+	if DestroStaffTypes[weaponTypeBackup] then bonus[1] = bonusValue end
+	return bonus
+end
+
+
+local function CheckCPBonus()
+	local martial = 1.5 * GetNumPointsSpentOnChampionSkill(18)
+	local magic = 1.5 * GetNumPointsSpentOnChampionSkill(17)
+
+	return (martial + magic)/2
+end
+
+
+local function CheckWealdSet()
+	local _, wealdDescription = GetItemSetBonusInfo(757, 4)
+	local setBonus = select(3, wealdDescription:find("cffffff([%d%.,]*).r%%"))
+	return tonumber(setBonus)
+end
+
+local function InitStatusEffectBonuses()
+	local SEBonus = {}
+	SEBonus.arcanistBonus = CheckForHeraldAbility()
+	SEBonus.charged = GetChargedBonus()
+	SEBonus.heartlandBonus = CheckHeartlandSet()
+	SEBonus.wealdBonus = CheckWealdSet()
+	SEBonus.destro = CheckDestroPassive()
+	SEBonus.CP = CheckCPBonus()
+	data.statusEffectBonus = SEBonus
+end
+
 
 function FightHandler:PrepareFight()
 
@@ -1142,6 +1230,8 @@ function FightHandler:PrepareFight()
 
 		data.stats = {}
 		data.advancedStats = {}
+		InitStatusEffectBonuses()
+		
 		self:GetNewStats(timems)
 
 		GetCurrentSkillBars()
@@ -1207,7 +1297,7 @@ function FightHandler:FinishFight()
 	lastAbilityActivations = {}
 	isProjectile = {}
 
-	Print("other", LOG_LEVEL_DEBUG, "Number of Projectile data entries: %d", NonContiguousCount(isProjectile))
+	Log("other", LOG_LEVEL_DEBUG, "Number of Projectile data entries: %d", NonContiguousCount(isProjectile))
 
 	data.lastabilities = {}
 end
@@ -1230,51 +1320,37 @@ local function GetCritbonus()
 
 end
 
-
 local function GetStatusEffectChance()
-	local bonus = 0
+	local SEBonus = data.statusEffectBonus
+	local hotBar = GetActiveHotbarCategory()
+	local arcanistBonus = SEBonus.arcanistBonus[hotBar]
+	local chargedBonus = SEBonus.charged[hotBar]
+	local CPBonus = SEBonus.CP
 
-	if GetUnitClassId("player") == 6 then
-		-- TODO: check for psychic lesion
-		-- type: 1
-		-- index: 9
-		-- id: 184873
-	end
-	local slot_main_hand, slot_off_hand
-
-	local weaponPair = GetHeldWeaponPair()
-
-	if weaponPair == ACTIVE_WEAPON_PAIR_MAIN then
-		slot_main_hand = EQUIP_SLOT_MAIN_HAND
-		slot_off_hand = EQUIP_SLOT_OFF_HAND
-	elseif weaponPair == ACTIVE_WEAPON_PAIR_BACKUP then
-		slot_main_hand = EQUIP_SLOT_BACKUP_MAIN
-		slot_off_hand = EQUIP_SLOT_BACKUP_OFF
-	end
-		
-	local item_link_main = GetItemLink(BAG_WORN, slot_main_hand)
-	local item_link_off = GetItemLink(BAG_WORN, slot_off_hand)
-
-	local chargedBonus = 0
-
-	local trait, description = GetItemLinkTraitInfo(item_link_main)
-	if trait == ITEM_TRAIT_TYPE_WEAPON_CHARGED then
-		chargedBonus = chargedBonus + description:find("%d* %")
+	local heartlandBonus = 0
+	if select(4, GetItemSetInfo(583)) >= 5 then
+		heartlandBonus = chargedBonus / (1 + SEBonus.heartlandBonus)
 	end
 
-	trait, description = GetItemLinkTraitInfo(slot_off_hand)
-	if trait == ITEM_TRAIT_TYPE_WEAPON_CHARGED then
-		
+	local wealdBonus = 0
+	if select(4, GetItemSetInfo(757)) >= 5 then
+		local current, maxHealth = GetUnitPower("player", COMBAT_MECHANIC_FLAGS_HEALTH)
+		if current/maxHealth > 0.5 then wealdBonus = SEBonus.wealdBonus end
 	end
 
-	-- check for charged / modified by heartland conq
-	-- check for Symmetry of the Weald (hopefully some buff)
-	-- check for Staff + Elemental Force
-	-- check for CP
+	local destroBonus = SEBonus.destro[hotBar]
 	-- check for Focused efforts (buff!)
-
-	return bonus
-
+	-- ensure update when HP changes
+	Log("debug", LOG_LEVEL_INFO, "SE Bonus")
+	Log("debug", LOG_LEVEL_INFO, "CP: %.1f%%", CPBonus)
+	Log("debug", LOG_LEVEL_INFO, "Charged: %.1f%%", chargedBonus - heartlandBonus)
+	Log("debug", LOG_LEVEL_INFO, "Destro: %.1f%%", destroBonus)
+	Log("debug", LOG_LEVEL_INFO, "Arcanist: %.1f%%", arcanistBonus)
+	Log("debug", LOG_LEVEL_INFO, "Heartland Set: %.1f%%", heartlandBonus)
+	Log("debug", LOG_LEVEL_INFO, "Weald Set: %.1f%%", wealdBonus)
+	local totalBonus = arcanistBonus + chargedBonus + destroBonus + wealdBonus
+	Log("debug", LOG_LEVEL_INFO, "Total: %.1f%%", totalBonus)
+	return totalBonus
 end
 
 local statData = {
@@ -1505,7 +1581,7 @@ local function ProcessDeathRecaps()
 
 		if timems - UnitCache.timems > 200 then
 
-			Print("debug", LOG_LEVEL_INFO, "ProcessDeath: %s (%d)", currentfight.units[unitId].name, unitId)
+			Log("debug", LOG_LEVEL_INFO, "ProcessDeath: %s (%d)", currentfight.units[unitId].name, unitId)
 			UnitCache:ProcessDeath()
 
 		end
@@ -1516,7 +1592,7 @@ end
 
 local function ClearUnitCaches()
 
-	Print("debug", LOG_LEVEL_INFO, "ClearUnitCaches (%d)", NonContiguousCount(CombatEventCache))
+	Log("debug", LOG_LEVEL_INFO, "ClearUnitCaches (%d)", NonContiguousCount(CombatEventCache))
 
 	for unitId, UnitCache in pairs(CombatEventCache) do
 
@@ -1649,12 +1725,12 @@ local function IsOngoingBossfight()
 
 	if isInPortalWorld then -- prevent fight reset in Cloudrest when using a portal.
 
-		Print("other", LOG_LEVEL_DEBUG, "Prevented combat reset because player is in Portal!")
+		Log("other", LOG_LEVEL_DEBUG, "Prevented combat reset because player is in Portal!")
 		return true
 
 	elseif getCurrentBossHP() > 0 and getCurrentBossHP() < 1 then
 
-		Print("other", LOG_LEVEL_INFO, "Prevented combat reset because boss is still in fight!")
+		Log("other", LOG_LEVEL_INFO, "Prevented combat reset because boss is still in fight!")
 		return true
 
 	else
@@ -1677,22 +1753,22 @@ function FightHandler:onUpdate()
 
 		if self.damageOutTotal>0 or self.healingOutTotal>0 or self.damageInTotal>0 then
 
-			Print("fight", LOG_LEVEL_DEBUG, "Time: %.2fs (DPS) | %.2fs (HPS) ", self.dpstime, self.hpstime)
-			Print("fight", LOG_LEVEL_DEBUG, "Dmg: %d (DPS: %d)", self.damageOutTotal, self.DPSOut)
-			Print("fight", LOG_LEVEL_DEBUG, "Heal: %d (HPS: %d)", self.healingOutTotal, self.HPSOut)
-			Print("fight", LOG_LEVEL_DEBUG, "IncDmg: %d (Shield: %d, IncDPS: %d)", self.damageInTotal, self.damageInShielded, self.DPSIn)
-			Print("fight", LOG_LEVEL_DEBUG, "IncHeal: %d (IncHPS: %d)", self.healingInTotal, self.HPSIn)
+			Log("fight", LOG_LEVEL_DEBUG, "Time: %.2fs (DPS) | %.2fs (HPS) ", self.dpstime, self.hpstime)
+			Log("fight", LOG_LEVEL_DEBUG, "Dmg: %d (DPS: %d)", self.damageOutTotal, self.DPSOut)
+			Log("fight", LOG_LEVEL_DEBUG, "Heal: %d (HPS: %d)", self.healingOutTotal, self.HPSOut)
+			Log("fight", LOG_LEVEL_DEBUG, "IncDmg: %d (Shield: %d, IncDPS: %d)", self.damageInTotal, self.damageInShielded, self.DPSIn)
+			Log("fight", LOG_LEVEL_DEBUG, "IncHeal: %d (IncHPS: %d)", self.healingInTotal, self.HPSIn)
 
 			if data.inGroup and Events.CombatGrp.active then
 
-				Print("fight", LOG_LEVEL_DEBUG, "GrpDmg: %d (DPS: %d)", self.groupDamageOut, self.groupDPSOut)
-				Print("fight", LOG_LEVEL_DEBUG, "GrpHeal: %d (HPS: %d)", self.groupHealingOut, self.groupHPSOut)
-				Print("fight", LOG_LEVEL_DEBUG, "GrpIncDmg: %d (IncDPS: %d)", self.groupDamageIn, self.groupDPSIn)
+				Log("fight", LOG_LEVEL_DEBUG, "GrpDmg: %d (DPS: %d)", self.groupDamageOut, self.groupDPSOut)
+				Log("fight", LOG_LEVEL_DEBUG, "GrpHeal: %d (HPS: %d)", self.groupHealingOut, self.groupHPSOut)
+				Log("fight", LOG_LEVEL_DEBUG, "GrpIncDmg: %d (IncDPS: %d)", self.groupDamageIn, self.groupDPSIn)
 
 			end
 		end
 
-		Print("fight", LOG_LEVEL_DEBUG, "resetting...")
+		Log("fight", LOG_LEVEL_DEBUG, "resetting...")
 
 		self.grplog = {}
 
@@ -1732,7 +1808,7 @@ function UnitCacheHandler:Initialize(unitId)
 
 	local unitname = currentfight.units[unitId] and currentfight.units[unitId].name or "Unknown"
 
-	Print("debug", LOG_LEVEL_INFO, "Init UnitCache: %s (%d)", unitname, unitId)
+	Log("debug", LOG_LEVEL_INFO, "Init UnitCache: %s (%d)", unitname, unitId)
 
 end
 
@@ -1746,7 +1822,7 @@ function UnitCacheHandler:OnDeath(timems)
 
 	local unitname = currentfight.units[self.unitId] and currentfight.units[self.unitId].name or "Unknown"
 
-	Print("debug", LOG_LEVEL_INFO, "UnitCacheHandler:OnDeath: %s (%d)", unitname, self.unitId)
+	Log("debug", LOG_LEVEL_INFO, "UnitCacheHandler:OnDeath: %s (%d)", unitname, self.unitId)
 
 end
 
@@ -1773,7 +1849,7 @@ function UnitCacheHandler:ProcessDeath()
 
 		local deleted = 0
 
-		Print("debug", LOG_LEVEL_INFO, "Processing death event cache. Offset: %d, length:%d", offset, length)
+		Log("debug", LOG_LEVEL_INFO, "Processing death event cache. Offset: %d, length:%d", offset, length)
 
 		for i = 0, length - 1 do
 
@@ -1798,7 +1874,7 @@ function UnitCacheHandler:ProcessDeath()
 			end
 		end
 
-		Print("debug", LOG_LEVEL_INFO , "%s: cache: %d, log: %d, deleted: %d", unit and unit.name or "Unknown", #cache, #log, deleted)
+		Log("debug", LOG_LEVEL_INFO , "%s: cache: %d, log: %d, deleted: %d", unit and unit.name or "Unknown", #cache, #log, deleted)
 	end
 
 	self.cache = nil
@@ -1891,7 +1967,7 @@ function onCombatState(event, inCombat)  -- Detect Combat Stage, local is define
 
 			data.inCombat = inCombat
 
-			Print("fight", LOG_LEVEL_DEBUG, "Entering combat.")
+			Log("fight", LOG_LEVEL_DEBUG, "Entering combat.")
 
 			lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_MESSAGES]), LIBCOMBAT_EVENT_MESSAGES, timems, LIBCOMBAT_MESSAGE_COMBATSTART, 0)
 
@@ -1901,14 +1977,14 @@ function onCombatState(event, inCombat)  -- Detect Combat Stage, local is define
 
 			if IsOngoingBossfight() then
 
-				Print("fight", LOG_LEVEL_INFO, "Failed: Leaving combat.")
+				Log("fight", LOG_LEVEL_INFO, "Failed: Leaving combat.")
 				return
 
 			end
 
 			data.inCombat = false
 
-			Print("fight", LOG_LEVEL_DEBUG, "Leaving combat.")
+			Log("fight", LOG_LEVEL_DEBUG, "Leaving combat.")
 
 			currentfight:FinishFight()
 
@@ -1971,7 +2047,7 @@ local function onAlkoshDmg(_, _, _, _, _, _, _, _, _, _, hitValue, _, _, _, _, t
 
 	local fullValue = hitValue + (overflow or 0)
 
-	Print("events", LOG_LEVEL_DEBUG, "Alkosh Dmg: %d", fullValue)
+	Log("events", LOG_LEVEL_DEBUG, "Alkosh Dmg: %d", fullValue)
 
 	AlkoshData[targetUnitId] = math.min(fullValue, 3000)
 
@@ -1993,7 +2069,7 @@ local function BuffEventHandler(isspecial, groupeffect, _, changeType, effectSlo
 
 	if (changeType ~= EFFECT_RESULT_GAINED and changeType ~= EFFECT_RESULT_FADED and not (changeType == EFFECT_RESULT_UPDATED and stackCount > 1)) or unitName == "Offline" or unitId == nil then return end
 
-	Print("events", LOG_LEVEL_VERBOSE, "%s %s the %s %dx %s (%d, ET: %d, %s, %d)", unitName, changeType, effectType == BUFF_EFFECT_TYPE_BUFF and "buff" or "debuff", stackCount, GetFormattedAbilityName(abilityId), abilityId, abilityType, unitTag, sourceType)
+	Log("events", LOG_LEVEL_VERBOSE, "%s %s the %s %dx %s (%d, ET: %d, %s, %d)", unitName, changeType, effectType == BUFF_EFFECT_TYPE_BUFF and "buff" or "debuff", stackCount, GetFormattedAbilityName(abilityId), abilityId, abilityType, unitTag, sourceType)
 
 	if BadAbility[abilityId] == true then return end
 
@@ -2481,7 +2557,7 @@ local function CheckForWipe()
 
 	currentfight.isWipe = true
 
-	Print("DoA", LOG_LEVEL_DEBUG, "=== This is a wipe ! ===")
+	Log("DoA", LOG_LEVEL_DEBUG, "=== This is a wipe ! ===")
 
 end
 
@@ -2489,18 +2565,18 @@ local function OnDeathStateChanged(_, unitTag, isDead) 	-- death (for group disp
 
 	local unitId = unitTag == "player" and data.playerid or data.groupInfo.tagToId[unitTag]
 
-	Print("debug", LOG_LEVEL_INFO, "OnDeathStateChanged: %s (%s) is dead: %s", unitTag, tostring(unitId), tostring(isDead))
+	Log("debug", LOG_LEVEL_INFO, "OnDeathStateChanged: %s (%s) is dead: %s", unitTag, tostring(unitId), tostring(isDead))
 
 	if data.inCombat == false or unitId == nil then
 
-		Print("debug", LOG_LEVEL_INFO, "OnDeathStateChanged: Combat: %s", tostring(data.inCombat))
+		Log("debug", LOG_LEVEL_INFO, "OnDeathStateChanged: Combat: %s", tostring(data.inCombat))
 		return
 	end
 
 	local unit = currentfight.units[unitId]
 	if unit then unit.isDead = isDead else
 
-		Print("debug", LOG_LEVEL_INFO, "OnDeathStateChanged: no unit")
+		Log("debug", LOG_LEVEL_INFO, "OnDeathStateChanged: no unit")
 		return
 	end
 
@@ -2514,7 +2590,7 @@ local function OnDeathStateChanged(_, unitTag, isDead) 	-- death (for group disp
 
 		GetUnitCache(unitId):OnDeath(timems)
 
-		Print("debug", LOG_LEVEL_INFO, "OnDeathStateChanged: fire callback")
+		Log("debug", LOG_LEVEL_INFO, "OnDeathStateChanged: fire callback")
 		lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_DEATH]), LIBCOMBAT_EVENT_DEATH, timems, LIBCOMBAT_STATE_DEAD, unitId)
 
 		CheckForWipe()
@@ -2528,7 +2604,7 @@ end
 
 local function OnPlayerReincarnated()
 
-	Print("DoA", LOG_LEVEL_DEBUG, "You revived")
+	Log("DoA", LOG_LEVEL_DEBUG, "You revived")
 
 end
 
@@ -2590,7 +2666,7 @@ end
 
 local function OnResurrectResult(_, targetCharacterName, result, targetDisplayName)
 
-	Print("DoA", LOG_LEVEL_DEBUG, "OnResurrectResult: %s", targetCharacterName)
+	Log("DoA", LOG_LEVEL_DEBUG, "OnResurrectResult: %s", targetCharacterName)
 
 	local timems = GetGameTimeMilliseconds()
 
@@ -2608,7 +2684,7 @@ end
 
 local function OnResurrectRequest(_, requesterCharacterName, timeLeftToAccept, requesterDisplayName)
 
-	Print("DoA", LOG_LEVEL_DEBUG, "OnResurrectRequest: %s", requesterCharacterName)
+	Log("DoA", LOG_LEVEL_DEBUG, "OnResurrectRequest: %s", requesterCharacterName)
 
 	local timems = GetGameTimeMilliseconds()
 
@@ -2655,7 +2731,7 @@ local function onWTF(_, result, _, abilityName, _, abilityActionSlotType, source
 
 	local resulttext = SpecialResults[result] or tostring(result)
 
-	Print("other", LOG_LEVEL_VERBOSE, "onWTF (%s): %s (%d, %d) / %s (%d, %d) - %s (%d): %d (type: %d)", resulttext, sourceName, sourceUnitId, sourceType, targetName, targetUnitId, targetType, GetFormattedAbilityName(abilityId), abilityId, hitValue or 0, damageType or 0)
+	Log("other", LOG_LEVEL_VERBOSE, "onWTF (%s): %s (%d, %d) / %s (%d, %d) - %s (%d): %d (type: %d)", resulttext, sourceName, sourceUnitId, sourceType, targetName, targetUnitId, targetType, GetFormattedAbilityName(abilityId), abilityId, hitValue or 0, damageType or 0)
 
 end
 
@@ -2702,7 +2778,7 @@ local function CheckForShield(timems, sourceUnitId, targetUnitId)
 
 		local shieldTimems, shieldSourceUnitId, shieldTargetUnitId, shieldHitValue = unpack(DamageShieldBuffer[i])
 
-		Print("debug", LOG_LEVEL_VERBOSE, "Eval Shield Index %d: Source: %s, Target: %s, Time: %d", i, tostring(shieldSourceUnitId == sourceUnitId), tostring(shieldTargetUnitId == targetUnitId), timems - shieldTimems)
+		Log("debug", LOG_LEVEL_VERBOSE, "Eval Shield Index %d: Source: %s, Target: %s, Time: %d", i, tostring(shieldSourceUnitId == sourceUnitId), tostring(shieldTargetUnitId == targetUnitId), timems - shieldTimems)
 
 		if shieldSourceUnitId == sourceUnitId and shieldTargetUnitId == targetUnitId and timems - shieldTimems < 100 then
 
@@ -2761,7 +2837,7 @@ local function onCombatEventShield(eventCode, result, isError, abilityName, abil
 
 	DamageShieldBuffer[#DamageShieldBuffer + 1] = {GetGameTimeMilliseconds(), sourceUnitId, targetUnitId, hitValue}
 
-	Print("debug", LOG_LEVEL_DEBUG, "Add %d Shield: %d -> %d  (%d)", hitValue, sourceUnitId, targetUnitId, #DamageShieldBuffer)
+	Log("debug", LOG_LEVEL_DEBUG, "Add %d Shield: %d -> %d  (%d)", hitValue, sourceUnitId, targetUnitId, #DamageShieldBuffer)
 
 end
 
@@ -2797,7 +2873,7 @@ local function onCombatEventDmgGrp(_, _, _, _, _, _, _, _, targetName, targetTyp
 
 	if hitValue > 200000 then
 
-		Print("debug", LOG_LEVEL_WARNING, "Big Damage Event: (%d) %s did %d damage to %s", abilityId, GetFormattedAbilityName(abilityId), hitValue, tostring(targetName))
+		Log("debug", LOG_LEVEL_WARNING, "Big Damage Event: (%d) %s did %d damage to %s", abilityId, GetFormattedAbilityName(abilityId), hitValue, tostring(targetName))
 
 		return
 
@@ -2829,7 +2905,7 @@ local function GroupCombatEventHandler(isheal, result, _, abilityName, _, _, sou
 
 	if overflow and overflow > 0 and not isheal then
 
-		Print("debug", LOG_LEVEL_INFO, "GroupCombatEventHandler: %s has overflow damage!", targetName)
+		Log("debug", LOG_LEVEL_INFO, "GroupCombatEventHandler: %s has overflow damage!", targetName)
 		GetUnitCache(targetUnitId):OnDeath(timems)
 
 	end
@@ -2901,7 +2977,7 @@ local function onAbilityUsed(eventCode, result, isError, abilityName, abilityGra
 
 	local channeled, castTime = GetAbilityCastInfo(origId)
 
-	Print("events", LOG_LEVEL_VERBOSE, "[%.3f] Skill fired: %s (%d), Duration: %ds Target: %s", timems/1000, GetAbilityName(origId), origId, (castTime or 0)/1000, tostring(targetName))
+	Log("events", LOG_LEVEL_VERBOSE, "[%.3f] Skill fired: %s (%d), Duration: %ds Target: %s", timems/1000, GetAbilityName(origId), origId, (castTime or 0)/1000, tostring(targetName))
 
 	HeavyAttackCharging = DirectHeavyAttacks[origId] and origId or nil
 
@@ -2910,7 +2986,7 @@ local function onAbilityUsed(eventCode, result, isError, abilityName, abilityGra
 
 	if lastQ and lasttime then
 
-		Print("events", LOG_LEVEL_VERBOSE, "%s: act: %d, Q: %d, Diff: %d", GetFormattedAbilityName(origId), timems-lasttime, timems-lastQ, lastQ - lasttime)
+		Log("events", LOG_LEVEL_VERBOSE, "%s: act: %d, Q: %d, Diff: %d", GetFormattedAbilityName(origId), timems-lasttime, timems-lastQ, lastQ - lasttime)
 
 	end
 
@@ -2953,7 +3029,7 @@ local function onAbilityFinished(eventCode, result, isError, abilityName, abilit
 
 	if usedCastTimeAbility[abilityId] then
 
-		Print("events", LOG_LEVEL_VERBOSE ,"Skill finished: %s (%d, R: %d)", GetAbilityName(origId), origId, result)
+		Log("events", LOG_LEVEL_VERBOSE ,"Skill finished: %s (%d, R: %d)", GetAbilityName(origId), origId, result)
 
 		lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_SKILL_TIMINGS]), LIBCOMBAT_EVENT_SKILL_TIMINGS, timems, reducedslot, origId, LIBCOMBAT_SKILLSTATUS_SUCCESS)
 
@@ -2974,7 +3050,7 @@ local function onQueueEvent(_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, abil
 
 	if reducedslot == nil then
 
-		Print("events", LOG_LEVEL_WARNING ,"reducedslot missing on queue event: [%.3f s] %s (%d)", (timems - currentfight.combatstart)/1000, GetAbilityName(abilityId), abilityId)
+		Log("events", LOG_LEVEL_WARNING ,"reducedslot missing on queue event: [%.3f s] %s (%d)", (timems - currentfight.combatstart)/1000, GetAbilityName(abilityId), abilityId)
 		return
 
 	end
@@ -2991,7 +3067,7 @@ local function onProjectileEvent(eventCode, result, isError, abilityName, abilit
 
 	isProjectile[abilityId] = true
 
-	Print("events", LOG_LEVEL_VERBOSE ,"[%.3f s] projectile: %s (%d)", (GetGameTimeMilliseconds() - currentfight.combatstart)/1000, GetAbilityName(abilityId), abilityId)
+	Log("events", LOG_LEVEL_VERBOSE ,"[%.3f s] projectile: %s (%d)", (GetGameTimeMilliseconds() - currentfight.combatstart)/1000, GetAbilityName(abilityId), abilityId)
 
 	-- if IdToReducedSlot[abilityId] then isProjectile[abilityId] = true end TODO: Check if this should be limited
 
@@ -3310,7 +3386,7 @@ local function UpdateSkillEvents(self)
 
 		if not registeredSkills[id] then
 
-			Print("events", LOG_LEVEL_VERBOSE, "Skill registered: %d: %s (%s), End:  %d: %s (%s))", id, GetAbilityName(id), tostring(result), id2 or 0, GetAbilityName(id2 or 0), tostring(result2))
+			Log("events", LOG_LEVEL_VERBOSE, "Skill registered: %d: %s (%s), End:  %d: %s (%s))", id, GetAbilityName(id), tostring(result), id2 or 0, GetAbilityName(id2 or 0), tostring(result2))
 
 			local active
 
@@ -4087,7 +4163,7 @@ function lib:GetCombatLogString(fight, logline, fontsize, showIds)
 
 		if reducedslot == nil then
 
-			Print("events", LOG_LEVEL_INFO, "Invalid Slot: %s (%d), Status: %d)", GetAbilityName(abilityId), abilityId, status)
+			Log("events", LOG_LEVEL_INFO, "Invalid Slot: %s (%d), Status: %d)", GetAbilityName(abilityId), abilityId, status)
 
 			return
 
