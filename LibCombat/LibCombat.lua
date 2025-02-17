@@ -1022,10 +1022,10 @@ local function GetSlottedAbilityId(actionSlotIndex, hotbarCategory)	-- thanks to
 	local abilityId = GetSlotBoundId(actionSlotIndex, hotbarCategory)
 
 	if actionType == ACTION_TYPE_CRAFTED_ABILITY then
-		return GetAbilityIdForCraftedAbilityId(abilityId), true
+		return GetAbilityIdForCraftedAbilityId(abilityId), abilityId
 	end
 
-	return abilityId, false
+	return abilityId, nil
 end
 
 local function GetCurrentSkillBars()
@@ -1038,7 +1038,7 @@ local function GetCurrentSkillBars()
 	local hotbarCategory = GetActiveHotbarCategory()
 
 	for i = 1, 8 do
-		local id, isScribed = GetSlottedAbilityId(i, hotbarCategory)
+		local id, scribedAbilityId = GetSlottedAbilityId(i, hotbarCategory)
 		currentbar[i] = id
 		local reducedslot = (bar - 1) * 10 + i
 		local conversion = abilityConversions[id]
@@ -1047,7 +1047,10 @@ local function GetCurrentSkillBars()
 		IdToReducedSlot[convertedId] = reducedslot
 
 		if conversion and conversion[3] then IdToReducedSlot[conversion[3]] = reducedslot end
-		if isScribed and scribedSkills[id] == nil then scribedSkills[id] = {GetCraftedAbilityActiveScriptIds(id)} end
+		if scribedAbilityId and scribedSkills[id] == nil then 
+			scribedSkills[id] = {GetCraftedAbilityActiveScriptIds(scribedAbilityId)}
+			Log("debug", LOG_LEVEL_INFO, "ScribedSkill: ", scribedAbilityId, unpack(scribedSkills[id]))
+		end
 	end
 	UpdateSlotSkillEvents()
 end
@@ -1252,6 +1255,7 @@ function FightHandler:PrepareFight()
 		
 		self:GetNewStats(timems)
 
+		data.scribedSkills = {}
 		GetCurrentSkillBars()
 
 		lastBossHealthValue = 2
@@ -1349,7 +1353,7 @@ local function GetStatusEffectChance()
 		if current/maxHealth > 0.5 then wealdBonus = SEBonus.wealdBonus end
 	end
 	
-	local totalBonus = arcanistBonus + chargedBonus + destroBonus + wealdBonus + FEBonus
+	local totalBonus = arcanistBonus + chargedBonus + destroBonus + wealdBonus + FEBonus + CPBonus
 	
 	-- Log("debug", LOG_LEVEL_INFO, "SE Bonus")
 	-- Log("debug", LOG_LEVEL_INFO, "CP: %.1f%%", CPBonus)
