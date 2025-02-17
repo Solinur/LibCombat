@@ -1493,6 +1493,41 @@ local function ClearUnitCaches()
 
 end
 
+function FightHandler:GetBossTargetDamage() -- Gets Damage done to bosses and counts enemy boss units.
+	if not self.bossfight then return end
+
+	local totalBossDamage = 0
+	local totalBossGroupDamage = 0
+	local starttime
+	local endtime = 0
+
+	for _, unit in pairs(self.units) do
+		local totalUnitDamage = unit.damageOutTotal		
+		if (unit.bossId ~= nil and totalUnitDamage>0) then
+			totalBossDamage = totalBossDamage + totalUnitDamage
+			totalBossGroupDamage = totalBossGroupDamage + unit.groupDamageOut
+
+			if starttime == nil then
+				starttime = unit.dpsstart
+			elseif unit.dpsstart ~= nil then
+				starttime = math.min(starttime, unit.dpsstart)
+			end
+
+			endtime = math.max(endtime or unit.dpsend or 0, unit.dpsend or 0)
+		end
+	end
+
+	local bossTime
+	if starttime and starttime ~= endtime then
+		bossTime = (endtime - starttime)/1000
+	else
+		bossTime = self.dpstime
+	end
+
+	return bossTime, totalBossDamage, totalBossGroupDamage
+end
+
+
 function FightHandler:UpdateStats()
 	ProcessDeathRecaps()
 
@@ -1523,7 +1558,28 @@ function FightHandler:UpdateStats()
 		["dpstime"] = dpstime,
 		["hpstime"] = hpstime,
 		["bossfight"] = self.bossfight,
+		["group"] = false,
 	}
+
+	if data.inGroup and Events.CombatGrp.active then
+		data["group"] = true
+		data["groupDPSOut"] = self.groupDPSOut
+		data["groupDPSIn"] = self.groupDPSIn
+		data["groupHPSOut"] = self.groupHPSOut
+		data["damageOutTotalGroup"] = self.groupDamageOut
+	end
+
+	if self.bossfight then		
+		local bossTime, totalBossDamage, totalBossGroupDamage = self:GetBossTargetDamage()
+
+		data["bossDamageTotal"] = totalBossDamage
+		data["bossDPSOut"] = zo_floor(totalBossDamage / bossTime + 0.5)
+
+		if data.inGroup and Events.CombatGrp.active then
+			data["bossDamageTotalGroup"] = totalBossGroupDamage
+			data["bossDPSOutGroup"] = zo_floor(totalBossGroupDamage / bossTime + 0.5)
+		end
+	end
 
 	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_UNITS]), LIBCOMBAT_EVENT_UNITS, self.units)
 	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_FIGHTRECAP]), LIBCOMBAT_EVENT_FIGHTRECAP, data)
@@ -1531,13 +1587,10 @@ function FightHandler:UpdateStats()
 end
 
 function FightHandler:UpdateGrpStats() -- called by onUpdate
-
-	if not (data.inGroup and Events.CombatGrp.active) then return end
+	if not (self.inGroup and Events.CombatGrp.active) then return end
 
 	local iend = (self.grplog and #self.grplog) or 0
-
 	if iend > 1 then
-
 		for i = iend, 1, -1 do 			-- go backwards for easier deletions
 
 			local line = self.grplog[i]
@@ -1546,22 +1599,18 @@ function FightHandler:UpdateGrpStats() -- called by onUpdate
 			local unit = self.units[unitId]
 
 			if unit and unit.isFriendly == false and action=="heal" then
-
 				table.remove(self.grplog,i)
 
 			elseif unit and unit.isFriendly == true and action=="heal" then --only events of identified units are removed. The others might be identified later.
-
 				self.groupHealingOut = self.groupHealingOut + value
 				table.remove(self.grplog,i)
 
 			elseif unit and unit.isFriendly == false and action=="dmg" then
-
 				unit.groupDamageOut = unit.groupDamageOut + value
 				self.groupDamageOut = self.groupDamageOut + value
 				table.remove(self.grplog,i)
 
 			elseif unit and unit.isFriendly == true and action=="dmg" then
-
 				self.groupDamageIn = self.groupDamageIn + value
 				table.remove(self.grplog,i)
 
@@ -1581,18 +1630,16 @@ function FightHandler:UpdateGrpStats() -- called by onUpdate
 	self.groupHPSIn = self.groupHPSOut
 
 	local data = {
-
-	["groupDPSOut"] = self.groupDPSOut,
-	["groupDPSIn"] = self.groupDPSIn,
-	["groupHPSOut"] = self.groupHPSOut,
-	["dpstime"] = dpstime,
-	["hpstime"] = hpstime
-
+		["groupDPSOut"] = self.groupDPSOut,
+		["groupDPSIn"] = self.groupDPSIn,
+		["groupHPSOut"] = self.groupHPSOut,
+		["dpstime"] = dpstime,
+		["hpstime"] = hpstime
 	}
 
 	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_GROUPRECAP]), LIBCOMBAT_EVENT_GROUPRECAP, data)
-
 end
+
 
 local function getCurrentBossHP()
 
