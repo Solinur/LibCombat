@@ -507,47 +507,60 @@ local CustomAbilityIcon = {
 }
 
 local AbilityNameCache = {}
+local ScriptNameCache = {}
 
-local function GetFormattedAbilityName(id)
-
+---Function to return cached and formatted ability and script names. 
+---@param id any
+---@param isScript? boolean
+---@return string name
+local function GetFormattedAbilityName(id, isScript)
 	if id == nil then return "" end
-
-	local name = AbilityNameCache[id]
+	local cache = isScript and ScriptNameCache or AbilityNameCache
+	local name = cache[id]
 
 	if name == nil then
-
-		name = CustomAbilityName[id] or zo_strformat(SI_ABILITY_NAME, GetAbilityName(id))
+		if isScript then
+			name = GetCraftedAbilityScriptDisplayName(id)
+		else
+			name =  CustomAbilityName[id] or GetAbilityName(id)
+		end
 		if name == "Off-Balance" then name = "Off Balance" end
-		AbilityNameCache[id] = name
-
+		cache[id] = name
 	end
 
 	return name
-
 end
-
 lib.GetFormattedAbilityName = GetFormattedAbilityName
 
 local AbilityIconCache = {}
+local ScriptIconCache = {}
+local noIcon = "/esoui/art/icons/icon_missing.dds"
+local noScriptIcon = "EsoUI/Art/crafting/gamepad/crafting_alchemy_trait_unknown.dds"
 
-local function GetFormattedAbilityIcon(id)
+---Function to return cached and formatted ability and script icons. 
+---@param id unknown
+---@param isScript? boolean
+---@return string texturePath
+local function GetFormattedAbilityIcon(id, isScript)
+	if id == nil then return noIcon
+	elseif type(id) == "string" then return id 
+	elseif isScript and id == 0 then return noScriptIcon
+	end
 
-	if id == nil then return
-	elseif type(id) == "string" then return id end
-
-	local icon = AbilityIconCache[id]
+	local cache = isScript and ScriptIconCache or AbilityIconCache
+	local icon = cache[id]
 
 	if icon == nil then
-
-		icon = CustomAbilityIcon[id] or GetAbilityIcon(id)
-		AbilityIconCache[id] = icon
-
+		if isScript then
+			icon = GetCraftedAbilityScriptIcon(id)
+		else
+			icon =  CustomAbilityIcon[id] or GetAbilityIcon(id)
+		end
+		cache[id] = icon
 	end
 
 	return icon
-
 end
-
 lib.GetFormattedAbilityIcon = GetFormattedAbilityIcon
 
 local UnitHandler = ZO_Object:Subclass()
