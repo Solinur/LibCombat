@@ -1101,6 +1101,7 @@ function FightHandler:PrepareFight()
 	if self.prepared ~= true then
 
 		self.combatstart = timems
+		self.group = data.inGroup
 
 		PurgeEffectBuffer(timems)
 
@@ -1552,17 +1553,18 @@ function FightHandler:UpdateStats()
 		["DPSIn"] = self.DPSIn,
 		["HPSOut"] = self.HPSOut,
 		["HPSAOut"] = self.HPSAOut,
+		["OHPSOut"] = self.HPSAOut,
 		["HPSIn"] = self.HPSIn,
+		["overHealingOutTotal"] = self.healingOutAbsolute,
 		["healingOutTotal"] = self.healingOutTotal,
 		["damageOutTotal"] = self.damageOutTotal,
 		["dpstime"] = dpstime,
 		["hpstime"] = hpstime,
 		["bossfight"] = self.bossfight,
-		["group"] = false,
+		["group"] = self.group,
 	}
 
-	if data.inGroup and Events.CombatGrp.active then
-		data["group"] = true
+	if self.group and Events.CombatGrp.active then
 		data["groupDPSOut"] = self.groupDPSOut
 		data["groupDPSIn"] = self.groupDPSIn
 		data["groupHPSOut"] = self.groupHPSOut
@@ -1575,7 +1577,7 @@ function FightHandler:UpdateStats()
 		data["bossDamageTotal"] = totalBossDamage
 		data["bossDPSOut"] = zo_floor(totalBossDamage / bossTime + 0.5)
 
-		if data.inGroup and Events.CombatGrp.active then
+		if self.group and Events.CombatGrp.active then
 			data["bossDamageTotalGroup"] = totalBossGroupDamage
 			data["bossDPSOutGroup"] = zo_floor(totalBossGroupDamage / bossTime + 0.5)
 		end
@@ -1587,7 +1589,7 @@ function FightHandler:UpdateStats()
 end
 
 function FightHandler:UpdateGrpStats() -- called by onUpdate
-	if not (self.inGroup and Events.CombatGrp.active) then return end
+	if not (self.group and Events.CombatGrp.active) then return end
 
 	local iend = (self.grplog and #self.grplog) or 0
 	if iend > 1 then
