@@ -139,7 +139,9 @@ LIBCOMBAT_EVENT_SKILL_TIMINGS = 19			-- LIBCOMBAT_EVENT_SKILL_TIMINGS, timems, r
 LIBCOMBAT_EVENT_BOSSHP = 20					-- LIBCOMBAT_EVENT_BOSSHP, timems, bossId, currenthp, maxhp
 LIBCOMBAT_EVENT_PERFORMANCE = 21			-- LIBCOMBAT_EVENT_PERFORMANCE, timems, avg, min, max, ping
 LIBCOMBAT_EVENT_DEATHRECAP = 22				-- LIBCOMBAT_EVENT_DEATHRECAP, timems, {data}
-LIBCOMBAT_EVENT_MAX = 22
+LIBCOMBAT_EVENT_QUICKSLOT = 23				-- LIBCOMBAT_EVENT_QUICKSLOT, timems, itemLink
+LIBCOMBAT_EVENT_SYNERGY = 24				-- LIBCOMBAT_EVENT_SYNERGY, timems, abilityId, status
+LIBCOMBAT_EVENT_MAX = 24
 
 LIBCOMBAT_STATE_DEAD = 1
 LIBCOMBAT_STATE_ALIVE = 2
@@ -425,11 +427,8 @@ local abilityAdditions = { -- Abilities to register additionally because they ch
 }
 
 local abilityAdditionsReverse = {}
-
 for k,v in pairs(abilityAdditions) do
-
 	abilityAdditionsReverse[v] = k
-
 end
 
 local DirectHeavyAttacks = {	-- for special handling to detect their end
@@ -506,7 +505,9 @@ local foodBuffIdToItemLinks = {
 	[147687] = "|H0:item:171323:124:10:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h", 	-- Colovian War Torte
 }
 
-lib.foodBuffIdToItemLinks = foodBuffIdToItemLinks
+function lib.GetFoodDrinkItemLinkFromAbilityId(abilityId)
+	return foodBuffIdToItemLinks[abilityId]
+end
 
 local MundusStones = {
 	[13975] = true,
@@ -3202,54 +3203,36 @@ end
 -- * EVENT_POWER_UPDATE (*string* _unitTag_, *luaindex* _powerIndex_, *[CombatMechanicType|#CombatMechanicType]* _powerType_, *integer* _powerValue_, *integer* _powerMax_, *integer* _powerEffectiveMax_)
 
 local tagToBossId = {} -- avoid string ops
-
 for i = 1, 12 do
-
 	local unitTag = ZO_CachedStrFormat("boss<<1>>", i)
-
 	tagToBossId[unitTag] = i
-
 end
 
 
 local function onBossHealthChanged(eventid, unitTag, _, powerType, powerValue, powerMax, powerEffectiveMax)
-
 	local timems = GetGameTimeMilliseconds()
-
 	local BossHealthValue = zo_round(powerValue / powerMax * 100)
-
 	if BossHealthValue == lastBossHealthValue then return end
 
 	lastBossHealthValue = BossHealthValue
-
 	local bossId = tagToBossId[unitTag]
-
 	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_BOSSHP]), LIBCOMBAT_EVENT_BOSSHP, timems, bossId, powerValue, powerMax)
-
 end
 
 local lastSkillBarUpdate = 0
 
 local function GetCurrentSkillBarsDelayed()
-
 	local timems = GetGameTimeMilliseconds()
-
 	if timems - lastSkillBarUpdate < 400 then return end
-
 	lastSkillBarUpdate = timems
 
 	-- reregister skill
-
 	zo_callLater(GetCurrentSkillBars, 400) 	-- temporary workaround for NB skill Assasins Will
-
 end
 
 local function onSlotUpdate(_, slotNum)
-
 	if slotNum == 1 or slotNum == 2 then return end
-
 	GetCurrentSkillBarsDelayed()
-
 end
 
 local frameIndex = 1
@@ -3259,127 +3242,105 @@ local currentsecond
 local size = math.floor((1/GetCVar("MinFrameTime.2") + 40)/20)*20
 
 for i = 1, size do
-
 	frameData[i] = 0
-
 end
 
 local function onFrameUpdate()
-
 	local new = GetFrameDeltaTimeSeconds()
 	local now = GetTimeStamp()
 
 	frameData[frameIndex] = new
 
 	if now == currentsecond then
-
 		frameIndex = frameIndex + 1
-
 	else
-
 		local timems = GetGameTimeMilliseconds()
-
 		local sum = 0
 		local min = 100
 		local max = 0
 
 		for k = 1, frameIndex do
-
 			local v = frameData[k]
-
 			sum = sum + v
-
 			min = math.min(v, min)
 			max = math.max(v, max)
-
 		end
 
 		lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_PERFORMANCE]), LIBCOMBAT_EVENT_PERFORMANCE, timems, frameIndex/sum, 1/max, 1/min, GetLatency())
-
 		frameIndex = 1
 		currentsecond = now
-
 	end
 end
 
 local function enableLogging()
-
 	frameIndex = 1
 	currentsecond = GetTimeStamp()
 
 	local active = em:RegisterForUpdate("LibCombat_Frames", 0, onFrameUpdate)
 
 	em:UnregisterForUpdate("LibCombat_Frames_Enable")
-
 end
 
 local function onPlayerActivated2()
-
 	em:RegisterForUpdate("LibCombat_Frames_Enable", playerActivatedTime , enableLogging)
-
 end
 
 local function onPlayerDeactivated()
 	em:UnregisterForUpdate("LibCombat_Frames")
 end
 
+local function onQuickSlotChanged(actionSlotIndex)
+	data.currentQuickslotIndex = actionSlotIndex
+end
+
+local function onQuickSlotUsed(_, itemSoundCategory)
+	local timems = GetGameTimeMilliseconds()
+	-- if data.inCombat == false then return end
+	if itemSoundCategory ~= GetSlotItemSound(data.currentQuickslotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL) then return end
+	local itemLink = GetSlotItemLink(data.currentQuickslotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
+	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_QUICKSLOT]), LIBCOMBAT_EVENT_QUICKSLOT, timems, itemLink)
+	Log("debug", LOG_LEVEL_INFO, "Used: %s", itemLink)
+end
+
 local function UpdateEventRegistrations()
-
 	for _,Eventgroup in pairs(Events) do
-
 		Eventgroup:UpdateEvents()
-
 	end
-
 end
 
 local function UpdateResources(name, callbacktype, callback)
-
 	local oldCallback = ActiveCallbackTypes[callbacktype][name]
 
 	if callback and oldCallback then
-
 		return false
-
 	else
-
 		ActiveCallbackTypes[callbacktype][name] = callback
 		zo_callLater(UpdateEventRegistrations, 0)	-- delay a frame to avoid an issue if functions get registered and deregistered within the same frame
-
 	end
 
 	return true, oldCallback
 end
 
 local function InitResources()
-
 	for i=LIBCOMBAT_EVENT_MIN,LIBCOMBAT_EVENT_MAX do
-
 		ActiveCallbackTypes[i]={}
-
 	end
 end
 
 function lib:RegisterForLogableCombatEvents(name, callback)
-
 	for i = LIBCOMBAT_EVENT_DAMAGE_OUT, LIBCOMBAT_EVENT_MAX do
-
 		lib:RegisterForCombatEvent(name, i, callback)
-
 	end
 end
 
 function lib:RegisterForCombatEvent(name, callbacktype, callback)
-
 	local isRegistered = UpdateResources(name, callbacktype, callback)
 	if isRegistered then lib.cm:RegisterCallback(CallbackKeys[callbacktype], callback) end
 
 	return isRegistered
-
 end
 
 function lib:UnregisterForCombatEvent(name, callbacktype)
-
 	local isUnregistered, callback = UpdateResources(name, callbacktype)
 	lib.cm:UnregisterCallback(CallbackKeys[callbacktype], callback)
 
@@ -3389,38 +3350,21 @@ end
 --- Legacy
 
 function lib:RegisterAllLogCallbacks(callback, name)
-
 	lib:RegisterForLogableCombatEvents(name, callback)
-
 end
 
 function lib:RegisterCallbackType(callbacktype, callback, name)
-
 	lib:RegisterForCombatEvent(name, callbacktype, callback)
-
 end
 
 function lib:UnregisterCallbackType(callbacktype, callback, name)
-
 	lib:UnregisterForCombatEvent(name, callbacktype)
-
 end
 
 function lib:GetCurrentFight()
-
-	local copy = {}
-
 	if currentfight.dpsstart ~= nil then
-
-		ZO_DeepTableCopy(currentfight, copy)
-
-	else
-
-		copy = nil
-
+		return ZO_DeepTableCopy(currentfight)
 	end
-
-	return copy
 end
 
 local function UpdateSkillEvents(self)
@@ -3908,6 +3852,24 @@ Events.Performance = EventHandler:New(
 	end
 )
 
+Events.QuickSlot = EventHandler:New(
+	{LIBCOMBAT_EVENT_QUICKSLOT},
+	function (self)
+		self:RegisterEvent(EVENT_INVENTORY_ITEM_USED, onQuickSlotUsed)
+		self:RegisterEvent(EVENT_ACTIVE_QUICKSLOT_CHANGED, onQuickSlotChanged)
+		self.active = true
+	end
+)
+
+-- Events.Synergy = EventHandler:New(
+-- 	{LIBCOMBAT_EVENT_SYNERGY},
+-- 	function (self)
+-- 		-- self:RegisterEvent(EVENT_PLAYER_DEACTIVATED, onSynergyAvailable)
+-- 		-- self:RegisterEvent(EVENT_PLAYER_DEACTIVATED, onSynergyTaken)
+-- 		self.active = true
+-- 	end
+-- )
+
 local statStrings = {
 	[LIBCOMBAT_STAT_MAXMAGICKA]			= "|c8888ff"..GetString(SI_DERIVEDSTATS4).."|r ", 							--|c8888ff blue
 	[LIBCOMBAT_STAT_SPELLPOWER]			= "|c8888ff"..GetString(SI_DERIVEDSTATS25).."|r ",
@@ -4306,7 +4268,8 @@ local function Initialize()
 	data.bar = GetActiveWeaponPairInfo()
 	data.resources = {}
 	data.stats = {}
-	data.advancedStats = {}
+	data.advancedStats = {}	
+	data.currentQuickslotIndex = GetCurrentQuickslot()
 
 	--resetfightdata
 	currentfight = FightHandler:New()
