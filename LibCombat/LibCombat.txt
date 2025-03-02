@@ -1,5 +1,5 @@
 ﻿## Title: LibCombat
-## APIVersion: 101044
+## APIVersion: 101044 101045
 ## Author: Solinur
 ## Version: 76
 ## AddOnVersion: 76

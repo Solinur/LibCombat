@@ -3289,17 +3289,19 @@ local function onPlayerDeactivated()
 	em:UnregisterForUpdate("LibCombat_Frames")
 end
 
-local function onQuickSlotChanged(actionSlotIndex)
+local function onQuickSlotChanged(_, actionSlotIndex)
 	data.currentQuickslotIndex = actionSlotIndex
+	local itemLink = GetSlotItemLink(data.currentQuickslotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
+	Log("debug", LOG_LEVEL_INFO, "Quickslot New: %s", itemLink, actionSlotIndex)
 end
 
 local function onQuickSlotUsed(_, itemSoundCategory)
 	local timems = GetGameTimeMilliseconds()
 	-- if data.inCombat == false then return end
-	if itemSoundCategory ~= GetSlotItemSound(data.currentQuickslotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL) then return end
 	local itemLink = GetSlotItemLink(data.currentQuickslotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
-	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_QUICKSLOT]), LIBCOMBAT_EVENT_QUICKSLOT, timems, itemLink)
 	Log("debug", LOG_LEVEL_INFO, "Used: %s", itemLink)
+	if itemSoundCategory ~= GetSlotItemSound(data.currentQuickslotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL) then return end
+	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_QUICKSLOT]), LIBCOMBAT_EVENT_QUICKSLOT, timems, itemLink)
 end
 
 local function UpdateEventRegistrations()
