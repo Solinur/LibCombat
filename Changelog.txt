@@ -1,3 +1,6 @@
+77 DL: 4,219,484 (09.03.2025) 23:27
+[*] Added some checks to prevent error messages.
+
 76 DL: 4,216,905 (09.03.2025) 22:05
 [*] Add tracking of status effect proc chance
 [*] Add lookup tables for food & drink buffs and mundus stones
