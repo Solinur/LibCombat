@@ -1712,6 +1712,24 @@ function FightHandler:GetBossTargetDamage() -- Gets Damage done to bosses and co
 	return bossTime, totalBossDamage, totalBossGroupDamage
 end
 
+function FightHandler:GetSingleTargetDamage()	-- Gets highest Single Target Damage and counts enemy units.
+	if self.bossfight then return self:GetBossTargetDamage() end
+
+	local damage, groupDamage, unittime = 0, 0, 0
+	for _, unit in pairs(self.units) do
+		local totalUnitDamage = unit.damageOutTotal
+		if totalUnitDamage > 0 and unit.isFriendly == false then
+			if totalUnitDamage > damage then
+				damage = totalUnitDamage
+				groupDamage = unit.groupDamageOut
+				unittime = unit.dpsend and unit.dpsstart and unit.dpsend - unit.dpsstart or 0
+			end
+		end
+	end
+
+	unittime = unittime > 0 and unittime/1000 or self.dpstime
+	return unittime, damage, groupDamage
+end
 
 function FightHandler:UpdateStats()
 	ProcessDeathRecaps()
@@ -1725,12 +1743,15 @@ function FightHandler:UpdateStats()
 	self.hpstime = hpstime
 
 	self:UpdateGrpStats()
+	local bossTime, totalBossDamage, totalBossGroupDamage = self:GetSingleTargetDamage()
 
 	self.DPSOut = zo_floor(self.damageOutTotal / dpstime + 0.5)
 	self.HPSOut = zo_floor(self.healingOutTotal / hpstime + 0.5)
 	self.HPSAOut = zo_floor(self.healingOutAbsolute / hpstime + 0.5)
 	self.DPSIn = zo_floor(self.damageInTotal / dpstime + 0.5)
 	self.HPSIn = zo_floor(self.healingInTotal / hpstime + 0.5)
+	self.HPSIn = zo_floor(self.healingInTotal / hpstime + 0.5)
+	local bossDPSOut = zo_floor(totalBossDamage / bossTime + 0.5)
 
 	local data = {
 		["DPSOut"] = self.DPSOut,
@@ -1745,6 +1766,15 @@ function FightHandler:UpdateStats()
 		["hpstime"] = hpstime,
 		["bossfight"] = self.bossfight,
 		["group"] = self.group,
+		["groupDPSOut"] = self.DPSOut,
+		["groupDPSIn"] = self.DPSIn,
+		["groupHPSOut"] = self.HPSOut,
+		["damageOutTotalGroup"] = self.damageOutTotal,
+		["bossDPSOut"] = bossDPSOut,
+		["bossDamageTotal"] = totalBossDamage,
+		["bossDPSOutGroup"] = bossDPSOut,
+		["bossDamageTotalGroup"] = totalBossDamage,
+		["bossTime"] = bossTime,
 	}
 
 	if self.group and Events.CombatGrp.active then
@@ -1752,18 +1782,8 @@ function FightHandler:UpdateStats()
 		data["groupDPSIn"] = self.groupDPSIn
 		data["groupHPSOut"] = self.groupHPSOut
 		data["damageOutTotalGroup"] = self.groupDamageOut
-	end
-
-	if self.bossfight then
-		local bossTime, totalBossDamage, totalBossGroupDamage = self:GetBossTargetDamage()
-
-		data["bossDamageTotal"] = totalBossDamage
-		data["bossDPSOut"] = zo_floor(totalBossDamage / bossTime + 0.5)
-
-		if self.group and Events.CombatGrp.active then
-			data["bossDamageTotalGroup"] = totalBossGroupDamage
-			data["bossDPSOutGroup"] = zo_floor(totalBossGroupDamage / bossTime + 0.5)
-		end
+		data["bossDamageTotalGroup"] = totalBossGroupDamage
+		data["bossDPSOutGroup"] = zo_floor(totalBossGroupDamage / bossTime + 0.5)
 	end
 
 	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_UNITS]), LIBCOMBAT_EVENT_UNITS, self.units)
