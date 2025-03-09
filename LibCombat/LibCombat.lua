@@ -815,7 +815,6 @@ end
 local onCombatState
 
 function FightHandler:ResetFight()
-
 	if data.inCombat ~= true then return end
 
 	reset = true
@@ -1471,6 +1470,7 @@ local zoDerivedStatIds = {
 }
 
 local function GetSingleStat(statId)
+	if not currentfight.prepared then currentfight:PrepareFight() end
 	return statSourceFunctions[statId](zoDerivedStatIds[statId])
 end
 
@@ -2553,7 +2553,7 @@ local function onBaseResourceChangedDelayed(_,unitTag,_,powerType,newValue,_,_)
 	if oldValue == nil or oldValue == newValue then return end
 
 	local powerValueChange = newValue - oldValue
-	if powerType == COMBAT_MECHANIC_FLAGS_HEALTH and data.statusEffectBonus.wealdBonus>0 then currentfight:UpdateSingleStat(LIBCOMBAT_STAT_STATUS_EFFECT_CHANCE) end
+	if powerType == COMBAT_MECHANIC_FLAGS_HEALTH and data.statusEffectBonus and data.statusEffectBonus.wealdBonus>0 then currentfight:UpdateSingleStat(LIBCOMBAT_STAT_STATUS_EFFECT_CHANCE) end
 
 	Log("events", LOG_LEVEL_DEBUG, "onBaseResourceChangedDelayed: %s, %d, %d", unitTag, powerType, powerValueChange)
 	zo_callLater(function() onBaseResourceChanged(powerType, newValue, powerValueChange) end, 0)
