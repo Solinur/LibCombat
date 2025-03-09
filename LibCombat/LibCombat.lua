@@ -1397,10 +1397,10 @@ local function GetStatusEffectChance()
 	local CPBonus = SEBonus.CP
 	local FEBonus = SEBonus.focusedEfforts
 
-	local heartlandBonus = 0 -- only for debugging. Its not needed actually, since charged tooltip updates.
-	if SEBonus.heartlandBonus > 0 and select(4, GetItemSetInfo(583)) >= 5 then
-		heartlandBonus = chargedBonus * SEBonus.heartlandBonus / (1 + SEBonus.heartlandBonus)
-	end
+	-- local heartlandBonus = 0 -- only for debugging. Its not needed actually, since charged tooltip updates.
+	-- if SEBonus.heartlandBonus > 0 and select(4, GetItemSetInfo(583)) >= 5 then
+	-- 	heartlandBonus = chargedBonus * SEBonus.heartlandBonus / (1 + SEBonus.heartlandBonus)
+	-- end
 
 	local wealdBonus = 0
 	if SEBonus.wealdBonus > 0 and select(4, GetItemSetInfo(757)) >= 5 then
@@ -1409,17 +1409,6 @@ local function GetStatusEffectChance()
 	end
 	
 	local totalBonus = arcanistBonus + chargedBonus + destroBonus + wealdBonus + FEBonus + CPBonus
-	
-	-- Log("debug", LOG_LEVEL_INFO, "SE Bonus")
-	-- Log("debug", LOG_LEVEL_INFO, "CP: %.1f%%", CPBonus)
-	-- Log("debug", LOG_LEVEL_INFO, "Charged: %.1f%%", chargedBonus - heartlandBonus)
-	-- Log("debug", LOG_LEVEL_INFO, "Destro: %.1f%%", destroBonus)
-	-- Log("debug", LOG_LEVEL_INFO, "Arcanist: %.1f%%", arcanistBonus)
-	-- Log("debug", LOG_LEVEL_INFO, "Heartland Set: %.1f%%", heartlandBonus)
-	-- Log("debug", LOG_LEVEL_INFO, "Weald Set: %.1f%%", wealdBonus)
-	-- Log("debug", LOG_LEVEL_INFO, "Focused Efforts: %.1f%%", FEBonus)
-	-- Log("debug", LOG_LEVEL_INFO, "Total: %.1f%%", totalBonus)
-	-- Log("debug", LOG_LEVEL_INFO, "========================")
 
 	return totalBonus
 end
