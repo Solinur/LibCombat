@@ -1,4 +1,11 @@
-﻿75 DL:  4,091,721 (12.11.2024) 23:37
+76 DL:  4,091,721 (12.11.2024) 23:37
+[*] Add tracking of status effect proc chance
+[*] Add lookup tables for food & drink buffs and mundus stones
+[*] Add tracking of quick slot actions
+[*] Add additional data to fight recap callback: player damage & group damage to boss units
+[*] Some refactoring
+
+75 DL:  4,091,721 (12.11.2024) 23:37
 [*] Added a parameter to LIBCOMBAT_EVENT_SKILL_TIMINGS callback to allow a fix for SimpleCastBar.
 
 74 DL: 3,951,004 (10.07.2024) 21:03
