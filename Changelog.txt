@@ -1,3 +1,6 @@
+78 DL: 4,241,994 (10.03.2025) 20:38
+[*] Fix description parsing for various non-english languages. (Thanks for everyone reporting)
+
 77 DL: 4,219,484 (09.03.2025) 23:27
 [*] Added some checks to prevent error messages.
 
