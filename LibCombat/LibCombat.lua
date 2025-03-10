@@ -597,7 +597,7 @@ local noScriptIcon = "EsoUI/Art/crafting/gamepad/crafting_alchemy_trait_unknown.
 ---@return string texturePath
 local function GetFormattedAbilityIcon(id, isScript)
 	if id == nil then return noIcon
-	elseif type(id) == "string" then return id 
+	elseif type(id) == "string" then return id
 	elseif isScript and id == 0 then return noScriptIcon
 	end
 
@@ -833,29 +833,29 @@ end
 
 local DivineSlots = {EQUIP_SLOT_HEAD, EQUIP_SLOT_SHOULDERS, EQUIP_SLOT_CHEST, EQUIP_SLOT_HAND, EQUIP_SLOT_WAIST, EQUIP_SLOT_LEGS, EQUIP_SLOT_FEET}
 
+local function ParseDescriptionBonus(description, startIndex)
+	local bonus = {description:match("cffffff[un ]*(%d+)%p?(%d*)[%%|][r|]", startIndex)}
+	local bonusString = table.concat(bonus, ".")
+	return tonumber(bonusString)
+end
+
 local function GetShadowBonus(effectSlot)
-
 	local totalBonus = 0
-
 	for _, key in pairs(DivineSlots) do
-
 		local trait, desc = GetItemLinkTraitInfo(GetItemLink(BAG_WORN, key, LINK_STYLE_DEFAULT))
 
 		if trait == ITEM_TRAIT_TYPE_ARMOR_DIVINES then
 
-			local bonus = {desc:match("(%d+)%p?(%d*)[%%|]")}
-			local bonusString = table.concat(bonus, ".")
-			totalBonus = (tonumber(bonusString) or 0) + totalBonus
+			local bonus = ParseDescriptionBonus(desc) or 0
+			totalBonus = bonus + totalBonus
 
 		end
-
 	end
 
 	local ZOSDesc = GetAbilityEffectDescription(effectSlot)
-	local ZOSBonusString = ZOSDesc:match("cffffff(%d+)[%%|]")
+	local ZOSBonus = ParseDescriptionBonus(ZOSDesc) or 0 -- value attributed by ZOS
 
 	local calcBonus =  zo_floor(11 * (1 + totalBonus/100))
-	local ZOSBonus = tonumber(ZOSBonusString) or 0 -- value attributed by ZOS
 
 	data.critBonusMundus = calcBonus - ZOSBonus -- mundus bonus difference
 
@@ -923,11 +923,11 @@ local function GetOtherBuffs(timems)
 
 			if sourceType ~= COMBAT_UNIT_TYPE_PLAYER or abilityId ~= abilityIdZen then lib.cm:FireCallbacks((CallbackKeys[logdata[1]]), unpack(logdata)) end
 
-			if sourceType == COMBAT_UNIT_TYPE_PLAYER and (abilityId == abilityIdZen or abilityType == ABILITY_TYPE_DAMAGE) then 
-				
+			if sourceType == COMBAT_UNIT_TYPE_PLAYER and (abilityId == abilityIdZen or abilityType == ABILITY_TYPE_DAMAGE) then
+
 				local unit = currentfight.units[unitId]
 				if unit then unit:UpdateZenData((CallbackKeys[logdata[1]]), unpack(logdata), abilityType) end
-			
+
 			end
 
 			if sourceType == COMBAT_UNIT_TYPE_PLAYER and StatusEffectIds[abilityId] then
@@ -954,7 +954,7 @@ end
 local function GetCurrentCP()
 	local CP = {}
 	CP.version = 2
-	
+
 	-- collect slotted stars
 	local slotsById = {}
 	for slotIndex = 1, 12 do
@@ -1100,7 +1100,7 @@ local function GetCurrentSkillBars()
 		IdToReducedSlot[convertedId] = reducedslot
 
 		if conversion and conversion[3] then IdToReducedSlot[conversion[3]] = reducedslot end
-		if scribedAbilityId and scribedSkills[id] == nil then 
+		if scribedAbilityId and scribedSkills[id] == nil then
 			scribedSkills[id] = {GetCraftedAbilityActiveScriptIds(scribedAbilityId)}
 			Log("debug", LOG_LEVEL_INFO, "ScribedSkill: ", scribedAbilityId, unpack(scribedSkills[id]))
 		end
@@ -1116,51 +1116,53 @@ local function onPlayerActivated()
 end
 
 local function onBossesChanged(_) -- Detect Bosses
-
 	data.bossInfo = {}
 	local bossdata = data.bossInfo
 
 	for i = 1, 12 do
-
 		local unitTag = ZO_CachedStrFormat("boss<<1>>", i)
 
 		if DoesUnitExist(unitTag) then
-
 			local name = GetUnitName(unitTag)
 
 			bossdata[name] = i
 			currentfight.bossfight = true
 			if currentfight.bossname == nil and name ~= nil and name ~= "" then currentfight.bossname = name end
-
 		elseif i >= 2 then
-
 			return
-
 		end
 	end
 end
 
+local parseHeraldFail = false
 local function CheckForHeraldAbility()
-	local bonus = {[0] = 0, [1] = 0}
-	if GetUnitClassId("player") ~= 117 then return bonus end
+	local bonusData = {[0] = 0, [1] = 0}
+	if GetUnitClassId("player") ~= 117 then return bonusData end
 	local skillType, lineIndex, skillIndex  = GetSpecificSkillAbilityKeysByAbilityId(184873)
 	local abilityId = GetSkillAbilityId(skillType, lineIndex, skillIndex, false)
 	local description = GetAbilityDescription(abilityId)
-	local startindex = select(2, description:find("|cffffff([%d%.,]*)|r%%"))
-	local bonusValue = select(3, description:find("|cffffff([%d%.,]*)|r%%", startindex))
+	local startindex = select(2, description:find("cffffff[un ]*%d+%p?%d*[%%|][r|]"))
+	local bonus = ParseDescriptionBonus(description, startindex)
+
+	if bonus == nil and parseHeraldFail == false then
+		Log("main", LOG_LEVEL_WARNING, "Failed to parse description for SE bonus: %s", description)
+		parseHeraldFail = true
+	end
+
 	for hotbarCategory = 0,1 do
 		for slot = 3, 8 do
 			local abilityId = GetSlottedAbilityId(slot, hotbarCategory)
 			local skillType, lineIndex2, _ = GetSpecificSkillAbilityKeysByAbilityId(abilityId)
 			if skillType == 0 and lineIndex == lineIndex2 and abilityId ~= 0 then
-				bonus[hotbarCategory] = bonusValue
+				bonusData[hotbarCategory] = bonus
 				break
 			end
 		end
 	end
-	return bonus
+	return bonusData
 end
 
+local parseChargedFail = false
 local function GetChargedBonus()
 	local charged = {}
 	for hotbarCategory = 0,1 do
@@ -1172,20 +1174,35 @@ local function GetChargedBonus()
 			slot_main_hand = EQUIP_SLOT_BACKUP_MAIN
 			slot_off_hand = EQUIP_SLOT_BACKUP_OFF
 		end
-		
+
 		local item_link_main = GetItemLink(BAG_WORN, slot_main_hand, LINK_STYLE_DEFAULT)
 		local item_link_off = GetItemLink(BAG_WORN, slot_off_hand, LINK_STYLE_DEFAULT)
 		local chargedBonus = 0
+
 		local trait, description = GetItemLinkTraitInfo(item_link_main)
 		if trait == ITEM_TRAIT_TYPE_WEAPON_CHARGED then
-			local _,_, bonus = description:find("|cffffff([%d%.,]*)|r%%")
-			chargedBonus = chargedBonus + tonumber(bonus)
+			local bonus = ParseDescriptionBonus(description)
+
+			if bonus == nil and parseChargedFail == false then
+				Log("main", LOG_LEVEL_WARNING, "Failed to parse description for SE bonus: %s", description)
+				parseChargedFail = true
+			end
+			
+			chargedBonus = chargedBonus + (bonus or 0)
 		end
 
-		trait, description = GetItemLinkTraitInfo(item_link_off)
+
+
+		local trait, description = GetItemLinkTraitInfo(item_link_off)
 		if trait == ITEM_TRAIT_TYPE_WEAPON_CHARGED then
-			local _,_, bonus = description:find("|cffffff([%d%.,]*)|r%%")
-			chargedBonus = chargedBonus + tonumber(bonus)
+			local bonus = ParseDescriptionBonus(description)
+
+			if bonus == nil and parseChargedFail == false then
+				Log("main", LOG_LEVEL_WARNING, "Failed to parse description for SE bonus: %s", description)
+				parseChargedFail = true
+			end
+			
+			chargedBonus = chargedBonus + (bonus or 0)
 		end
 
 		charged[hotbarCategory] = chargedBonus
@@ -1193,11 +1210,17 @@ local function GetChargedBonus()
 	return charged
 end
 
+local parseHeartlandFail = false
 local function CheckHeartlandSet()
 	if select(4, GetItemSetInfo(583)) < 3 then return 0 end -- at least 3 pieces must always be active (2 could be hidden on other bar) otherwise 5-piece bonus will never activate
-	local _, heartlandDescription = GetItemSetBonusInfo(583, 4)
-	local setBonus = select(3, heartlandDescription:find("cffffff([%d%.,]*).r%%"))
-	return tonumber(setBonus) / 100
+	local _, description = GetItemSetBonusInfo(583, 4)
+	local bonus = ParseDescriptionBonus(description)
+
+	if bonus == nil and parseHeartlandFail == false then
+		Log("main", LOG_LEVEL_WARNING, "Failed to parse description for SE bonus: %s", description)
+		parseHeartlandFail = true
+	end
+	return (bonus or 0) / 100
 end
 
 local DestroStaffTypes = {
@@ -1206,18 +1229,24 @@ local DestroStaffTypes = {
 	[WEAPONTYPE_LIGHTNING_STAFF] = true,
 }
 
+local parseDestroFail = false
 local function CheckDestroPassive()
-	local bonus = {[0] = 0, [1] = 0}
+	local bonusData = {[0] = 0, [1] = 0}
 	local skillType, lineIndex, skillIndex  = GetSpecificSkillAbilityKeysByAbilityId(45512)
 	local abilityId = GetSkillAbilityId(skillType, lineIndex, skillIndex, false)
 	local description = GetAbilityDescription(abilityId)
-	local bonusValue = tonumber(select(3,description:find("|cffffff([%d%.,]*)|r%%")))
+	local bonus = ParseDescriptionBonus(description)
+
+	if bonus == nil and parseDestroFail == false then
+		Log("main", LOG_LEVEL_WARNING, "Failed to parse description for SE bonus: %s", description)
+		parseDestroFail = true
+	end
 
 	local weaponTypeMain = GetItemWeaponType(BAG_WORN, EQUIP_SLOT_MAIN_HAND)
-	if DestroStaffTypes[weaponTypeMain] then bonus[0] = bonusValue end
+	if DestroStaffTypes[weaponTypeMain] then bonusData[0] = bonus end
 	local weaponTypeBackup = GetItemWeaponType(BAG_WORN, EQUIP_SLOT_BACKUP_MAIN)
-	if DestroStaffTypes[weaponTypeBackup] then bonus[1] = bonusValue end
-	return bonus
+	if DestroStaffTypes[weaponTypeBackup] then bonusData[1] = bonus end
+	return bonusData
 end
 
 
@@ -1228,20 +1257,31 @@ local function CheckCPBonus()
 	return (martial + magic)/2
 end
 
-
+local parseWealdFail = false
 local function CheckWealdSet()
 	if select(4, GetItemSetInfo(757)) < 3 then return 0 end  -- at least 3 pieces must always be active (2 could be hidden on other bar) otherwise 5-piece bonus will never activate
-	local _, wealdDescription = GetItemSetBonusInfo(757, 4)
-	local setBonus = select(3, wealdDescription:find("cffffff([%d%.,]*).r%%"))
-	return tonumber(setBonus)
+	local _, description = GetItemSetBonusInfo(757, 4)
+	local bonus = ParseDescriptionBonus(ParseDescriptionBonus)
+
+	if bonus == nil and parseWealdFail == false then
+		Log("main", LOG_LEVEL_WARNING, "Failed to parse description for SE bonus: %s", description)
+		parseWealdFail = true
+	end
+	return bonus or 0
 end
 
+local parseFocusedEffortsFail = false
 local function GetFocusedEffortsBonus()
 	local stacks = GetNumStacksForEndlessDungeonBuff(200904, false)
 	if stacks <= 0 then return 0 end
 	local description = GetAbilityDescription(200904)
-	local bonus = select(3, description:find("cffffff([%d%.,]*).r%%"))
-	return tonumber(bonus)
+	local bonus = ParseDescriptionBonus(description)
+
+	if bonus == nil and parseFocusedEffortsFail == false then
+		Log("main", LOG_LEVEL_WARNING, "Failed to parse description for SE bonus: %s", description)
+		parseFocusedEffortsFail = true
+	end
+	return bonus or 0
 end
 
 local function InitStatusEffectBonuses()
@@ -1306,7 +1346,7 @@ function FightHandler:PrepareFight()
 		data.stats = {}
 		data.advancedStats = {}
 		InitStatusEffectBonuses()
-		
+
 		self:GetNewStats(timems)
 
 		data.scribedSkills = {}
@@ -1406,7 +1446,7 @@ local function GetStatusEffectChance()
 		local current, maxHealth = GetUnitPower("player", COMBAT_MECHANIC_FLAGS_HEALTH)
 		if current/maxHealth > 0.5 then wealdBonus = SEBonus.wealdBonus end
 	end
-	
+
 	local totalBonus = arcanistBonus + chargedBonus + destroBonus + wealdBonus + FEBonus + CPBonus
 
 	return totalBonus
@@ -1676,7 +1716,7 @@ function FightHandler:GetBossTargetDamage() -- Gets Damage done to bosses and co
 	local endtime = 0
 
 	for _, unit in pairs(self.units) do
-		local totalUnitDamage = unit.damageOutTotal		
+		local totalUnitDamage = unit.damageOutTotal
 		if (unit.bossId ~= nil and totalUnitDamage>0) then
 			totalBossDamage = totalBossDamage + totalUnitDamage
 			totalBossGroupDamage = totalBossGroupDamage + unit.groupDamageOut
@@ -2149,26 +2189,11 @@ local function onMageExplode( _, changeType, effectSlot, _, unitTag, _, endTime,
 
 end
 
-local function onAlkoshDmg(_, _, _, _, _, _, _, _, _, _, hitValue, _, _, _, _, targetUnitId, _, overflow)	-- inactive
-
-	local fullValue = hitValue + (overflow or 0)
-
-	Log("events", LOG_LEVEL_DEBUG, "Alkosh Dmg: %d", fullValue)
-
-	AlkoshData[targetUnitId] = math.min(fullValue, 3000)
-
-end
-
 local function onTrialDummy(_, _, _, _, _, _, _, _, _, _, _, _, _, _, sourceUnitId, _, _, _)
-
-	Log("debug", LOG_LEVEL_DEBUG, "Trial Dummy Detected: %s (%d)", sourceName, sourceUnitId)
-
 	if not currentfight.prepared then return end
 
 	local unit = currentfight.units[sourceUnitId]
-
 	if unit then unit.isTrialDummy = true end
-
 end
 
 local function BuffEventHandler(isspecial, groupeffect, _, changeType, effectSlot, _, unitTag, _, endTime, stackCount, _, _, effectType, abilityType, _, unitName, unitId, abilityId, sourceType)
@@ -2360,9 +2385,9 @@ local function GetPlayerSprintState()
 end
 
 local function checkLastAbilities(timems, powerType, powerValueChange, powerValue)
-	
+
 	local lastabilities = data.lastabilities
-	
+
 	local abilityId = -1
 	local adjustedPowerValueChange
 
@@ -2665,7 +2690,7 @@ local function OnPlayerReincarnated()
 
 end
 
-local SpecialResultsInverse = {	
+local SpecialResultsInverse = {
 
 	["ACTION_RESULT_BLADETURN"]       = ACTION_RESULT_BLADETURN,
 	["ACTION_RESULT_BLOCKED_DAMAGE"]  = ACTION_RESULT_BLOCKED_DAMAGE,
@@ -3694,7 +3719,6 @@ Events.Effects = EventHandler:New(
 			self:RegisterEvent(EVENT_EFFECT_CHANGED, onSourceBuggedEffectChanged, REGISTER_FILTER_ABILITY_ID, SourceBuggedBuffs[i])
 		end
 
-		-- self:RegisterEvent(EVENT_COMBAT_EVENT, onAlkoshDmg, REGISTER_FILTER_ABILITY_ID, 75752, REGISTER_FILTER_IS_ERROR, false)
 		self:RegisterEvent(EVENT_COMBAT_EVENT, onTrialDummy, REGISTER_FILTER_ABILITY_ID, 120024, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_GAINED, REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_TARGET_DUMMY, REGISTER_FILTER_IS_ERROR, false)
 
 		self.active = true
@@ -4281,7 +4305,7 @@ local function Initialize()
 	data.bar = GetActiveWeaponPairInfo()
 	data.resources = {}
 	data.stats = {}
-	data.advancedStats = {}	
+	data.advancedStats = {}
 	data.currentQuickslotIndex = GetCurrentQuickslot()
 
 	--resetfightdata
