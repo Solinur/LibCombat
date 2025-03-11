@@ -11,20 +11,10 @@ work on the addon description
 Add more debug Functions
 
 ]]
-
-local lib = {}
-lib.version = 78
-LibCombat = lib
-
--- Basic values
-lib.name = "LibCombat"
-lib.data = {skillBars = {}, scribedSkills = {}}
-lib.cm = ZO_CallbackObject:New()
+---@class LibCombat
+local lib = LibCombat
 
 -- Basic Parameters
-
-local dx = math.ceil(GuiRoot:GetWidth()/tonumber(GetCVar("WindowedWidth"))*1000)/1000
-LIBCOMBAT_LINE_SIZE = dx
 
 local ABILITY_RESOURCE_CACHE_SIZE = 20
 
@@ -59,7 +49,7 @@ end
 local function Log(category, level, ...)
 	if logger == nil then return end
 	if level == LOG_LEVEL_DEBUG or level == LOG_LEVEL_VERBOSE then return end
-	local logger = category and logger[category] or logger
+	logger = category and logger[category] or logger
 	if category == "debug" and lib.debug ~= true then return end
 	if type(logger.Log)=="function" then logger:Log(level, ...) end
 end
@@ -70,7 +60,6 @@ local em = GetEventManager()
 local _
 local reset = false
 local data = lib.data
-lib.debug = false or (SoliTest ~= nil)
 local timeout = 800
 local activetimeonheals = true
 local ActiveCallbackTypes = {}
@@ -109,91 +98,15 @@ local onTFSChanged
 
 -- localize some functions for performance
 
-local stringformat = string.format
-
 local ZO_CachedStrFormat = ZO_CachedStrFormat
 
 -- types of callbacks: Units, DPS/HPS, DPS/HPS for Group, Logevents
-
-LIBCOMBAT_EVENT_MIN = 0
-LIBCOMBAT_EVENT_UNITS = 0					-- LIBCOMBAT_EVENT_UNITS, {units}
-LIBCOMBAT_EVENT_FIGHTRECAP = 1				-- LIBCOMBAT_EVENT_FIGHTRECAP, {data}
-LIBCOMBAT_EVENT_FIGHTSUMMARY = 2			-- LIBCOMBAT_EVENT_FIGHTSUMMARY, {fight}
-LIBCOMBAT_EVENT_GROUPRECAP = 3				-- LIBCOMBAT_EVENT_GROUPRECAP, groupDPSOut, groupDPSIn, groupHPS, dpstime, hpstime
-LIBCOMBAT_EVENT_DAMAGE_OUT = 4				-- LIBCOMBAT_EVENT_DAMAGE_OUT, timems, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType, overflow
-LIBCOMBAT_EVENT_DAMAGE_IN = 5				-- LIBCOMBAT_EVENT_DAMAGE_IN, timems, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType, overflow
-LIBCOMBAT_EVENT_DAMAGE_SELF = 6				-- LIBCOMBAT_EVENT_DAMAGE_SELF, timems, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType, overflow
-LIBCOMBAT_EVENT_HEAL_OUT = 7				-- LIBCOMBAT_EVENT_HEAL_OUT, timems, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType, overflow
-LIBCOMBAT_EVENT_HEAL_IN = 8					-- LIBCOMBAT_EVENT_HEAL_IN, timems, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType, overflow
-LIBCOMBAT_EVENT_HEAL_SELF = 9				-- LIBCOMBAT_EVENT_HEAL_SELF, timems, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType, overflow
-LIBCOMBAT_EVENT_EFFECTS_IN = 10				-- LIBCOMBAT_EVENT_EFFECTS_IN, timems, unitId, abilityId, changeType, effectType, stacks, sourceType, effectSlot
-LIBCOMBAT_EVENT_EFFECTS_OUT = 11			-- LIBCOMBAT_EVENT_EFFECTS_OUT, timems, unitId, abilityId, changeType, effectType, stacks, sourceType, effectSlot
-LIBCOMBAT_EVENT_GROUPEFFECTS_IN = 12		-- LIBCOMBAT_EVENT_GROUPEFFECTS_IN, timems, unitId, abilityId, changeType, effectType, stacks, sourceType, effectSlot
-LIBCOMBAT_EVENT_GROUPEFFECTS_OUT = 13		-- LIBCOMBAT_EVENT_GROUPEFFECTS_OUT, timems, unitId, abilityId, changeType, effectType, stacks, sourceType, effectSlot
-LIBCOMBAT_EVENT_PLAYERSTATS = 14			-- LIBCOMBAT_EVENT_PLAYERSTATS, timems, statchange, newvalue, statId
-LIBCOMBAT_EVENT_RESOURCES = 15				-- LIBCOMBAT_EVENT_RESOURCES, timems, abilityId, powerValueChange, powerType, powerValue
-LIBCOMBAT_EVENT_MESSAGES = 16				-- LIBCOMBAT_EVENT_MESSAGES, timems, combatMessage, value
-LIBCOMBAT_EVENT_DEATH = 17					-- LIBCOMBAT_EVENT_DEATH, timems, state, unitId, abilityId/unitId
-LIBCOMBAT_EVENT_PLAYERSTATS_ADVANCED = 18	-- LIBCOMBAT_EVENT_PLAYERSTATS_ADVANCED, timems, statchange, newvalue, statId
-LIBCOMBAT_EVENT_SKILL_TIMINGS = 19			-- LIBCOMBAT_EVENT_SKILL_TIMINGS, timems, reducedslot, abilityId, skillStatus, skillDelay, skillDuration
-LIBCOMBAT_EVENT_BOSSHP = 20					-- LIBCOMBAT_EVENT_BOSSHP, timems, bossId, currenthp, maxhp
-LIBCOMBAT_EVENT_PERFORMANCE = 21			-- LIBCOMBAT_EVENT_PERFORMANCE, timems, avg, min, max, ping
-LIBCOMBAT_EVENT_DEATHRECAP = 22				-- LIBCOMBAT_EVENT_DEATHRECAP, timems, {data}
-LIBCOMBAT_EVENT_QUICKSLOT = 23				-- LIBCOMBAT_EVENT_QUICKSLOT, timems, itemLink
-LIBCOMBAT_EVENT_SYNERGY = 24				-- LIBCOMBAT_EVENT_SYNERGY, timems, abilityId, status
-LIBCOMBAT_EVENT_MAX = 24
-
-LIBCOMBAT_STATE_DEAD = 1
-LIBCOMBAT_STATE_ALIVE = 2
-LIBCOMBAT_STATE_RESURRECTING = 3
-LIBCOMBAT_STATE_RESURRECTED = 4
 
 local CallbackKeys = {}
 
 for i = LIBCOMBAT_EVENT_MIN, LIBCOMBAT_EVENT_MAX do
 	CallbackKeys[i] = "LibCombat" .. i
 end
-
--- combatMessage
-
-LIBCOMBAT_MESSAGE_COMBATSTART = 1
-LIBCOMBAT_MESSAGE_COMBATEND = 2
-LIBCOMBAT_MESSAGE_WEAPONSWAP = 3
-
--- skillStatus
-
-LIBCOMBAT_SKILLSTATUS_INSTANT = 1
-LIBCOMBAT_SKILLSTATUS_BEGIN_DURATION = 2
-LIBCOMBAT_SKILLSTATUS_BEGIN_CHANNEL = 3
-LIBCOMBAT_SKILLSTATUS_SUCCESS = 4
-LIBCOMBAT_SKILLSTATUS_REGISTERED = 5
-LIBCOMBAT_SKILLSTATUS_QUEUE = 6
-
--- statId
-
-LIBCOMBAT_STAT_MAXMAGICKA = 1
-LIBCOMBAT_STAT_SPELLPOWER = 2
-LIBCOMBAT_STAT_SPELLCRIT = 3
-LIBCOMBAT_STAT_SPELLCRITBONUS = 4
-LIBCOMBAT_STAT_SPELLPENETRATION = 5
-
-LIBCOMBAT_STAT_MAXSTAMINA = 11
-LIBCOMBAT_STAT_WEAPONPOWER = 12
-LIBCOMBAT_STAT_WEAPONCRIT = 13
-LIBCOMBAT_STAT_WEAPONCRITBONUS = 14
-LIBCOMBAT_STAT_WEAPONPENETRATION = 15
-
-LIBCOMBAT_STAT_MAXHEALTH = 21
-LIBCOMBAT_STAT_PHYSICALRESISTANCE = 22
-LIBCOMBAT_STAT_SPELLRESISTANCE = 23
-LIBCOMBAT_STAT_CRITICALRESISTANCE = 24
-LIBCOMBAT_STAT_STATUS_EFFECT_CHANCE = 25
-
--- CP type
-
-LIBCOMBAT_CPTYPE_PASSIVE = 0
-LIBCOMBAT_CPTYPE_UNSLOTTED = 1
-LIBCOMBAT_CPTYPE_SLOTTED = 2
 
 -- Strings
 
@@ -527,95 +440,9 @@ local MundusStones = {
 
 lib.MundusStones = MundusStones
 
-local CustomAbilityName = {
-
-	[-1] = "Unknown", -- Whenever there is no known abilityId
-	[-2] = "Unknown", -- Whenever there is no known abilityId
-
-	[0] = GetString(SI_LIBCOMBAT_LOG_BASEREG), -- Whenever there is no known abilityId
-
-	[75753] = zo_strformat(SI_ABILITY_NAME, GetAbilityName(75753)), -- Line-breaker (Alkosh). pin abiltiy name so it can't get overridden
-	[17906] = zo_strformat(SI_ABILITY_NAME, GetAbilityName(17906)), -- Crusher (Glyph). pin abiltiy name so it can't get overridden
-	[62988] = zo_strformat(SI_ABILITY_NAME, GetAbilityName(62988)), -- Off-Balance
-
-	[81274] = "(C) " .. zo_strformat(SI_ABILITY_NAME, GetAbilityName(81274)), -- Crown Store Poison, Rename to differentiate from normal Poison, which can apparently stack ?
-	[81275] = "(C) " .. zo_strformat(SI_ABILITY_NAME, GetAbilityName(81275)), -- Crown Store Poison, Rename to differentiate from normal Poison, which can apparently stack ?
-
-	[113382] = zo_strformat(SI_LIBCOMBAT_CUSTOM_ABILITY_FORMAT, GetAbilityName(113382), GetString(SI_LIBCOMBAT_LOG_DEBUFF)), -- To make sure that tracking works correctly since both buff and debuff are named the same.
-
-	[61901] = zo_strformat(SI_LIBCOMBAT_CUSTOM_ABILITY_FORMAT, GetAbilityName(61901), GetString(SI_ABILITY_TOOLTIP_TOGGLE_DURATION)),	-- Grim Focus Toggle
-	[61919] = zo_strformat(SI_LIBCOMBAT_CUSTOM_ABILITY_FORMAT, GetAbilityName(61919), GetString(SI_ABILITY_TOOLTIP_TOGGLE_DURATION)),	-- Merciless Resolve Toggle
-	[61927] = zo_strformat(SI_LIBCOMBAT_CUSTOM_ABILITY_FORMAT, GetAbilityName(61927), GetString(SI_ABILITY_TOOLTIP_TOGGLE_DURATION)),	-- Relentless Focus Toggle
-
-	[122729] = zo_strformat(SI_LIBCOMBAT_CUSTOM_ABILITY_FORMAT, GetAbilityName(122729), GetString(SI_LIBCOMBAT_LOG_BUFF)), --  Name for separate stats buff of Seething Fury
 
 
-}
-
-local CustomAbilityIcon = {
-
-	[0] = "esoui/art/icons/achievement_wrothgar_046.dds",
-	[122729] = "esoui/art/icons/ability_warrior_025.dds",
-	[abilityIdForceOfNature] = "esoui/art/icons/ability_healer_018.dds",
-
-}
-
-local AbilityNameCache = {}
-local ScriptNameCache = {}
-
----Function to return cached and formatted ability and script names. 
----@param id any
----@param isScript? boolean
----@return string name
-local function GetFormattedAbilityName(id, isScript)
-	if id == nil then return "" end
-	local cache = isScript and ScriptNameCache or AbilityNameCache
-	local name = cache[id]
-
-	if name == nil then
-		if isScript then
-			name = GetCraftedAbilityScriptDisplayName(id)
-		else
-			name =  CustomAbilityName[id] or GetAbilityName(id)
-		end
-		if name == "Off-Balance" then name = "Off Balance" end
-		cache[id] = name
-	end
-
-	return name
-end
-lib.GetFormattedAbilityName = GetFormattedAbilityName
-
-local AbilityIconCache = {}
-local ScriptIconCache = {}
-local noIcon = "/esoui/art/icons/icon_missing.dds"
-local noScriptIcon = "EsoUI/Art/crafting/gamepad/crafting_alchemy_trait_unknown.dds"
-
----Function to return cached and formatted ability and script icons. 
----@param id unknown
----@param isScript? boolean
----@return string texturePath
-local function GetFormattedAbilityIcon(id, isScript)
-	if id == nil then return noIcon
-	elseif type(id) == "string" then return id
-	elseif isScript and id == 0 then return noScriptIcon
-	end
-
-	local cache = isScript and ScriptIconCache or AbilityIconCache
-	local icon = cache[id]
-
-	if icon == nil then
-		if isScript then
-			icon = GetCraftedAbilityScriptIcon(id)
-		else
-			icon =  CustomAbilityIcon[id] or GetAbilityIcon(id)
-		end
-		cache[id] = icon
-	end
-
-	return icon
-end
-lib.GetFormattedAbilityIcon = GetFormattedAbilityIcon
+local GetFormattedAbilityName = lib.GetFormattedAbilityName
 
 local UnitHandler = ZO_Object:Subclass()
 
@@ -773,7 +600,7 @@ function FightHandler:New(...)
     return object
 end
 
-function FightHandler:Initialize()
+function FightHandler:Initialize(...)
 	self.char = data.playername
 	self.combatstart = 0 - timeout - 1	-- start of combat in ms
 	self.combatend = -150				-- end of combat in ms
@@ -3546,14 +3373,12 @@ local function GetAllCallbackTypes()
 	return t
 end
 
-if GetAPIVersion() > 100027 then EVENT_ACTION_SLOT_ABILITY_SLOTTED = EVENT_HOTBAR_SLOT_CHANGE_REQUESTED end
-
 Events.General = EventHandler:New(GetAllCallbackTypes()
 	,
 	function (self)
 		self:RegisterEvent(EVENT_PLAYER_COMBAT_STATE, onCombatState)
 		self:RegisterEvent(EVENT_GROUP_UPDATE, onGroupChange)
-		self:RegisterEvent(EVENT_ACTION_SLOT_ABILITY_SLOTTED, GetCurrentSkillBars)
+		self:RegisterEvent(EVENT_HOTBAR_SLOT_CHANGE_REQUESTED, GetCurrentSkillBars)
 		self:RegisterEvent(EVENT_PLAYER_ACTIVATED, onPlayerActivated)
 		self:RegisterEvent(EVENT_EFFECT_CHANGED, onMageExplode, REGISTER_FILTER_ABILITY_ID, 50184)
 		self:RegisterEvent(EVENT_EFFECT_CHANGED, onPortalWorld, REGISTER_FILTER_ABILITY_ID, 108045)
@@ -3907,69 +3732,6 @@ Events.QuickSlot = EventHandler:New(
 -- 	end
 -- )
 
-local statStrings = {
-	[LIBCOMBAT_STAT_MAXMAGICKA]			= "|c8888ff"..GetString(SI_DERIVEDSTATS4).."|r ", 							--|c8888ff blue
-	[LIBCOMBAT_STAT_SPELLPOWER]			= "|c8888ff"..GetString(SI_DERIVEDSTATS25).."|r ",
-	[LIBCOMBAT_STAT_SPELLCRIT]			= "|c8888ff"..GetString(SI_DERIVEDSTATS23).."|r ",
-	[LIBCOMBAT_STAT_SPELLCRITBONUS]		= "|c8888ff"..GetString(SI_LIBCOMBAT_LOG_STAT_SPELL_CRIT_DONE).."|r ",
-	[LIBCOMBAT_STAT_SPELLPENETRATION]	= "|c8888ff"..GetString(SI_DERIVEDSTATS34).."|r ",
-
-	[LIBCOMBAT_STAT_MAXSTAMINA]			= "|c88ff88"..GetString(SI_DERIVEDSTATS29).."|r ",							--|c88ff88 green
-	[LIBCOMBAT_STAT_WEAPONPOWER]		= "|c88ff88"..GetString(SI_DERIVEDSTATS1).."|r ",
-	[LIBCOMBAT_STAT_WEAPONCRIT]			= "|c88ff88"..GetString(SI_DERIVEDSTATS16).."|r ",
-	[LIBCOMBAT_STAT_WEAPONCRITBONUS]	= "|c88ff88"..GetString(SI_LIBCOMBAT_LOG_STAT_WEAPON_CRIT_DONE).."|r ",
-	[LIBCOMBAT_STAT_WEAPONPENETRATION]	= "|c88ff88"..GetString(SI_DERIVEDSTATS33).."|r ",
-
-	[LIBCOMBAT_STAT_MAXHEALTH]			= "|cffff88"..GetString(SI_DERIVEDSTATS7).."|r ",							--|cffff88 red
-	[LIBCOMBAT_STAT_PHYSICALRESISTANCE]	= "|cffff88"..GetString(SI_DERIVEDSTATS22).."|r ",
-	[LIBCOMBAT_STAT_SPELLRESISTANCE]	= "|cffff88"..GetString(SI_DERIVEDSTATS13).."|r ",
-	[LIBCOMBAT_STAT_CRITICALRESISTANCE]	= "|cffff88"..GetString(SI_DERIVEDSTATS24).."|r ",
-}
-
-local logColors={
-	[DAMAGE_TYPE_NONE] 		= "|cE6E6E6",
-	[DAMAGE_TYPE_GENERIC] 	= "|cE6E6E6",
-	[DAMAGE_TYPE_PHYSICAL] 	= "|cf4f2e8",
-	[DAMAGE_TYPE_FIRE] 		= "|cff6600",
-	[DAMAGE_TYPE_SHOCK] 	= "|cffff66",
-	[DAMAGE_TYPE_OBLIVION] 	= "|cd580ff",
-	[DAMAGE_TYPE_COLD] 		= "|cb3daff",
-	[DAMAGE_TYPE_EARTH] 	= "|cbfa57d",
-	[DAMAGE_TYPE_MAGIC] 	= "|c9999ff",
-	[DAMAGE_TYPE_DROWN] 	= "|ccccccc",
-	[DAMAGE_TYPE_DISEASE] 	= "|cc48a9f",
-	[DAMAGE_TYPE_POISON] 	= "|c9fb121",
-	[DAMAGE_TYPE_BLEED] 	= "|cc20a38",
-	["heal"]				= "|c55ff55",
-	["buff"]				= "|c00cc00",
-	["debuff"]				= "|cff3333",
-	["resource"]			= "|cffffff",
-}
-
-function lib.GetDamageColor(damageType)
-	return logColors[damageType]
-end
-
-local function GetAbilityString(abilityId, damageType, fontsize, showIds, stacks)
-
-	local stacks = stacks or 0
-
-	local icon = zo_iconFormat(GetFormattedAbilityIcon(abilityId), fontsize, fontsize)
-	local name = GetFormattedAbilityName(abilityId)
-	local damageColor = lib.GetDamageColor(damageType)
-
-	local format = abilityId == abilityIdZen and "<<5[/$dx /$dx ]>><<1>> <<2>><<3>><<4[/ ($d)/ ($d)]>>|r" or "<<5[//$dx ]>><<1>> <<2>><<3>><<4[/ ($d)/ ($d)]>>|r"
-	local abilityString = ZO_CachedStrFormat(format, icon, damageColor, name, showIds and abilityId or 0, stacks)
-
-	return abilityString
-end
-
-local UnitTypeString = {
-	[COMBAT_UNIT_TYPE_PLAYER] 		= GetString(SI_LIBCOMBAT_LOG_UNITTYPE_PLAYER),
-	[COMBAT_UNIT_TYPE_PLAYER_PET] 	= GetString(SI_LIBCOMBAT_LOG_UNITTYPE_PET),
-	[COMBAT_UNIT_TYPE_GROUP] 		= GetString(SI_LIBCOMBAT_LOG_UNITTYPE_GROUP),
-	[COMBAT_UNIT_TYPE_OTHER] 		= GetString(SI_LIBCOMBAT_LOG_UNITTYPE_OTHER),
-}
 
 function lib:GetCombatLogString(fight, logline, fontsize, showIds)
 
@@ -3980,7 +3742,7 @@ function lib:GetCombatLogString(fight, logline, fontsize, showIds)
 	local color, text
 
 	local timeValue = fight.combatstart < 0 and 0 or (logline[2] - fight.combatstart)/1000
-	local timeString = stringformat("|ccccccc[%.3fs]|r", timeValue)
+	local timeString = string.format("|ccccccc[%.3fs]|r", timeValue)
 	local logFormat = GetString("SI_LIBCOMBAT_LOG_FORMATSTRING", logtype)
 
 	local units = fight.units
@@ -3996,7 +3758,7 @@ function lib:GetCombatLogString(fight, logline, fontsize, showIds)
 
 		local targetString = ZO_CachedStrFormat(GetString(targetFormat), targetname)
 
-		local ability = GetAbilityString(abilityId, damageType, fontsize, showIds)
+		local ability = lib.GetAbilityString(abilityId, damageType, fontsize, showIds)
 
 		local hitValueString = overflow > 0 and ZO_CachedStrFormat(GetString(SI_LIBCOMBAT_LOG_FORMAT_ABSORBED), hitValue, overflow) or hitValue
 
@@ -4014,7 +3776,7 @@ function lib:GetCombatLogString(fight, logline, fontsize, showIds)
 		local targetFormat = (result == ACTION_RESULT_BLOCKED_DAMAGE and SI_LIBCOMBAT_LOG_FORMAT_TARGETSELF_BLOCK) or SI_LIBCOMBAT_LOG_FORMAT_TARGETSELF_NORMAL
 		local targetString = GetString(targetFormat)
 
-		local ability = GetAbilityString(abilityId, damageType, fontsize, showIds)
+		local ability = lib.GetAbilityString(abilityId, damageType, fontsize, showIds)
 
 		local hitValueString = overflow > 0 and ZO_CachedStrFormat(GetString(SI_LIBCOMBAT_LOG_FORMAT_ABSORBED), hitValue, overflow) or hitValue
 
@@ -4031,7 +3793,7 @@ function lib:GetCombatLogString(fight, logline, fontsize, showIds)
 		local targetFormat = (result == ACTION_RESULT_BLOCKED_DAMAGE and SI_LIBCOMBAT_LOG_FORMAT_TARGETSELF_BLOCK) or SI_LIBCOMBAT_LOG_FORMAT_TARGETSELF_SELF
 		local targetString = GetString(targetFormat)
 
-		local ability = GetAbilityString(abilityId, damageType, fontsize)
+		local ability = lib.GetAbilityString(abilityId, damageType, fontsize)
 
 		local hitValueString = overflow > 0 and ZO_CachedStrFormat(GetString(SI_LIBCOMBAT_LOG_FORMAT_ABSORBED), hitValue, overflow) or hitValue
 
@@ -4046,7 +3808,7 @@ function lib:GetCombatLogString(fight, logline, fontsize, showIds)
 
 		local targetname = units[targetUnitId].name
 
-		local ability = GetAbilityString(abilityId, "heal", fontsize, showIds)
+		local ability = lib.GetAbilityString(abilityId, "heal", fontsize, showIds)
 
 		color = {0.6,1.0,0.6}
 		text = ZO_CachedStrFormat(logFormat, timeString, crit, targetname, ability, hitValue)
@@ -4059,7 +3821,7 @@ function lib:GetCombatLogString(fight, logline, fontsize, showIds)
 
 		local sourceName = units[sourceUnitId].name
 
-		local ability = GetAbilityString(abilityId, "heal", fontsize, showIds)
+		local ability = lib.GetAbilityString(abilityId, "heal", fontsize, showIds)
 
 		color = {0.4,0.8,0.4}
 
@@ -4071,7 +3833,7 @@ function lib:GetCombatLogString(fight, logline, fontsize, showIds)
 
 		local crit = (result == ACTION_RESULT_CRITICAL_HEAL or result == ACTION_RESULT_HOT_TICK_CRITICAL) and ZO_CachedStrFormat("|cFFCC99<<1>>|r", GetString(SI_LIBCOMBAT_LOG_CRITICAL)) or ""
 
-		local ability = GetAbilityString(abilityId, "heal", fontsize, showIds)
+		local ability = lib.GetAbilityString(abilityId, "heal", fontsize, showIds)
 
 		color = {0.8,1.0,0.6}
 		text = result == ACTION_RESULT_DAMAGE_SHIELDED and ZO_CachedStrFormat(GetString(SI_LIBCOMBAT_LOG_FORMAT_HEALABSORB), timeString, ability, hitValue) or ZO_CachedStrFormat(logFormat, timeString, crit, ability, hitValue)
@@ -4086,11 +3848,11 @@ function lib:GetCombatLogString(fight, logline, fontsize, showIds)
 
 		local changeTypeString = (changeType == EFFECT_RESULT_GAINED or changeType == EFFECT_RESULT_UPDATED) and GetString(SI_LIBCOMBAT_LOG_GAINED) or changeType == EFFECT_RESULT_FADED and GetString(SI_LIBCOMBAT_LOG_LOST)
 
-		local source = UnitTypeString[sourceType] == nil and "" or ZO_CachedStrFormat(" from <<1>>", UnitTypeString[sourceType])
+		local source = lib.UnitTypeString[sourceType] == nil and "" or ZO_CachedStrFormat(" from <<1>>", lib.UnitTypeString[sourceType])
 
 		local colorKey = effectType == BUFF_EFFECT_TYPE_DEBUFF and "debuff" or "buff"
 
-		local buff = GetAbilityString(abilityId, colorKey, fontsize, showIds, stacks)
+		local buff = lib.GetAbilityString(abilityId, colorKey, fontsize, showIds, stacks)
 
 		color = {0.8,0.8,0.8}
 
@@ -4127,7 +3889,7 @@ function lib:GetCombatLogString(fight, logline, fontsize, showIds)
 
 			local resource = (powerType == COMBAT_MECHANIC_FLAGS_MAGICKA and GetString(SI_ATTRIBUTES2)) or (powerType == COMBAT_MECHANIC_FLAGS_STAMINA and GetString(SI_ATTRIBUTES3)) or (powerType == COMBAT_MECHANIC_FLAGS_ULTIMATE and GetString(SI_LIBCOMBAT_LOG_ULTIMATE))
 
-			local ability = abilityId and ZO_CachedStrFormat("(<<1>>)", GetAbilityString(abilityId, "resource", fontsize, showIds)) or ""
+			local ability = abilityId and ZO_CachedStrFormat("(<<1>>)", lib.GetAbilityString(abilityId, "resource", fontsize, showIds)) or ""
 
 			color = (powerType == COMBAT_MECHANIC_FLAGS_MAGICKA and {0.7,0.7,1}) or (powerType == COMBAT_MECHANIC_FLAGS_STAMINA and {0.7,1,0.7}) or (powerType == COMBAT_MECHANIC_FLAGS_ULTIMATE and {1,1,0.7}) or color
 			text = ZO_CachedStrFormat(logFormat, timeString, changeTypeString, amount, resource, ability)
@@ -4139,21 +3901,21 @@ function lib:GetCombatLogString(fight, logline, fontsize, showIds)
 
 		local _, _, statchange, newvalue, statId = unpack(logline)
 
-		local stat = statStrings[statId]
+		local stat = lib.statStrings[statId]
 		local change = statchange
 		local value = newvalue
 
 		if statId == LIBCOMBAT_STAT_SPELLCRIT or statId == LIBCOMBAT_STAT_WEAPONCRIT then
 
-			value = stringformat("%.1f%%", GetCriticalStrikeChance(newvalue))
-			change = stringformat("%.1f%%", GetCriticalStrikeChance(statchange))
+			value = string.format("%.1f%%", GetCriticalStrikeChance(newvalue))
+			change = string.format("%.1f%%", GetCriticalStrikeChance(statchange))
 
 		end
 
 		if statId == LIBCOMBAT_STAT_SPELLCRITBONUS or statId == LIBCOMBAT_STAT_WEAPONCRITBONUS then
 
-			value = stringformat("%.1f%%", newvalue)
-			change = stringformat("%.1f%%", statchange)
+			value = string.format("%.1f%%", newvalue)
+			change = string.format("%.1f%%", statchange)
 
 		end
 
@@ -4272,7 +4034,7 @@ function lib:GetCombatLogString(fight, logline, fontsize, showIds)
 		local action = ""
 		local otherString = ""
 
-		if state == 1 and otherId ~= nil then otherString = GetAbilityString(otherId, DAMAGE_TYPE_GENERIC, fontsize, showIds) end
+		if state == 1 and otherId ~= nil then otherString = lib.GetAbilityString(otherId, DAMAGE_TYPE_GENERIC, fontsize, showIds) end
 
 		if state > 2 then
 
@@ -4289,7 +4051,7 @@ function lib:GetCombatLogString(fight, logline, fontsize, showIds)
 	return text, color
 end
 
-local function Initialize()
+function lib.Initialize()
 
 	data.inCombat = IsUnitInCombat("player")
 	data.inGroup = IsUnitGrouped("player")
@@ -4321,4 +4083,4 @@ local function Initialize()
 	em:RegisterForEvent("LibCombatActive", EVENT_PLAYER_DEACTIVATED, function() data.isUIActivated = false end)
 end
 
-Initialize()
+lib.Initialize()
