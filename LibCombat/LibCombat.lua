@@ -10,10 +10,10 @@ implement group info function
 work on the addon description
 Add more debug Functions
 
-]]
 
+]]
 local lib = {}
-lib.version = 78
+lib.version = 79
 LibCombat = lib
 
 -- Basic values
@@ -1429,10 +1429,11 @@ end
 
 local function GetStatusEffectChance()
 	local SEBonus = data.statusEffectBonus
-	local hotBar = GetActiveHotbarCategory()
-	local arcanistBonus = SEBonus.arcanistBonus[hotBar]
-	local chargedBonus = SEBonus.charged[hotBar]
-	local destroBonus = SEBonus.destro[hotBar]
+	local weaponPair = GetHeldWeaponPair()
+	local hotBar = weaponPair >= 1 and (weaponPair - 1) or nil
+	local arcanistBonus = hotBar and SEBonus.arcanistBonus[hotBar] or 0
+	local chargedBonus = hotBar and SEBonus.charged[hotBar] or 0
+	local destroBonus = hotBar and SEBonus.destro[hotBar] or 0
 	local CPBonus = SEBonus.CP
 	local FEBonus = SEBonus.focusedEfforts
 
