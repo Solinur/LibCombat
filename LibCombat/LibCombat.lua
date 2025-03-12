@@ -1788,6 +1788,7 @@ function FightHandler:UpdateStats()
 		["DPSIn"] = self.DPSIn,
 		["HPSOut"] = self.HPSOut,
 		["OHPSOut"] = self.HPSAOut,
+		["HPSAOut"] = self.HPSAOut,
 		["HPSIn"] = self.HPSIn,
 		["overHealingOutTotal"] = self.healingOutAbsolute,
 		["healingOutTotal"] = self.healingOutTotal,
