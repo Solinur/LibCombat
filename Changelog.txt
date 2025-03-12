@@ -1,3 +1,9 @@
+80 DL: 4,296,930 (12.03.2025) 22:59
+[*] Bring back a previously removed entry in fight recap callback ("HPSAOut") for backwards compatibility.
+
+79 DL: 4,269,449 (11.03.2025) 19:09
+[*] Fix status effect tracking for werewolves. (Thx to Paduraschka for reporting)
+
 78 DL: 4,241,994 (10.03.2025) 20:38
 [*] Fix description parsing for various non-english languages. (Thanks for everyone reporting)
 
