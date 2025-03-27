@@ -1261,7 +1261,7 @@ local parseWealdFail = false
 local function CheckWealdSet()
 	if select(4, GetItemSetInfo(757)) < 3 then return 0 end  -- at least 3 pieces must always be active (2 could be hidden on other bar) otherwise 5-piece bonus will never activate
 	local _, description = GetItemSetBonusInfo(757, 4)
-	local bonus = ParseDescriptionBonus(ParseDescriptionBonus)
+	local bonus = ParseDescriptionBonus(description)
 
 	if bonus == nil and parseWealdFail == false then
 		Log("main", LOG_LEVEL_WARNING, "Failed to parse description for SE bonus: %s", description)
