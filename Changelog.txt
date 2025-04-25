@@ -1,3 +1,6 @@
+81 DL: 4,356,029 (27.03.2025) 23:45
+[*] Fixed an issue causing a LUA error when using the Symmetry of the Weald set. (Thx to arkoni and realm87 for reporting this)
+
 80 DL: 4,296,930 (12.03.2025) 22:59
 [*] Bring back a previously removed entry in fight recap callback ("HPSAOut") for backwards compatibility.
 
