@@ -3990,6 +3990,7 @@ function lib:GetCombatLogString(fight, logline, fontsize, showIds)
 	if logtype == LIBCOMBAT_EVENT_DAMAGE_OUT then
 
 		local _, _, result, _, targetUnitId, abilityId, hitValue, damageType, overflow = unpack(logline)
+		overflow = overflow or 0
 
 		local crit = (result == ACTION_RESULT_CRITICAL_DAMAGE or result == ACTION_RESULT_DOT_TICK_CRITICAL) and ZO_CachedStrFormat("|cFFCC99<<1>>|r", GetString(SI_LIBCOMBAT_LOG_CRITICAL)) or ""
 
