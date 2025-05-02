@@ -65,6 +65,13 @@ local function ProcessLogLine(processor, fight, logType, ...)
 		processor:ProcessLogLineHeal(fight, logType, ...)
 
 	end
+
+	-- generally: make an object for every callback
+	-- put singletons into the objects
+
+	-- make a singleton for every unique combination of abilityId - source - target
+	-- copy the references to allow respective traversings
+	-- calculate stats out of the singletons
 end
 
 local AllowedLogTypes = {
@@ -97,13 +104,15 @@ local function InitDamageAbilityData(unit, abilityId, damageType)
 		normalDamage   = 0,
 		criticalDamage = 0,
 		blockedDamage  = 0,
-		shieldedDamage = 0,
+		absorbedDamage = 0,
+		overflowDamage = 0,
 		totalDamage    = 0,
 		normalHits     = 0,
 		criticalHits   = 0,
 		blockedHits    = 0,
-		shieldedHits   = 0,
+		absorbedHits   = 0,
 		totalHits      = 0,
+		overflowHits   = 0,
 		damageType     = damageType,
 	}
 
@@ -274,9 +283,8 @@ local function onCombatEventDamage(_, result, _, _, _, _, _, _, targetName, _, h
 	if (hitValue + (overflow or 0) + shieldHitValue) <= 0 then return end
 
 	if libint.currentfight.prepared ~= true then libint.currentfight:OnCombatStart() end
-	overflow = shieldHitValue
 
-	lib.cm:FireCallbacks((libint.callbackKeys[LIBCOMBAT_LOG_EVENT_DAMAGE]), LIBCOMBAT_LOG_EVENT_DAMAGE, timeMs, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType, (overflow or 0))
+	lib.cm:FireCallbacks((libint.callbackKeys[LIBCOMBAT_LOG_EVENT_DAMAGE]), LIBCOMBAT_LOG_EVENT_DAMAGE, timeMs, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType, (overflow or 0), shieldHitValue)
 
 end
 
@@ -290,7 +298,9 @@ local function onCombatEventHeal(_, result, _, _, _, _, _, _, _, _, hitValue, po
 
 end
 
-local function onCombatEventShield(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
+local function onCombatEventAbsorbed(_, _, _, _, _, _, _, _, _, _, hitValue, _, _, _, sourceUnitId, targetUnitId, _, overflow)
+
+	if overflow and overflow > 0 then Print("dev","INFO", "Overflow! Add %d (+%d) Shield: %d -> %d  (%d)", hitValue, overflow, sourceUnitId, targetUnitId, #DamageShieldBuffer) end
 
 	DamageShieldBuffer[#DamageShieldBuffer + 1] = {GetGameTimeMilliseconds(), sourceUnitId, targetUnitId, hitValue}
 
@@ -320,7 +330,8 @@ libint.Events.Damage = libint.EventHandler:New(
 			self:RegisterEvent(EVENT_COMBAT_EVENT, onCombatEventDamage, REGISTER_FILTER_COMBAT_RESULT, filters[i], REGISTER_FILTER_IS_ERROR, false)
 		end
 
-		self:RegisterEvent(EVENT_COMBAT_EVENT, onCombatEventShield, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_DAMAGE_SHIELDED, REGISTER_FILTER_IS_ERROR, false)
+		self:RegisterEvent(EVENT_COMBAT_EVENT, onCombatEventAbsorbed, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_DAMAGE_SHIELDED, REGISTER_FILTER_IS_ERROR, false)
+		self:RegisterEvent(EVENT_COMBAT_EVENT, onCombatEventAbsorbed, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_HEAL_ABSORBED, REGISTER_FILTER_IS_ERROR, false)
 
 		self.active = true
 	end
