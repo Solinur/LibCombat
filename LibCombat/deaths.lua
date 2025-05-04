@@ -6,7 +6,7 @@ local CallbackKeys = libint.callbackKeys
 local libfunc = libint.functions
 local libdata = libint.data
 local libunits = libdata.units
-local Print = libint.Print
+local Log = libint.Log
 
 local lastdeaths = {}
 local CombatEventCache = {}
@@ -40,7 +40,7 @@ function libfunc.ProcessDeathRecaps()
 
 		if timems - UnitDeathCache.timems > 200 then
 
-			Print("dev","INFO", "ProcessDeath: %s (%d)", libint.currentfight.units[unitId].name, unitId)
+			Log("dev","INFO", "ProcessDeath: %s (%d)", libint.currentfight.units[unitId].name, unitId)
 			UnitDeathCache:ProcessDeath()
 
 		end
@@ -51,7 +51,7 @@ end
 
 function libfunc.ClearUnitCaches()
 
-	Print("dev","INFO", "ClearUnitCaches (%d)", NonContiguousCount(CombatEventCache))
+	Log("dev","INFO", "ClearUnitCaches (%d)", NonContiguousCount(CombatEventCache))
 
 	for unitId, UnitDeathCache in pairs(CombatEventCache) do
 
@@ -85,7 +85,7 @@ function UnitDeathCacheHandler:Initialize(unitId)
 
 	local unitname = libint.currentfight.units[unitId] and libint.currentfight.units[unitId].name or "Unknown"
 
-	Print("dev","INFO", "Init unit death cache: %s (%d)", unitname, unitId)
+	Log("dev","INFO", "Init unit death cache: %s (%d)", unitname, unitId)
 
 end
 
@@ -99,7 +99,7 @@ function UnitDeathCacheHandler:OnDeath(timems)
 
 	local unitname = libint.currentfight.units[self.unitId] and libint.currentfight.units[self.unitId].name or "Unknown"
 
-	Print("dev","INFO", "UnitCacheHandler:OnDeath: %s (%d)", unitname, self.unitId)
+	Log("dev","INFO", "UnitCacheHandler:OnDeath: %s (%d)", unitname, self.unitId)
 
 end
 
@@ -126,7 +126,7 @@ function UnitDeathCacheHandler:ProcessDeath()
 
 		local deleted = 0
 
-		Print("dev","INFO", "Processing death event cache. Offset: %d, length:%d", offset, length)
+		Log("dev","INFO", "Processing death event cache. Offset: %d, length:%d", offset, length)
 
 		for i = 0, length - 1 do
 
@@ -151,7 +151,7 @@ function UnitDeathCacheHandler:ProcessDeath()
 			end
 		end
 
-		Print("dev","INFO" , "%s: cache: %d, log: %d, deleted: %d", unit and unit.name or "Unknown", #cache, #log, deleted)
+		Log("dev","INFO" , "%s: cache: %d, log: %d, deleted: %d", unit and unit.name or "Unknown", #cache, #log, deleted)
 	end
 
 	self.cache = nil
@@ -260,7 +260,7 @@ local function CheckForWipe()	-- TODO use preassembled group unit tags
 
 	libint.currentfight.isWipe = true
 
-	Print("DoA","DEBUG", "=== This is a wipe ! ===")
+	Log("DoA","DEBUG", "=== This is a wipe ! ===")
 
 end
 
@@ -268,18 +268,18 @@ local function OnDeathStateChanged(_, unitTag, isDead) 	-- death (for group disp
 
 	local unitId = unitTag == "player" and libunits.playerId or libunits.unitIdsByTag[unitTag]
 
-	Print("dev","INFO", "OnDeathStateChanged: %s (%s) is dead: %s", unitTag, tostring(unitId), tostring(isDead))
+	Log("dev","INFO", "OnDeathStateChanged: %s (%s) is dead: %s", unitTag, tostring(unitId), tostring(isDead))
 
 	if libdata.inCombat == false or unitId == nil then
 
-		Print("dev","INFO", "OnDeathStateChanged: Combat: %s", tostring(libdata.inCombat))
+		Log("dev","INFO", "OnDeathStateChanged: Combat: %s", tostring(libdata.inCombat))
 		return
 	end
 
 	local unit = libint.currentfight.units[unitId]
 	if unit then unit.isDead = isDead else
 
-		Print("dev","INFO", "OnDeathStateChanged: no unit")
+		Log("dev","INFO", "OnDeathStateChanged: no unit")
 		return
 	end
 
@@ -293,21 +293,21 @@ local function OnDeathStateChanged(_, unitTag, isDead) 	-- death (for group disp
 
 		GetUnitCache(unitId):OnDeath(timems)
 
-		Print("dev","INFO", "OnDeathStateChanged: fire callback")
-		lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_DEATH]), LIBCOMBAT_EVENT_DEATH, timems, LIBCOMBAT_STATE_DEAD, unitId)
+		Log("dev","INFO", "OnDeathStateChanged: fire callback")
+		lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_DEATH]), LIBCOMBAT_EVENT_DEATH, timems, LIBCOMBAT_UNIT_STATE_DEAD, unitId)
 
 		CheckForWipe()
 
 	else
 
-		lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_DEATH]), LIBCOMBAT_EVENT_DEATH, timems, LIBCOMBAT_STATE_ALIVE, unitId)
+		lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_DEATH]), LIBCOMBAT_EVENT_DEATH, timems, LIBCOMBAT_UNIT_STATE_ALIVE, unitId)
 
 	end
 end
 
 local function OnPlayerReincarnated()
 
-	Print("DoA","DEBUG", "You revived")
+	Log("DoA","DEBUG", "You revived")
 
 end
 
@@ -321,20 +321,20 @@ local function OnDeath(_, result, _, abilityName, _, abilityActionSlotType, sour
 
 	if unitdata == nil or (unitdata.unitType ~= COMBAT_UNIT_TYPE_PLAYER and unitdata.unitType ~= COMBAT_UNIT_TYPE_GROUP) then return end
 
-	Print("dev","INFO", "OnDeath (%s): %s (%d, %d) / %s (%d, %d) - %s (%d): %d (o: %d, type: %d)", libint.SpecialResults[result], sourceName, sourceUnitId, sourceType, targetName, targetUnitId, targetType, lib.GetFormattedAbilityName(abilityId), abilityId, hitValue or 0, overflow or 0, damageType or 0)
+	Log("dev","INFO", "OnDeath (%s): %s (%d, %d) / %s (%d, %d) - %s (%d): %d (o: %d, type: %d)", libint.SpecialResults[result], sourceName, sourceUnitId, sourceType, targetName, targetUnitId, targetType, lib.GetFormattedAbilityName(abilityId), abilityId, hitValue or 0, overflow or 0, damageType or 0)
 
 	lastdeaths[targetUnitId] = timems
 
 	GetUnitCache(targetUnitId):OnDeath(timems)
 
-	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_DEATH]), LIBCOMBAT_EVENT_DEATH, timems, LIBCOMBAT_STATE_DEAD, targetUnitId, abilityId)
+	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_DEATH]), LIBCOMBAT_EVENT_DEATH, timems, LIBCOMBAT_UNIT_STATE_DEAD, targetUnitId, abilityId)
 
 	CheckForWipe()
 end
 
 local function OnResurrect(_, result, _, abilityName, _, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, _, sourceUnitId, targetUnitId, abilityId)
 
-	Print("dev","INFO", "OnResurrect (%s): %s (%d, %d) / %s (%d, %d) - %s (%d): %d (type: %d)", libint.SpecialResults[result], sourceName, sourceUnitId, sourceType, targetName, targetUnitId, targetType, lib.GetFormattedAbilityName(abilityId), abilityId, hitValue or 0, damageType or 0)
+	Log("dev","INFO", "OnResurrect (%s): %s (%d, %d) / %s (%d, %d) - %s (%d): %d (type: %d)", libint.SpecialResults[result], sourceName, sourceUnitId, sourceType, targetName, targetUnitId, targetType, lib.GetFormattedAbilityName(abilityId), abilityId, hitValue or 0, damageType or 0)
 
 	local timems = GetGameTimeMilliseconds()
 
@@ -344,12 +344,12 @@ local function OnResurrect(_, result, _, abilityName, _, abilityActionSlotType, 
 
 	if unitdata == nil or unitdata.type ~= COMBAT_UNIT_TYPE_GROUP then return end
 
-	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_DEATH]), LIBCOMBAT_EVENT_DEATH, timems, LIBCOMBAT_STATE_ALIVE, targetUnitId)
+	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_DEATH]), LIBCOMBAT_EVENT_DEATH, timems, LIBCOMBAT_UNIT_STATE_ALIVE, targetUnitId)
 end
 
 local function OnResurrectResult(_, targetCharacterName, result, targetDisplayName)
 
-	Print("DoA","DEBUG", "OnResurrectResult: %s", targetCharacterName)
+	Log("DoA","DEBUG", "OnResurrectResult: %s", targetCharacterName)
 
 	local timems = GetGameTimeMilliseconds()
 
@@ -361,13 +361,13 @@ local function OnResurrectResult(_, targetCharacterName, result, targetDisplayNa
 
 	if not unitId then return end
 
-	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_DEATH]), LIBCOMBAT_EVENT_DEATH, timems, LIBCOMBAT_STATE_RESURRECTED, unitId, libunits.playerId)
+	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_DEATH]), LIBCOMBAT_EVENT_DEATH, timems, LIBCOMBAT_UNIT_STATE_RESURRECTED, unitId, libunits.playerId)
 
 end
 
 local function OnResurrectRequest(_, requesterCharacterName, timeLeftToAccept, requesterDisplayName)
 
-	Print("DoA","DEBUG", "OnResurrectRequest: %s", requesterCharacterName)
+	Log("DoA","DEBUG", "OnResurrectRequest: %s", requesterCharacterName)
 
 	local timems = GetGameTimeMilliseconds()
 
@@ -377,7 +377,7 @@ local function OnResurrectRequest(_, requesterCharacterName, timeLeftToAccept, r
 
 	if not unitId then return end
 
-	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_DEATH]), LIBCOMBAT_EVENT_DEATH, timems, LIBCOMBAT_STATE_RESURRECTED, libunits.playerId, unitId)
+	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_DEATH]), LIBCOMBAT_EVENT_DEATH, timems, LIBCOMBAT_UNIT_STATE_RESURRECTED, libunits.playerId, unitId)
 
 end
 local function GroupCombatEventHandler(isheal, result, _, abilityName, _, _, sourceName, sourceType, targetName, _, hitValue, powerType, damageType, _, sourceUnitId, targetUnitId, abilityId, overflow)  -- called by Event
@@ -394,7 +394,7 @@ local function GroupCombatEventHandler(isheal, result, _, abilityName, _, _, sou
 
 	if overflow and overflow > 0 and not isheal then
 
-		Print("dev","INFO", "GroupCombatEventHandler: %s has overflow damage!", targetName)
+		Log("dev","INFO", "GroupCombatEventHandler: %s has overflow damage!", targetName)
 		GetUnitCache(targetUnitId):OnDeath(timems)
 
 	end

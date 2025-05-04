@@ -4,7 +4,7 @@ local lib = LibCombat
 local libint = lib.internal
 local libfunc = libint.functions
 local libdata = libint.data
-local Print = libint.Print
+local Log = libint.Log
 local CallbackKeys = libint.callbackKeys
 
 local DivineSlots = {EQUIP_SLOT_HEAD, EQUIP_SLOT_SHOULDERS, EQUIP_SLOT_CHEST, EQUIP_SLOT_HAND, EQUIP_SLOT_WAIST, EQUIP_SLOT_LEGS, EQUIP_SLOT_FEET}
@@ -19,33 +19,35 @@ function libfunc.GetCritBonusFromCP(CPdata)
 	return backstabber
 end
 
+local DivineSlots = {EQUIP_SLOT_HEAD, EQUIP_SLOT_SHOULDERS, EQUIP_SLOT_CHEST, EQUIP_SLOT_HAND, EQUIP_SLOT_WAIST, EQUIP_SLOT_LEGS, EQUIP_SLOT_FEET}
+
+local function ParseDescriptionBonus(description, startIndex)
+	local bonus = {description:match("cffffff[un ]*(%d+)%p?(%d*)[%%|][r|]", startIndex)}
+	local bonusString = table.concat(bonus, ".")
+	return tonumber(bonusString)
+end
+
 function libfunc.GetShadowBonus(effectSlot)
-
 	local totalBonus = 0
-
 	for _, key in pairs(DivineSlots) do
-
 		local trait, desc = GetItemLinkTraitInfo(GetItemLink(BAG_WORN, key, LINK_STYLE_DEFAULT))
 
 		if trait == ITEM_TRAIT_TYPE_ARMOR_DIVINES then
 
-			local bonus = {desc:match("(%d+)%p?(%d*)[%%|]")}
-			local bonusString = table.concat(bonus, ".")
-			totalBonus = (tonumber(bonusString) or 0) + totalBonus
+			local bonus = ParseDescriptionBonus(desc) or 0
+			totalBonus = bonus + totalBonus
 
 		end
-
 	end
 
 	local ZOSDesc = GetAbilityEffectDescription(effectSlot)
-	local ZOSBonusString = ZOSDesc:match("cffffff(%d+)[%%|]")
+	local ZOSBonus = ParseDescriptionBonus(ZOSDesc) or 0 -- value attributed by ZOS
 
 	local calcBonus =  zo_floor(11 * (1 + totalBonus/100))
-	local ZOSBonus = tonumber(ZOSBonusString) or 0 -- value attributed by ZOS
 
-	libdata.critBonusMundus = calcBonus - ZOSBonus -- mundus bonus difference
+	data.critBonusMundus = calcBonus - ZOSBonus -- mundus bonus difference
 
-	Print("other","INFO", "Shadow Mundus Offset: %d%% (calc %d%% - ZOS %d%%)", libdata.critBonusMundus, calcBonus, ZOSBonus)
+	Log("other", "INFO", "Shadow Mundus Offset: %d%% (calc %d%% - ZOS %d%%)", data.critBonusMundus, calcBonus, ZOSBonus)
 end
 
 local TFSBonus = 0

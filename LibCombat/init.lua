@@ -29,17 +29,13 @@ local subloggers = {}
 local levelKeys = {}
 
 if LibDebugLogger then
-
 	mainlogger = LibDebugLogger.Create(lib.name)
-
 	levelKeys = {
-
 		["VERBOSE"] = LibDebugLogger.LOG_LEVEL_VERBOSE,
 		["DEBUG"] = LibDebugLogger.LOG_LEVEL_DEBUG,
 		["INFO"] = LibDebugLogger.LOG_LEVEL_INFO,
 		["WARNING"] = LibDebugLogger.LOG_LEVEL_WARNING,
 		["ERROR"] = LibDebugLogger.LOG_LEVEL_ERROR,
-
 	}
 
 	subloggers["DoA"] = mainlogger:Create("DoA")
@@ -50,16 +46,14 @@ if LibDebugLogger then
 
 end
 
-function libint.Print(category, level, ...)
-
+function libint.Log(category, level, ...)
 	if mainlogger == nil then return end
-
-	local logger = category and subloggers[category] or mainlogger
-
 	if category == "dev" and libint.debug ~= true then return end
 
-	if type(logger.Log)=="function" then logger:Log(levelKeys[level], ...) end
+	local logger = category and subloggers[category] or mainlogger
+	local level = levelKeys[level] or LibDebugLogger.LOG_LEVEL_INFO
 
+	if type(logger.Log)=="function" then logger:Log(levelKeys[level], ...) end
 end
 
 local function spairs(t, order) -- from https://stackoverflow.com/questions/15706270/sort-a-table-in-lua

@@ -11,7 +11,7 @@ local libint = lib.internal
 local CallbackKeys = libint.callbackKeys
 local libfunc = libint.functions
 local libdata = libint.data
-local Print = libint.Print
+local Log = libint.Log
 libint.ABILITY_RESOURCE_CACHE_SIZE = 20
 local maxSkillDelay = 2000
 
@@ -358,7 +358,7 @@ local function onAbilityUsed(eventCode, result, isError, abilityName, abilityGra
 
 	castTime = channeled and channelTime or castTime
 
-	Print("events", "VERBOSE", "[%.3f] Skill fired: %s (%d), Duration: %ds Target: %s", timems/1000, GetAbilityName(origId), origId, castTime/1000, tostring(targetName))
+	Log("events", "VERBOSE", "[%.3f] Skill fired: %s (%d), Duration: %ds Target: %s", timems/1000, GetAbilityName(origId), origId, castTime/1000, tostring(targetName))
 
 	HeavyAttackCharging = libint.directHeavyAttacks[origId] and origId or nil
 
@@ -367,7 +367,7 @@ local function onAbilityUsed(eventCode, result, isError, abilityName, abilityGra
 
 	if lastQ and lasttime then
 
-		Print("events", "VERBOSE", "%s: act: %d, Q: %d, Diff: %d", lib.GetFormattedAbilityName(origId), timems-lasttime, timems-lastQ, lastQ - lasttime)
+		Log("events", "VERBOSE", "%s: act: %d, Q: %d, Diff: %d", lib.GetFormattedAbilityName(origId), timems-lasttime, timems-lastQ, lastQ - lasttime)
 
 	end
 
@@ -410,7 +410,7 @@ local function onAbilityFinished(eventCode, result, isError, abilityName, abilit
 
 	if libint.usedCastTimeAbility[abilityId] then
 
-		Print("events","VERBOSE" ,"Skill finished: %s (%d, R: %d)", GetAbilityName(origId), origId, result)
+		Log("events","VERBOSE" ,"Skill finished: %s (%d, R: %d)", GetAbilityName(origId), origId, result)
 
 		lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_SKILL_TIMINGS]), LIBCOMBAT_EVENT_SKILL_TIMINGS, timems, reducedslot, origId, LIBCOMBAT_SKILLSTATUS_SUCCESS)
 
@@ -431,7 +431,7 @@ local function onQueueEvent(_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, abil
 
 	if reducedslot == nil then
 
-		Print("events","WARNING" ,"reducedslot missing on queue event: [%.3f s] %s (%d)", (timems - libint.currentfight.combatstart)/1000, GetAbilityName(abilityId), abilityId)
+		Log("events","WARNING" ,"reducedslot missing on queue event: [%.3f s] %s (%d)", (timems - libint.currentfight.combatstart)/1000, GetAbilityName(abilityId), abilityId)
 		return
 
 	end
@@ -448,7 +448,7 @@ local function onProjectileEvent(eventCode, result, isError, abilityName, abilit
 
 	libint.isProjectile[abilityId] = true
 
-	Print("events","VERBOSE" ,"[%.3f s] projectile: %s (%d)", (GetGameTimeMilliseconds() - libint.currentfight.combatstart)/1000, GetAbilityName(abilityId), abilityId)
+	Log("events","VERBOSE" ,"[%.3f s] projectile: %s (%d)", (GetGameTimeMilliseconds() - libint.currentfight.combatstart)/1000, GetAbilityName(abilityId), abilityId)
 
 	-- if IdToReducedSlot[abilityId] then libint.isProjectile[abilityId] = true end TODO: Check if this should be limited
 
@@ -493,7 +493,7 @@ local function UpdateSkillEvents(self)
 
 		if not registeredSkills[id] then
 
-			Print("events","VERBOSE", "Skill registered: %d: %s (%s), End:  %d: %s (%s))", id, GetAbilityName(id), tostring(result), id2 or 0, GetAbilityName(id2 or 0), tostring(result2))
+			Log("events","VERBOSE", "Skill registered: %d: %s (%s), End:  %d: %s (%s))", id, GetAbilityName(id), tostring(result), id2 or 0, GetAbilityName(id2 or 0), tostring(result2))
 
 			local active
 

@@ -3,7 +3,7 @@
 local lib = LibCombat
 local libint = lib.internal
 local libdata = libint.data
-local Print = libint.Print
+local Log = libint.Log
 
 local Events = {}
 libint.Events = Events

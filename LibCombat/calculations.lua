@@ -5,7 +5,7 @@ local libint = lib.internal
 local CallbackKeys = libint.callbackKeys
 local libfunc = libint.functions
 local libdata = libint.data
-local Print = libint.Print
+local Log = libint.Log
 
 
 libfunc.LogProcessingHandler = ZO_InitializingObject:Subclass() -- object to store log proccessing routines

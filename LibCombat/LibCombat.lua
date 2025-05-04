@@ -23,7 +23,7 @@ local Events = libint.Events
 --aliases
 
 local _
-local Print = libint.Print
+local Log = libint.Log
 local CallbackKeys = libint.callbackKeys
 local reset = false
 local timeout = 800
@@ -93,7 +93,7 @@ end
 
 function FightHandler:ResetFight()
 
-	Print("dev", "INFO", "ResetFight")
+	Log("dev", "INFO", "ResetFight")
 
 	if libdata.inCombat ~= true then return end
 
@@ -133,7 +133,7 @@ local function GetPlayerBuffs(timems)
 
 		local _, _, endTime, effectSlot, stackCount, _, _, effectType, abilityType, _, abilityId, _, castByPlayer = GetUnitBuffInfo("player",i)
 
-		Print("events","VERBOSE", "player has the %s %d x %s (%d, ET: %d, self: %s)", effectType == BUFF_EFFECT_TYPE_BUFF and "buff" or "debuff", stackCount, GetFormattedAbilityName(abilityId), abilityId, abilityType, tostring(castByPlayer))
+		Log("events","VERBOSE", "player has the %s %d x %s (%d, ET: %d, self: %s)", effectType == BUFF_EFFECT_TYPE_BUFF and "buff" or "debuff", stackCount, GetFormattedAbilityName(abilityId), abilityId, abilityType, tostring(castByPlayer))
 
 		local unitType = castByPlayer and COMBAT_UNIT_TYPE_PLAYER or COMBAT_UNIT_TYPE_NONE
 
@@ -262,7 +262,7 @@ end
 
 function libfunc.onPlayerActivated()
 
-	Print("dev", "DEBUG", "onPlayerActivated")
+	Log("dev", "DEBUG", "onPlayerActivated")
 
 	zo_callLater(libfunc.GetCurrentSkillBars, 100)
 	libint.isInPortalWorld = false
@@ -328,7 +328,7 @@ function FightHandler:PrepareFight()
 
 	if self.prepared ~= true then
 
-		Print("dev", "DEBUG", "PrepareFight")
+		Log("dev", "DEBUG", "PrepareFight")
 
 		self.combatstart = timems
 
@@ -417,8 +417,8 @@ function FightHandler:FinishFight()
 	libint.lastAbilityActivations = {}
 	libint.isProjectile = {}
 
-	Print("dev", "DEBUG", "FinishFight")
-	Print("other", "DEBUG", "Number of Projectile data entries: %d", NonContiguousCount(libint.isProjectile))
+	Log("dev", "DEBUG", "FinishFight")
+	Log("other", "DEBUG", "Number of Projectile data entries: %d", NonContiguousCount(libint.isProjectile))
 
 	libdata.lastabilities = {}
 end
@@ -536,7 +536,7 @@ function FightHandler:UpdateFightStats()
 	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_UNITS]), LIBCOMBAT_EVENT_UNITS, self.units)
 	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_FIGHTRECAP]), LIBCOMBAT_EVENT_FIGHTRECAP, data)
 
-	Print("dev", "DEBUG", "UpdateFightStats", self.damageOutTotal, dpstime)
+	Log("dev", "DEBUG", "UpdateFightStats", self.damageOutTotal, dpstime)
 
 end
 
@@ -626,12 +626,12 @@ local function IsOngoingBossfight()
 
 	if libint.isInPortalWorld then -- prevent fight reset in bossfights when using a portal.
 
-		Print("other","DEBUG", "Prevented combat reset because player is in Portal!")
+		Log("other","DEBUG", "Prevented combat reset because player is in Portal!")
 		return true
 
 	elseif getCurrentBossHP() > 0 and getCurrentBossHP() < 1 then
 
-		Print("other","INFO", "Prevented combat reset because boss is still in fight!")
+		Log("other","INFO", "Prevented combat reset because boss is still in fight!")
 		return true
 
 	else
@@ -654,22 +654,22 @@ function FightHandler:onUpdate()
 
 		if self.damageOutTotal>0 or self.healingOutTotal>0 or self.damageInTotal>0 then
 
-			Print("fight","DEBUG", "Time: %.2fs (DPS) | %.2fs (HPS) ", self.dpstime, self.hpstime)
-			Print("fight","DEBUG", "Dmg: %d (DPS: %d)", self.damageOutTotal, self.DPSOut)
-			Print("fight","DEBUG", "Heal: %d (HPS: %d)", self.healingOutTotal, self.HPSOut)
-			Print("fight","DEBUG", "IncDmg: %d (Shield: %d, IncDPS: %d)", self.damageInTotal, self.damageInShielded, self.DPSIn)
-			Print("fight","DEBUG", "IncHeal: %d (IncHPS: %d)", self.healingInTotal, self.HPSIn)
+			Log("fight","DEBUG", "Time: %.2fs (DPS) | %.2fs (HPS) ", self.dpstime, self.hpstime)
+			Log("fight","DEBUG", "Dmg: %d (DPS: %d)", self.damageOutTotal, self.DPSOut)
+			Log("fight","DEBUG", "Heal: %d (HPS: %d)", self.healingOutTotal, self.HPSOut)
+			Log("fight","DEBUG", "IncDmg: %d (Shield: %d, IncDPS: %d)", self.damageInTotal, self.damageInShielded, self.DPSIn)
+			Log("fight","DEBUG", "IncHeal: %d (IncHPS: %d)", self.healingInTotal, self.HPSIn)
 
 			if libunits.inGroup and Events.CombatGrp.active then
 
-				Print("fight","DEBUG", "GrpDmg: %d (DPS: %d)", self.groupDamageOut, self.groupDPSOut)
-				Print("fight","DEBUG", "GrpHeal: %d (HPS: %d)", self.groupHealingOut, self.groupHPSOut)
-				Print("fight","DEBUG", "GrpIncDmg: %d (IncDPS: %d)", self.groupDamageIn, self.groupDPSIn)
+				Log("fight","DEBUG", "GrpDmg: %d (DPS: %d)", self.groupDamageOut, self.groupDPSOut)
+				Log("fight","DEBUG", "GrpHeal: %d (HPS: %d)", self.groupHealingOut, self.groupHPSOut)
+				Log("fight","DEBUG", "GrpIncDmg: %d (IncDPS: %d)", self.groupDamageIn, self.groupDPSIn)
 
 			end
 		end
 
-		Print("fight","DEBUG", "resetting...")
+		Log("fight","DEBUG", "resetting...")
 
 		self.grplog = {}
 
@@ -700,7 +700,7 @@ function libint.onCombatState(event, inCombat)  -- Detect Combat Stage, local is
 
 			libdata.inCombat = inCombat
 
-			Print("fight","DEBUG", "Entering combat.")
+			Log("fight","DEBUG", "Entering combat.")
 
 			lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_MESSAGES]), LIBCOMBAT_EVENT_MESSAGES, timems, LIBCOMBAT_MESSAGE_COMBATSTART, 0)
 
@@ -710,14 +710,14 @@ function libint.onCombatState(event, inCombat)  -- Detect Combat Stage, local is
 
 			if IsOngoingBossfight() then
 
-				Print("fight","INFO", "Failed: Leaving combat.")
+				Log("fight","INFO", "Failed: Leaving combat.")
 				return
 
 			end
 
 			libdata.inCombat = false
 
-			Print("fight","DEBUG", "Leaving combat.")
+			Log("fight","DEBUG", "Leaving combat.")
 
 			libint.currentfight:FinishFight()
 
@@ -772,7 +772,7 @@ local function onWTF(_, result, _, abilityName, _, abilityActionSlotType, source
 
 	local resulttext = libint.SpecialResults[result] or tostring(result)
 
-	Print("other","VERBOSE", "onWTF (%s): %s (%d, %d) / %s (%d, %d) - %s (%d): %d (type: %d)", resulttext, sourceName, sourceUnitId, sourceType, targetName, targetUnitId, targetType, GetFormattedAbilityName(abilityId), abilityId, hitValue or 0, damageType or 0)
+	Log("other","VERBOSE", "onWTF (%s): %s (%d, %d) / %s (%d, %d) - %s (%d): %d (type: %d)", resulttext, sourceName, sourceUnitId, sourceType, targetName, targetUnitId, targetType, GetFormattedAbilityName(abilityId), abilityId, hitValue or 0, damageType or 0)
 
 end
 
@@ -962,7 +962,7 @@ function lib.InitializeMain()
 
 	if isFileInitialized == true then return false end
 
-	Print("dev", "DEBUG", "Initialize")
+	Log("dev", "DEBUG", "Initialize")
 
 	libdata.inCombat = IsUnitInCombat("player")
 	libdata.bossInfo = {}

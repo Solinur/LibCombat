@@ -5,7 +5,7 @@ local libint = lib.internal
 local libdata = libint.data
 local libunits = libdata.units
 local libfunc = libint.functions
-local Print = libint.Print
+local Log = libint.Log
 
 local function onInitilizeFight(processor, fight)
 
@@ -254,7 +254,7 @@ local function CheckForShield(timems, sourceUnitId, targetUnitId)
 
 		local shieldTimems, shieldSourceUnitId, shieldTargetUnitId, shieldHitValue = unpack(DamageShieldBuffer[i])
 
-		Print("dev","VERBOSE", "Eval Shield Index %d: Source: %s, Target: %s, Time: %d", i, tostring(shieldSourceUnitId == sourceUnitId), tostring(shieldTargetUnitId == targetUnitId), timems - shieldTimems)
+		Log("dev","VERBOSE", "Eval Shield Index %d: Source: %s, Target: %s, Time: %d", i, tostring(shieldSourceUnitId == sourceUnitId), tostring(shieldTargetUnitId == targetUnitId), timems - shieldTimems)
 
 		if shieldSourceUnitId == sourceUnitId and shieldTargetUnitId == targetUnitId and timems - shieldTimems < 100 then
 
@@ -276,7 +276,7 @@ local function onCombatEventDamage(_, result, _, _, _, _, _, _, targetName, _, h
 
 	if hitValue > 200000 then
 
-		Print("dev","WARNING", "Big Damage Event: (%d) %s did %d damage to %d", abilityId, lib.GetFormattedAbilityName(abilityId), hitValue, tostring(targetName))
+		Log("dev","WARNING", "Big Damage Event: (%d) %s did %d damage to %d", abilityId, lib.GetFormattedAbilityName(abilityId), hitValue, tostring(targetName))
 
 	end
 
@@ -300,11 +300,11 @@ end
 
 local function onCombatEventAbsorbed(_, _, _, _, _, _, _, _, _, _, hitValue, _, _, _, sourceUnitId, targetUnitId, _, overflow)
 
-	if overflow and overflow > 0 then Print("dev","INFO", "Overflow! Add %d (+%d) Shield: %d -> %d  (%d)", hitValue, overflow, sourceUnitId, targetUnitId, #DamageShieldBuffer) end
+	if overflow and overflow > 0 then Log("dev","INFO", "Overflow! Add %d (+%d) Shield: %d -> %d  (%d)", hitValue, overflow, sourceUnitId, targetUnitId, #DamageShieldBuffer) end
 
 	DamageShieldBuffer[#DamageShieldBuffer + 1] = {GetGameTimeMilliseconds(), sourceUnitId, targetUnitId, hitValue}
 
-	Print("dev","DEBUG", "Add %d Shield: %d -> %d  (%d)", hitValue, sourceUnitId, targetUnitId, #DamageShieldBuffer)
+	Log("dev","DEBUG", "Add %d Shield: %d -> %d  (%d)", hitValue, sourceUnitId, targetUnitId, #DamageShieldBuffer)
 
 end
 
@@ -316,7 +316,7 @@ libint.Events.Damage = libint.EventHandler:New(
 	{LIBCOMBAT_EVENT_FIGHTRECAP, LIBCOMBAT_EVENT_FIGHTSUMMARY, LIBCOMBAT_LOG_EVENT_DAMAGE},
 	function (self)
 
-		Print("dev", "INFO", "Register Damage Events")
+		Log("dev", "INFO", "Register Damage Events")
 
 		local filters = {
 			ACTION_RESULT_DAMAGE,

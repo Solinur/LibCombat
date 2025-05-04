@@ -1,7 +1,7 @@
 local lib = LibCombat
 local libint = lib.internal
 local CallbackKeys = libint.callbackKeys
-local Print = libint.Print
+local Log = libint.Log
 
 local playerActivatedTime = 10000
 local frameIndex = 1

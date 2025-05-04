@@ -4,7 +4,7 @@ local lib = LibCombat
 local libint = lib.internal
 local libdata = libint.data
 libdata.units = libunits
-local Print = libint.Print
+local Log = libint.Log
 local spairs = libint.functions.spairs
 
 ---@diagnostic disable-next-line: undefined-global
@@ -154,7 +154,7 @@ local function onBossesChanged(_) -- Detect Bosses
 
 			if bossTagByName[rawName] and bossTagByName[rawName] ~= unitTag then
 
-				Print("dev", "WARNING", "Multiple tags found for %s (%s, %s)", rawName, bossTagByName[rawName], unitTag)
+				Log("dev", "WARNING", "Multiple tags found for %s (%s, %s)", rawName, bossTagByName[rawName], unitTag)
 				bossTagByName[rawName] = hasMultipleTags
 
 			end
@@ -286,7 +286,7 @@ local function OnTargetChange()
 		if libunits.unitIdsByTag["reticleover"] then 
 
 			UpdateUnitTagId("reticleover", nil)
-			Print("dev", "INFO", "ReticleOverUnit removed.")
+			Log("dev", "INFO", "ReticleOverUnit removed.")
 
 		end
 
@@ -303,7 +303,7 @@ local function OnTargetChange()
 
 		if unit and unit.effectTimeData[buffSlot] == endTime then
 
-			Print("dev", "INFO", "ReticleOverUnit found: %s (%d)", unit.name, unitId)
+			Log("dev", "INFO", "ReticleOverUnit found: %s (%d)", unit.name, unitId)
 
 			unit:UpdateUnitTag("reticleover")
 			break
@@ -311,7 +311,7 @@ local function OnTargetChange()
 		end
 	end
 
-	Print("dev", "INFO", "ReticleOverUnit not found: %s (%d buffs)", GetUnitName("reticleover"), numBuffs)
+	Log("dev", "INFO", "ReticleOverUnit not found: %s (%d buffs)", GetUnitName("reticleover"), numBuffs)
 end
 
 local function OnEffectChanged(eventCode, changeType, effectSlot, effectName, unitTag, beginTime, endTime, stackCount,
@@ -371,7 +371,7 @@ function UnitHandler:Initialize(rawName, unitId, unitType, unitTag)
 
 	UnitCache[unitId] = self
 
-	Print("dev", "INFO", "New Unit: %s (%d, %d, %s)", name, unitId, unitType, unitTag or "")
+	Log("dev", "INFO", "New Unit: %s (%d, %d, %s)", name, unitId, unitType, unitTag or "")
 end
 
 function UnitHandler:LookupUnitTag()
@@ -428,7 +428,7 @@ function UnitHandler:Update(rawName, unitType, unitTag)
 
 	if unitType and self.unitType ~= unitType then
 
-		Print("dev", "I", "unitType changed: %d -> %d %s (%d)", self.unitType, unitType, self.name, self.unitId)
+		Log("dev", "I", "unitType changed: %d -> %d %s (%d)", self.unitType, unitType, self.name, self.unitId)
 		self.unitType = unitType
 
 	end
