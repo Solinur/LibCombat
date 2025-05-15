@@ -13,7 +13,7 @@ Add more debug Functions
 
 ]]
 local lib = {}
-lib.version = 81
+lib.version = 82
 LibCombat = lib
 
 -- Basic values
@@ -375,6 +375,8 @@ local abilityConversions = {	-- Ability conversions for tracking skill activatio
 
 	[185912] = {185913, 2240, nil, nil}, --Runic Defense --> Minor Resolve
 	[186489] = {186490, 2240, nil, nil}, --Runeguard of Freedom --> Minor Resolve
+
+	[222678] = {217528, 2240, nil, nil}, --Ulfsilds Contingency --> Ulfsilds Contingency
 
 }
 

@@ -1,3 +1,6 @@
+82 DL: 4,457,560 (15.05.2025) 21:26
+[*] Fixed an issue, where casts of Ulfsild's Contingency were not properly tracked. (Thx to Skinny Cheeks for reporting)
+
 81 DL: 4,356,029 (27.03.2025) 23:45
 [*] Fixed an issue causing a LUA error when using the Symmetry of the Weald set. (Thx to arkoni and realm87 for reporting this)
 
