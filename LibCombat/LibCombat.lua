@@ -193,26 +193,15 @@ local function GetOtherBuffs(timems)
 end
 
 local function GetCurrentCP()
-
 	local CP = {}
-
 	CP.version = 2
 
 	-- collect slotted stars
-
-	local championBarData = CHAMPION_PERKS.championBar.slots
-
 	local slotsById = {}
-
-	for i, slot in pairs(championBarData) do
-
-		local slotData = slot:GetSavedChampionSkillData()
-
-		if slotData then
-
-			local starId = slotData:GetId()
-
-			slotsById[starId] = i
+	for slotIndex = 1, 12 do
+		local starId = GetSlotBoundId(slotIndex, HOTBAR_CATEGORY_CHAMPION)
+		if starId > 0 then
+			slotsById[starId] = slotIndex
 		end
 	end
 
@@ -370,29 +359,14 @@ function FightHandler:PrepareFight()
 	EVENT_MANAGER:RegisterForUpdate("LibCombat_update", 500, function() self:onUpdate() end)
 end
 
-local function GetSkillBars()
-
-	local currentSkillBars = {}
-
-	ZO_DeepTableCopy(libdata.skillBars, currentSkillBars)
-
-	return currentSkillBars
-
-end
 
 local function GetEquip()
-
 	local equip = {}
-
-	---@diagnostic disable-next-line: undefined-global
 	for i = EQUIP_SLOT_ITERATION_BEGIN, EQUIP_SLOT_ITERATION_END do
-
 		equip[i] = GetItemLink(BAG_WORN, i, LINK_STYLE_DEFAULT)
-
 	end
 
 	return equip
-
 end
 
 function FightHandler:FinishFight()
@@ -401,7 +375,8 @@ function FightHandler:FinishFight()
 
 	if charData == nil then return end
 
-	charData.skillBars = GetSkillBars()
+	charData.skillBars = ZO_DeepTableCopy(data.skillBars)
+	charData.scribedSkills = ZO_DeepTableCopy(data.scribedSkills)
 	charData.equip = GetEquip()
 
 	local timems = GetGameTimeMilliseconds()
@@ -768,14 +743,6 @@ local function onWeaponSwap(_, isHotbarSwap)
 	end
 end
 
-local function onWTF(_, result, _, abilityName, _, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, _, sourceUnitId, targetUnitId, abilityId)
-
-	local resulttext = libint.SpecialResults[result] or tostring(result)
-
-	Log("other","VERBOSE", "onWTF (%s): %s (%d, %d) / %s (%d, %d) - %s (%d): %d (type: %d)", resulttext, sourceName, sourceUnitId, sourceType, targetName, targetUnitId, targetType, GetFormattedAbilityName(abilityId), abilityId, hitValue or 0, damageType or 0)
-
-end
-
 -- * EVENT_POWER_UPDATE (*string* _unitTag_, *luaindex* _powerIndex_, *[CombatMechanicType|#CombatMechanicType]* _powerType_, *integer* _powerValue_, *integer* _powerMax_, *integer* _powerEffectiveMax_)
 
 local tagToBossId = {} -- avoid string ops
@@ -917,22 +884,6 @@ Events.General = EventHandler:New(
 		self:RegisterEvent(EVENT_EFFECT_CHANGED, onMageExplode, REGISTER_FILTER_ABILITY_ID, 50184)
 		self:RegisterEvent(EVENT_EFFECT_CHANGED, onPortalWorld, REGISTER_FILTER_ABILITY_ID, 108045)
 		self:RegisterEvent(EVENT_EFFECT_CHANGED, onPortalWorld, REGISTER_FILTER_ABILITY_ID, 121216)
-
-
-		if libint.debug == true then
-
-			self:RegisterEvent(EVENT_COMBAT_EVENT, onWTF, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_ABSORBED)
-			self:RegisterEvent(EVENT_COMBAT_EVENT, onWTF, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_BLADETURN)
-			self:RegisterEvent(EVENT_COMBAT_EVENT, onWTF, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_BLOCKED)
-			self:RegisterEvent(EVENT_COMBAT_EVENT, onWTF, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_DIED_XP)
-			self:RegisterEvent(EVENT_COMBAT_EVENT, onWTF, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_KILLING_BLOW)
-			self:RegisterEvent(EVENT_COMBAT_EVENT, onWTF, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_PARTIAL_RESIST)
-			self:RegisterEvent(EVENT_COMBAT_EVENT, onWTF, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_PRECISE_DAMAGE)
-			self:RegisterEvent(EVENT_COMBAT_EVENT, onWTF, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_REFLECTED)
-			self:RegisterEvent(EVENT_COMBAT_EVENT, onWTF, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_RESIST)
-			self:RegisterEvent(EVENT_COMBAT_EVENT, onWTF, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_WRECKING_DAMAGE)
-
-		end
 
 		self.active = true
 	end

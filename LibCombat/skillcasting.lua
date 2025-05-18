@@ -145,6 +145,8 @@ libint.abilityConversions = {	-- Ability conversions for tracking skill activati
 	[185912] = {185913, 2240, nil, nil}, --Runic Defense --> Minor Resolve
 	[186489] = {186490, 2240, nil, nil}, --Runeguard of Freedom --> Minor Resolve
 
+	[222678] = {217528, 2240, nil, nil}, --Ulfsilds Contingency --> Ulfsilds Contingency
+
 }
 
 libint.abilityAdditions = { -- Abilities to register additionally because they change in fight
@@ -197,11 +199,8 @@ libint.abilityAdditions = { -- Abilities to register additionally because they c
 }
 
 libint.abilityAdditionsReverse = {}
-
 for k,v in pairs(libint.abilityAdditions) do
-
 	libint.abilityAdditionsReverse[v] = k
-
 end
 
 libint.directHeavyAttacks = {	-- for special handling to detect their end
@@ -293,36 +292,48 @@ local function UpdateSlotSkillEvents()
 	events:Update()
 end
 
+---@param actionSlotIndex integer
+---@param hotbarCategory HotBarCategory
+---@return integer abilityId
+---@return integer? craftedAbilityId
+local function GetSlottedAbilityId(actionSlotIndex, hotbarCategory)	-- thanks to Anthonysc for the snippet
+	hotbarCategory = hotbarCategory or GetActiveHotbarCategory()
+	local actionType = GetSlotType(actionSlotIndex, hotbarCategory)
+	local abilityId = GetSlotBoundId(actionSlotIndex, hotbarCategory)
+
+	if actionType == ACTION_TYPE_CRAFTED_ABILITY then
+		return GetAbilityIdForCraftedAbilityId(abilityId), abilityId
+	end
+
+	return abilityId, nil
+end
+libfunc.GetSlottedAbilityId = GetSlottedAbilityId
+
 function libfunc.GetCurrentSkillBars()
-
 	local skillBars = libdata.skillBars
-
+	local scribedSkills = libdata.scribedSkills
 	local bar = libdata.bar
 
 	skillBars[bar] = {}
-
 	local currentbar = skillBars[bar]
+	local hotbarCategory = GetActiveHotbarCategory()
 
 	for i = 1, 8 do
-
-		local id = GetSlotBoundId(i, GetActiveHotbarCategory())
-
+		local id, scribedAbilityId = GetSlottedAbilityId(i, hotbarCategory)
 		currentbar[i] = id
-
 		local reducedslot = (bar - 1) * 10 + i
-
 		local conversion = libint.abilityConversions[id]
-
 		local convertedId = conversion and conversion[1] or id
 
 		IdToReducedSlot[convertedId] = reducedslot
 
 		if conversion and conversion[3] then IdToReducedSlot[conversion[3]] = reducedslot end
-
+		if scribedAbilityId and scribedSkills[id] == nil then
+			scribedSkills[id] = {GetCraftedAbilityActiveScriptIds(scribedAbilityId)}
+			Log("debug", LOG_LEVEL_INFO, "ScribedSkill: ", scribedAbilityId, unpack(scribedSkills[id]))
+		end
 	end
-
 	UpdateSlotSkillEvents()
-
 end
 
 local function GetReducedSlotId(reducedslot)
@@ -571,6 +582,7 @@ function lib.InitializeSkillcasting()
 	if isFileInitialized == true then return false end
 
 	libdata.skillBars= {}
+	libdata.scribedSkills= {}
 
     isFileInitialized = true
 	return true

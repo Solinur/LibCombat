@@ -3,11 +3,181 @@
 local lib = LibCombat
 local libint = lib.internal
 local libfunc = libint.functions
+---@type fun(actionSlotIndex: integer, hotbarCategory: HotBarCategory): integer, integer?
+local GetSlottedAbilityId = libfunc.GetSlottedAbilityId
 local libdata = libint.data
 local Log = libint.Log
 local CallbackKeys = libint.callbackKeys
 
 local DivineSlots = {EQUIP_SLOT_HEAD, EQUIP_SLOT_SHOULDERS, EQUIP_SLOT_CHEST, EQUIP_SLOT_HAND, EQUIP_SLOT_WAIST, EQUIP_SLOT_LEGS, EQUIP_SLOT_FEET}
+
+local function ParseDescriptionBonus(description, startIndex)
+	local bonus = {description:match("cffffff[un ]*(%d+)%p?(%d*)[%%|][r|]", startIndex)}
+	local bonusString = table.concat(bonus, ".")
+	return tonumber(bonusString)
+end
+
+local parseHeraldFail = false
+local function CheckForHeraldAbility()
+	local bonusData = {[0] = 0, [1] = 0}
+	if GetUnitClassId("player") ~= 117 then return bonusData end
+	local skillType, lineIndex, skillIndex  = GetSpecificSkillAbilityKeysByAbilityId(184873)
+	local abilityId = GetSkillAbilityId(skillType, lineIndex, skillIndex, false)
+	local description = GetAbilityDescription(abilityId)
+	local startindex = select(2, description:find("cffffff[un ]*%d+%p?%d*[%%|][r|]"))
+	local bonus = ParseDescriptionBonus(description, startindex)
+
+	if bonus == nil and parseHeraldFail == false then
+		Log("main", "WARNING", "Failed to parse description for SE bonus: %s", description)
+		parseHeraldFail = true
+	end
+
+	for hotbarCategory = 0,1 do
+		for slot = 3, 8 do
+			local abilityId = GetSlottedAbilityId(slot, hotbarCategory)
+			local skillType, lineIndex2, _ = GetSpecificSkillAbilityKeysByAbilityId(abilityId)
+			if skillType == 0 and lineIndex == lineIndex2 and abilityId ~= 0 then
+				bonusData[hotbarCategory] = bonus
+				break
+			end
+		end
+	end
+	return bonusData
+end
+
+local parseChargedFail = false
+local function GetChargedBonus()
+	local charged = {}
+	for hotbarCategory = 0,1 do
+		local slot_main_hand, slot_off_hand
+		if hotbarCategory == HOTBAR_CATEGORY_PRIMARY then
+			slot_main_hand = EQUIP_SLOT_MAIN_HAND
+			slot_off_hand = EQUIP_SLOT_OFF_HAND
+		elseif hotbarCategory == HOTBAR_CATEGORY_BACKUP then
+			slot_main_hand = EQUIP_SLOT_BACKUP_MAIN
+			slot_off_hand = EQUIP_SLOT_BACKUP_OFF
+		end
+
+		local item_link_main = GetItemLink(BAG_WORN, slot_main_hand, LINK_STYLE_DEFAULT)
+		local item_link_off = GetItemLink(BAG_WORN, slot_off_hand, LINK_STYLE_DEFAULT)
+		local chargedBonus = 0
+
+		local trait, description = GetItemLinkTraitInfo(item_link_main)
+		if trait == ITEM_TRAIT_TYPE_WEAPON_CHARGED then
+			local bonus = ParseDescriptionBonus(description)
+
+			if bonus == nil and parseChargedFail == false then
+				Log("main", LOG_LEVEL_WARNING, "Failed to parse description for SE bonus: %s", description)
+				parseChargedFail = true
+			end
+			
+			chargedBonus = chargedBonus + (bonus or 0)
+		end
+
+
+
+		local trait, description = GetItemLinkTraitInfo(item_link_off)
+		if trait == ITEM_TRAIT_TYPE_WEAPON_CHARGED then
+			local bonus = ParseDescriptionBonus(description)
+
+			if bonus == nil and parseChargedFail == false then
+				Log("main", LOG_LEVEL_WARNING, "Failed to parse description for SE bonus: %s", description)
+				parseChargedFail = true
+			end
+			
+			chargedBonus = chargedBonus + (bonus or 0)
+		end
+
+		charged[hotbarCategory] = chargedBonus
+	end
+	return charged
+end
+
+local parseHeartlandFail = false
+local function CheckHeartlandSet()
+	if select(4, GetItemSetInfo(583)) < 3 then return 0 end -- at least 3 pieces must always be active (2 could be hidden on other bar) otherwise 5-piece bonus will never activate
+	local _, description = GetItemSetBonusInfo(583, 4)
+	local bonus = ParseDescriptionBonus(description)
+
+	if bonus == nil and parseHeartlandFail == false then
+		Log("main", LOG_LEVEL_WARNING, "Failed to parse description for SE bonus: %s", description)
+		parseHeartlandFail = true
+	end
+	return (bonus or 0) / 100
+end
+
+local DestroStaffTypes = {
+	[WEAPONTYPE_FIRE_STAFF] = true,
+	[WEAPONTYPE_FROST_STAFF] = true,
+	[WEAPONTYPE_LIGHTNING_STAFF] = true,
+}
+
+local parseDestroFail = false
+local function CheckDestroPassive()
+	local bonusData = {[0] = 0, [1] = 0}
+	local skillType, lineIndex, skillIndex  = GetSpecificSkillAbilityKeysByAbilityId(45512)
+	local abilityId = GetSkillAbilityId(skillType, lineIndex, skillIndex, false)
+	local description = GetAbilityDescription(abilityId)
+	local bonus = ParseDescriptionBonus(description)
+
+	if bonus == nil and parseDestroFail == false then
+		Log("main", LOG_LEVEL_WARNING, "Failed to parse description for SE bonus: %s", description)
+		parseDestroFail = true
+	end
+
+	local weaponTypeMain = GetItemWeaponType(BAG_WORN, EQUIP_SLOT_MAIN_HAND)
+	if DestroStaffTypes[weaponTypeMain] then bonusData[0] = bonus end
+	local weaponTypeBackup = GetItemWeaponType(BAG_WORN, EQUIP_SLOT_BACKUP_MAIN)
+	if DestroStaffTypes[weaponTypeBackup] then bonusData[1] = bonus end
+	return bonusData
+end
+
+
+local function CheckCPBonus()
+	local martial = 1.5 * GetNumPointsSpentOnChampionSkill(18)
+	local magic = 1.5 * GetNumPointsSpentOnChampionSkill(17)
+
+	return (martial + magic)/2
+end
+
+local parseWealdFail = false
+local function CheckWealdSet()
+	if select(4, GetItemSetInfo(757)) < 3 then return 0 end  -- at least 3 pieces must always be active (2 could be hidden on other bar) otherwise 5-piece bonus will never activate
+	local _, description = GetItemSetBonusInfo(757, 4)
+	local bonus = ParseDescriptionBonus(description)
+
+	if bonus == nil and parseWealdFail == false then
+		Log("main", LOG_LEVEL_WARNING, "Failed to parse description for SE bonus: %s", description)
+		parseWealdFail = true
+	end
+	return bonus or 0
+end
+
+local parseFocusedEffortsFail = false
+local function GetFocusedEffortsBonus()
+	local stacks = GetNumStacksForEndlessDungeonBuff(200904, false)
+	if stacks <= 0 then return 0 end
+	local description = GetAbilityDescription(200904)
+	local bonus = ParseDescriptionBonus(description)
+
+	if bonus == nil and parseFocusedEffortsFail == false then
+		Log("main", LOG_LEVEL_WARNING, "Failed to parse description for SE bonus: %s", description)
+		parseFocusedEffortsFail = true
+	end
+	return bonus or 0
+end
+
+function libfunc.InitStatusEffectBonuses()
+	local SEBonus = {}
+	SEBonus.arcanistBonus = CheckForHeraldAbility()
+	SEBonus.charged = GetChargedBonus()
+	SEBonus.heartlandBonus = CheckHeartlandSet()
+	SEBonus.wealdBonus = CheckWealdSet()
+	SEBonus.destro = CheckDestroPassive()
+	SEBonus.CP = CheckCPBonus()
+	SEBonus.focusedEfforts = GetFocusedEffortsBonus()
+	libdata.statusEffectBonus = SEBonus
+end
 
 function libfunc.GetCritBonusFromCP(CPdata)
 
@@ -17,14 +187,6 @@ function libfunc.GetCritBonusFromCP(CPdata)
 	local backstabber = slots[31] and (2 * zo_floor(0.1 * points[31][1])) or 0 -- Backstabber 2% per every full 10 points (flanking!)
 
 	return backstabber
-end
-
-local DivineSlots = {EQUIP_SLOT_HEAD, EQUIP_SLOT_SHOULDERS, EQUIP_SLOT_CHEST, EQUIP_SLOT_HAND, EQUIP_SLOT_WAIST, EQUIP_SLOT_LEGS, EQUIP_SLOT_FEET}
-
-local function ParseDescriptionBonus(description, startIndex)
-	local bonus = {description:match("cffffff[un ]*(%d+)%p?(%d*)[%%|][r|]", startIndex)}
-	local bonusString = table.concat(bonus, ".")
-	return tonumber(bonusString)
 end
 
 function libfunc.GetShadowBonus(effectSlot)
@@ -263,12 +425,9 @@ libint.Events.AdvancedStats = libint.EventHandler:New(
 )
 
 local isFileInitialized = false
-
 function lib.InitializeStats()
-
 	if isFileInitialized == true then return false end
 
     isFileInitialized = true
 	return true
-
 end
