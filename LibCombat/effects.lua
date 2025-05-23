@@ -127,6 +127,18 @@ local function onTrialDummy(_, _, _, _, _, _, _, _, _, _, _, _, _, _, sourceUnit
 
 end
 
+-- TODO: use units module to get the unit directly
+local function isDuplicateUnit(unitTag)
+	if unitTag and zo_strsub(unitTag, 1, 5) == "group" and AreUnitsEqual(unitTag, "player") then return true end
+	if unitTag and zo_strsub(unitTag, 1, 11) ~= "reticleover" then
+		if AreUnitsEqual(unitTag, "reticleover") then return true end	-- TODO: maybe ignore those unitTags instead? 
+		if AreUnitsEqual(unitTag, "reticleoverplayer") then return true end
+		if AreUnitsEqual(unitTag, "reticleovertarget") then return true end
+	end
+	return false
+end
+
+
 local function BuffEventHandler(isspecial, groupeffect, _, changeType, effectSlot, _, unitTag, _, endTime, stackCount, _, _, effectType, abilityType, _, unitName, unitId, abilityId, sourceType)
 
 	if (changeType ~= EFFECT_RESULT_GAINED and changeType ~= EFFECT_RESULT_FADED and not (changeType == EFFECT_RESULT_UPDATED and stackCount > 1)) or unitName == "Offline" or unitId == nil then return end
@@ -134,15 +146,11 @@ local function BuffEventHandler(isspecial, groupeffect, _, changeType, effectSlo
 	Log("events","VERBOSE", "%s %s the %s %dx %s (%d, ET: %d, %s, %d)", unitName, changeType, effectType == BUFF_EFFECT_TYPE_BUFF and "buff" or "debuff", stackCount, lib.GetFormattedAbilityName(abilityId), abilityId, abilityType, unitTag, sourceType)
 
 	if libint.badAbility[abilityId] == true then return end
-
-	local isGroup = unitTag and string.sub(unitTag, 1, 5) == "group"
-
-	if isGroup and AreUnitsEqual(unitTag, "player") then return end
-	if unitTag and string.sub(unitTag, 1, 11) ~= "reticleover" and (AreUnitsEqual(unitTag, "reticleover") or AreUnitsEqual(unitTag, "reticleoverplayer") or AreUnitsEqual(unitTag, "reticleovertarget")) then return end
+	if isDuplicateUnit(unitTag) then return end
 
 	local timems = GetGameTimeMilliseconds()
 
-	local eventid = groupeffect == GROUP_EFFECT_IN and LIBCOMBAT_EVENT_GROUPEFFECTS_IN or groupeffect == GROUP_EFFECT_OUT and LIBCOMBAT_EVENT_GROUPEFFECTS_OUT or unitTag and string.sub(unitTag, 1, 6) == "player" and LIBCOMBAT_EVENT_EFFECTS_IN or LIBCOMBAT_EVENT_EFFECTS_OUT
+	local eventid = groupeffect == GROUP_EFFECT_IN and LIBCOMBAT_EVENT_GROUPEFFECTS_IN or groupeffect == GROUP_EFFECT_OUT and LIBCOMBAT_EVENT_GROUPEFFECTS_OUT or unitTag and zo_strsub(unitTag, 1, 6) == "player" and LIBCOMBAT_EVENT_EFFECTS_IN or LIBCOMBAT_EVENT_EFFECTS_OUT
 	local stacks = zo_max(1, stackCount)
 
 	local inCombat = libint.currentfight.prepared

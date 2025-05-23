@@ -42,8 +42,10 @@ local function onSlotUsed(_, slot)
 	if libdata.inCombat == false or slot > 8 then return end
 
 	local timems = GetGameTimeMilliseconds()
-	local abilityId = GetSlotBoundId(slot, GetActiveHotbarCategory())
-	-- Log("events", "INFO", "Ability Used: %s (%d)", GetFormattedAbilityName(abilityId), abilityId)
+	local abilityId = libfunc.GetSlottedAbilityId(slot)
+
+	-- Print("events", LOG_LEVEL_DEBUG, "Ability Used: %s (%d)", GetFormattedAbilityName(abilityId), abilityId)
+
 	local powerTypes = GetPowerTypes(abilityId)
 	local lastabilities = libdata.lastabilities
 
@@ -88,12 +90,12 @@ local function checkLastAbilities(timems, powerType, powerValueChange, powerValu
 
 	local abilityId = -1
 	local adjustedPowerValueChange
-	-- Log("events", "INFO", "Check %d Abilities: %d, %d, %d", #lastabilities, powerType, powerValueChange, powerValue)
+	Log("events", "DEBUG", "Check %d Abilities: %d, %d, %d", #lastabilities, powerType, powerValueChange, powerValue)
 
 	for i = #lastabilities, 1, -1 do
 
 		local values = lastabilities[i]
-		-- Log("events", "INFO", "Check: %s (%d), %d, %d", GetFormattedAbilityName(values[2]), values[2], powerValueChange / values[3], values[4])
+		Log("events", "DEBUG", "Check: %s (%d), %d, %d", GetFormattedAbilityName(values[2]), values[2], powerValueChange / values[3], values[4])
 
 		if powerType == values[4] then
 
@@ -103,7 +105,7 @@ local function checkLastAbilities(timems, powerType, powerValueChange, powerValu
 
 			if goodratio then
 
-				-- Log("events", "INFO", "Ratio: %.3f (**%s: %d vs. %d) %d", ratio, GetFormattedAbilityName(values[2]), values[3], powerValueChange, #lastabilities-i)
+				Log("events", "DEBUG", "Ratio: %.3f (**%s: %d vs. %d) %d", ratio, GetFormattedAbilityName(values[2]), values[3], powerValueChange, #lastabilities-i)
 
 				abilityId = values[2]
 				table.remove(lastabilities, i)
@@ -122,13 +124,13 @@ local function checkLastAbilities(timems, powerType, powerValueChange, powerValu
 
 				if goodratio then
 
-					-- Log("events", "INFO", "Ratio: %.3f (**%s: %d vs. %d) %d", ratio, GetFormattedAbilityName(values[2]), combinedPowerValueChange, powerValueChange, #lastabilities-i)
+					Log("events", "DEBUG", "Ratio: %.3f (**%s: %d vs. %d) %d", ratio, GetFormattedAbilityName(values[2]), combinedPowerValueChange, powerValueChange, #lastabilities-i)
 
 					abilityId = 23542
 					adjustedPowerValueChange = - blockCost
 					table.remove(lastabilities, i)
 
-					-- Log("events", "INFO", "Resource: %s (%d): %d (%d) --> %d", GetFormattedAbilityName(values[2]), values[2], values[3], powerType, powerValue - adjustedPowerValueChange)
+					Log("events", "DEBUG", "Resource: %s (%d): %d (%d) --> %d", GetFormattedAbilityName(values[2]), values[2], values[3], powerType, powerValue - adjustedPowerValueChange)
 
 					lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_RESOURCES]), LIBCOMBAT_EVENT_RESOURCES, timems, values[2], values[3], powerType, powerValue - adjustedPowerValueChange)
 
@@ -140,13 +142,13 @@ local function checkLastAbilities(timems, powerType, powerValueChange, powerValu
 		if (values[1] - timems) > 1000 then break end
 	end
 
-	-- Log("events", "INFO", "Ability Result: %s (%d), %d", GetFormattedAbilityName(abilityId), abilityId, tostring(adjustedPowerValueChange))
+	Log("events", "DEBUG", "Ability Result: %s (%d), %d", GetFormattedAbilityName(abilityId), abilityId, tostring(adjustedPowerValueChange))
 
 	return abilityId, adjustedPowerValueChange
 
 end
 
-local function checkForCombatActions(timems, powerValueChange)
+local function checkForCombatActions(powerValueChange)
 
 	if powerValueChange > 0 then return -1 end
 
@@ -156,7 +158,7 @@ local function checkForCombatActions(timems, powerValueChange)
 
 		if blockRatio >= 0.98 and blockRatio <= 1.02 then
 
-			-- Log("events", "INFO", "Skill cost: %d Stamina (Block)", powerValueChange)
+			Log("events", "DEBUG", "Skill cost: %d Stamina (Block)", powerValueChange)
 			return 23542
 
 		end
@@ -165,7 +167,7 @@ local function checkForCombatActions(timems, powerValueChange)
 	local bashRatio = select(2, GetAdvancedStatValue(ADVANCED_STAT_DISPLAY_TYPE_BASH_COST))     / -powerValueChange
 	if bashRatio >= 0.98 and bashRatio <= 1.02 then
 
-		-- Log("events", "INFO", "Skill cost: %d Stamina (Bash)", powerValueChange)
+		Log("events", "DEBUG", "Skill cost: %d Stamina (Bash)", powerValueChange)
 		return 21970
 
 	end
@@ -173,7 +175,7 @@ local function checkForCombatActions(timems, powerValueChange)
 	local dodgeRatio = select(2, GetAdvancedStatValue(ADVANCED_STAT_DISPLAY_TYPE_DODGE_COST))    / -powerValueChange
 	if dodgeRatio >= 0.98 and dodgeRatio <= 1.02 then
 
-		-- Log("events", "INFO", "Skill cost: %d Stamina (Dodge)", powerValueChange)
+		Log("events", "DEBUG", "Skill cost: %d Stamina (Dodge)", powerValueChange)
 		return 28549
 
 	end
@@ -181,21 +183,21 @@ local function checkForCombatActions(timems, powerValueChange)
 	local breakFreeRatio = select(2, GetAdvancedStatValue(ADVANCED_STAT_DISPLAY_TYPE_CC_BREAK_COST)) / -powerValueChange
 	if breakFreeRatio >= 0.98 and breakFreeRatio <= 1.02 then
 
-		-- Log("events", "INFO", "Skill cost: %d Stamina (Break Free)", powerValueChange)
+		Log("events", "DEBUG", "Skill cost: %d Stamina (Break Free)", powerValueChange)
 		return 16565
 
 	end
 
 	if GetUnitStealthState("player") == STEALTH_STATE_HIDING or GetUnitStealthState("player") == STEALTH_STATE_HIDDEN and powerValueChange < 0 and powerValueChange > -20 then
 
-		-- Log("events", "INFO", "Skill cost: %d Stamina (Sneak)", powerValueChange)
+		Log("events", "DEBUG", "Skill cost: %d Stamina (Sneak)", powerValueChange)
 		return  20299
 
 	end
 
 	if GetPlayerSprintState() == SPRINT_STATE_ACTIVE and powerValueChange < 0 and powerValueChange > -20 then
 
-		-- Log("events", "INFO", "Skill cost: %d Stamina (Sprint)", powerValueChange)
+		Log("events", "DEBUG", "Skill cost: %d Stamina (Sprint)", powerValueChange)
 		return  15617
 
 	end
@@ -210,7 +212,7 @@ local function onBaseResourceChanged(powerType, powerValue, powerValueChange)
 
 		local regenerationTick = libfunc.GetStat(STAT_MAGICKA_REGEN_COMBAT)
 
-		-- Log("events", "INFO", "Magicka change: %d", powerValueChange)
+		Log("events", "DEBUG", "Magicka change: %d", powerValueChange)
 
 		-- Check for recently used skills
 
@@ -222,7 +224,7 @@ local function onBaseResourceChanged(powerType, powerValue, powerValueChange)
 
 			abilityId = 0
 
-			-- Log("events", "INFO", "Magicka Regeneration  (%d)", powerValueChange)
+			Log("events", "DEBUG", "Magicka Regeneration  (%d)", powerValueChange)
 
 		elseif abilityId == -1 then	-- Check for combination of skill and regeneration tick
 
@@ -230,7 +232,7 @@ local function onBaseResourceChanged(powerType, powerValue, powerValueChange)
 
 			if abilityId ~= -1 then
 
-				-- Log("events", "INFO", "Resource: %s (%d): %d (%d) --> %d", "Regeneration", 0, regenerationTick, powerType, powerValue + regenerationTick)
+				Log("events", "DEBUG", "Resource: %s (%d): %d (%d) --> %d", "Regeneration", 0, regenerationTick, powerType, powerValue + regenerationTick)
 
 				lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_RESOURCES]), LIBCOMBAT_EVENT_RESOURCES, timems, 0, regenerationTick, powerType, powerValue + regenerationTick)
 				powerValueChange = powerValueChange - regenerationTick
@@ -242,7 +244,7 @@ local function onBaseResourceChanged(powerType, powerValue, powerValueChange)
 
 		local regenerationTick = libfunc.GetStat(STAT_STAMINA_REGEN_COMBAT)
 
-		-- Log("events", "INFO", "Stamina change: %d", powerValueChange)
+		Log("events", "DEBUG", "Stamina change: %d", powerValueChange)
 
 		-- Check for recently used skills
 
@@ -256,11 +258,11 @@ local function onBaseResourceChanged(powerType, powerValue, powerValueChange)
 
 			abilityId = 0
 
-			-- Log("events", "INFO", "Stamina Regeneration (%d)", powerValueChange)
+			Log("events", "DEBUG", "Stamina Regeneration (%d)", powerValueChange)
 
 		elseif abilityId == -1 then -- Check for combat actions
 
-			abilityId = checkForCombatActions(timems, powerValueChange)
+			abilityId = checkForCombatActions(powerValueChange)
 
 			if abilityId == -1 then	-- Check for combination of skill and regeneration tick
 
@@ -269,8 +271,7 @@ local function onBaseResourceChanged(powerType, powerValue, powerValueChange)
 				if adjustedPowerValueChange then powerValueChange = adjustedPowerValueChange end
 
 				if abilityId ~= -1 then
-
-					-- Log("events", "INFO", "Resource: %s (%d): %d (%d) --> %d", "Regeneration", 0, regenerationTick, powerType, powerValue + regenerationTick)
+					Log("events", "DEBUG", "Resource: %s (%d): %d (%d) --> %d", "Regeneration", 0, regenerationTick, powerType, powerValue + regenerationTick)
 
 					lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_RESOURCES]), LIBCOMBAT_EVENT_RESOURCES, timems, 0, regenerationTick, powerType, powerValue + regenerationTick)
 					powerValueChange = powerValueChange - regenerationTick
@@ -280,43 +281,36 @@ local function onBaseResourceChanged(powerType, powerValue, powerValueChange)
 		end
 
 	elseif powerType == COMBAT_MECHANIC_FLAGS_ULTIMATE then
-
 		abilityId = 0
 
 	elseif powerType == COMBAT_MECHANIC_FLAGS_HEALTH then
-
 		abilityId = -1
 
 		if powerValueChange == libfunc.GetStat(STAT_HEALTH_REGEN_COMBAT) and libdata.units.playerId then
-
 			abilityId = 0
-
 			lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_HEAL_SELF]), LIBCOMBAT_EVENT_HEAL_SELF, timems, ACTION_RESULT_HOT_TICK, libdata.units.playerId, libdata.units.playerId, abilityId, powerValueChange, powerType, 0)
 			return
-
 		end
 	end
 
-	-- Log("events", "INFO", "Resource: %s (%d): %d (%d) --> %d", GetFormattedAbilityName(abilityId), abilityId, powerValueChange, powerType, powerValue)
+	Log("events", "DEBUG", "Resource: %s (%d): %d (%d) --> %d", GetFormattedAbilityName(abilityId), abilityId, powerValueChange, powerType, powerValue)
 
 	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_RESOURCES]), LIBCOMBAT_EVENT_RESOURCES, timems, abilityId, powerValueChange, powerType, powerValue)
 end
 
-local function onBaseResourceChangedDelayed(_,unitTag,_,powerType,powerValue,_,_)
-
-	-- Log("events", "INFO", "onBaseResourceChangedDelayed?")
-
+local function onBaseResourceChangedDelayed(_,unitTag,_,powerType,newValue,_,_)
 	if unitTag ~= "player" or (libdata.inCombat == false) then return end
 	if powerType ~= COMBAT_MECHANIC_FLAGS_HEALTH and powerType ~= COMBAT_MECHANIC_FLAGS_MAGICKA and powerType ~= COMBAT_MECHANIC_FLAGS_STAMINA and powerType ~= COMBAT_MECHANIC_FLAGS_ULTIMATE then return end
 
-	local powerValueChange = powerValue - (libdata.resources[powerType] or powerValue)
-	libdata.resources[powerType] = powerValue
+	local oldValue = libdata.resources[powerType]
+	libdata.resources[powerType] = newValue
+	if oldValue == nil or oldValue == newValue then return end
 
-	if powerValueChange == 0 then return end
+	local powerValueChange = newValue - oldValue
+	if powerType == COMBAT_MECHANIC_FLAGS_HEALTH and libdata.statusEffectBonus and libdata.statusEffectBonus.wealdBonus>0 then libint.currentfight:UpdateSingleStat(LIBCOMBAT_STAT_STATUS_EFFECT_CHANCE) end
 
-	-- Log("events", "INFO", "onBaseResourceChangedDelayed: %s, %d, %d", unitTag, powerType, powerValueChange)
-
-	zo_callLater(function() onBaseResourceChanged(powerType, powerValue, powerValueChange) end, 0)
+	Log("events", "DEBUG", "onBaseResourceChangedDelayed: %s, %d, %d", unitTag, powerType, powerValueChange)
+	zo_callLater(function() onBaseResourceChanged(powerType, newValue, powerValueChange) end, 0)
 end
 
 --(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId, overflow)

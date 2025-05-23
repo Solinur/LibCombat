@@ -16,34 +16,24 @@ local deathRecapTimePeriod = 10000
 
 
 function libfunc.ProcessDeathRecaps()
-
 	local timems = GetGameTimeMilliseconds()
 
 	for unitId, UnitDeathCache in pairs(UnitDeathsToProcess) do
-
 		if timems - UnitDeathCache.timems > 200 then
-
-			Log("dev","INFO", "ProcessDeath: %s (%d)", libint.currentfight.units[unitId].name, unitId)
+			Log("dev","DEBUG", "ProcessDeath: %s (%d)", libint.currentfight.units[unitId].name, unitId)
 			UnitDeathCache:ProcessDeath()
-
 		end
-
 	end
-
 end
 
 function libfunc.ClearUnitCaches()
-
-	Log("dev","INFO", "ClearUnitCaches (%d)", NonContiguousCount(CombatEventCache))
+	Log("dev","DEBUG", "ClearUnitCaches (%d)", NonContiguousCount(CombatEventCache))
 
 	for unitId, UnitDeathCache in pairs(CombatEventCache) do
-
 		CombatEventCache[unitId] = nil
-
 	end
 
 	UnitDeathsToProcess = {}
-
 end
 
 local UnitDeathCacheHandler = ZO_Object:Subclass()	-- holds all recent events + info to send on death
@@ -68,7 +58,7 @@ function UnitDeathCacheHandler:Initialize(unitId)
 
 	local unitname = libint.currentfight.units[unitId] and libint.currentfight.units[unitId].name or "Unknown"
 
-	Log("dev","INFO", "Init unit death cache: %s (%d)", unitname, unitId)
+	Log("dev","DEBUG", "Init unit death cache: %s (%d)", unitname, unitId)
 
 end
 
@@ -82,7 +72,7 @@ function UnitDeathCacheHandler:OnDeath(timems)
 
 	local unitname = libint.currentfight.units[self.unitId] and libint.currentfight.units[self.unitId].name or "Unknown"
 
-	Log("dev","INFO", "UnitCacheHandler:OnDeath: %s (%d)", unitname, self.unitId)
+	Log("dev","DEBUG", "UnitCacheHandler:OnDeath: %s (%d)", unitname, self.unitId)
 
 end
 
@@ -109,7 +99,7 @@ function UnitDeathCacheHandler:ProcessDeath()
 
 		local deleted = 0
 
-		Log("dev","INFO", "Processing death event cache. Offset: %d, length:%d", offset, length)
+		Log("dev","DEBUG", "Processing death event cache. Offset: %d, length:%d", offset, length)
 
 		for i = 0, length - 1 do
 
@@ -134,7 +124,7 @@ function UnitDeathCacheHandler:ProcessDeath()
 			end
 		end
 
-		Log("dev","INFO" , "%s: cache: %d, log: %d, deleted: %d", unit and unit.name or "Unknown", #cache, #log, deleted)
+		Log("dev","DEBUG" , "%s: cache: %d, log: %d, deleted: %d", unit and unit.name or "Unknown", #cache, #log, deleted)
 	end
 
 	self.cache = nil
@@ -251,18 +241,18 @@ local function OnDeathStateChanged(_, unitTag, isDead) 	-- death (for group disp
 
 	local unitId = unitTag == "player" and libunits.playerId or libunits.unitIdsByTag[unitTag]
 
-	Log("dev","INFO", "OnDeathStateChanged: %s (%s) is dead: %s", unitTag, tostring(unitId), tostring(isDead))
+	Log("dev","DEBUG", "OnDeathStateChanged: %s (%s) is dead: %s", unitTag, tostring(unitId), tostring(isDead))
 
 	if libdata.inCombat == false or unitId == nil then
 
-		Log("dev","INFO", "OnDeathStateChanged: Combat: %s", tostring(libdata.inCombat))
+		Log("dev","DEBUG", "OnDeathStateChanged: Combat: %s", tostring(libdata.inCombat))
 		return
 	end
 
 	local unit = libint.currentfight.units[unitId]
 	if unit then unit.isDead = isDead else
 
-		Log("dev","INFO", "OnDeathStateChanged: no unit")
+		Log("dev","DEBUG", "OnDeathStateChanged: no unit")
 		return
 	end
 
@@ -276,7 +266,7 @@ local function OnDeathStateChanged(_, unitTag, isDead) 	-- death (for group disp
 
 		GetUnitCache(unitId):OnDeath(timems)
 
-		Log("dev","INFO", "OnDeathStateChanged: fire callback")
+		Log("dev","DEBUG", "OnDeathStateChanged: fire callback")
 		lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_DEATH]), LIBCOMBAT_EVENT_DEATH, timems, LIBCOMBAT_UNIT_STATE_DEAD, unitId)
 
 		CheckForWipe()
@@ -289,44 +279,28 @@ local function OnDeathStateChanged(_, unitTag, isDead) 	-- death (for group disp
 end
 
 local function OnPlayerReincarnated()
-
 	Log("DoA","DEBUG", "You revived")
-
 end
 
+
 local function OnDeath(_, result, _, abilityName, _, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, _, sourceUnitId, targetUnitId, abilityId, overflow)
-
 	local timems = GetGameTimeMilliseconds()
-
 	if targetUnitId == nil or targetUnitId == 0 then return end
 
 	local unitdata = libint.currentfight.units[targetUnitId]
-
 	if unitdata == nil or (unitdata.unitType ~= COMBAT_UNIT_TYPE_PLAYER and unitdata.unitType ~= COMBAT_UNIT_TYPE_GROUP) then return end
-
-	Log("dev","INFO", "OnDeath (%s): %s (%d, %d) / %s (%d, %d) - %s (%d): %d (o: %d, type: %d)", libint.SpecialResults[result], sourceName, sourceUnitId, sourceType, targetName, targetUnitId, targetType, lib.GetFormattedAbilityName(abilityId), abilityId, hitValue or 0, overflow or 0, damageType or 0)
-
 	lastdeaths[targetUnitId] = timems
-
 	GetUnitCache(targetUnitId):OnDeath(timems)
 
 	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_DEATH]), LIBCOMBAT_EVENT_DEATH, timems, LIBCOMBAT_UNIT_STATE_DEAD, targetUnitId, abilityId)
-
 	CheckForWipe()
 end
 
 local function OnResurrect(_, result, _, abilityName, _, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, _, sourceUnitId, targetUnitId, abilityId)
-
-	Log("dev","INFO", "OnResurrect (%s): %s (%d, %d) / %s (%d, %d) - %s (%d): %d (type: %d)", libint.SpecialResults[result], sourceName, sourceUnitId, sourceType, targetName, targetUnitId, targetType, lib.GetFormattedAbilityName(abilityId), abilityId, hitValue or 0, damageType or 0)
-
 	local timems = GetGameTimeMilliseconds()
-
 	if targetUnitId == nil or targetUnitId == 0 or libdata.inCombat == false then return end
-
 	local unitdata = libint.currentfight.units[targetUnitId]
-
 	if unitdata == nil or unitdata.type ~= COMBAT_UNIT_TYPE_GROUP then return end
-
 	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_DEATH]), LIBCOMBAT_EVENT_DEATH, timems, LIBCOMBAT_UNIT_STATE_ALIVE, targetUnitId)
 end
 
@@ -377,7 +351,7 @@ local function GroupCombatEventHandler(isheal, result, _, abilityName, _, _, sou
 
 	if overflow and overflow > 0 and not isheal then
 
-		Log("dev","INFO", "GroupCombatEventHandler: %s has overflow damage!", targetName)
+		Log("dev","DEBUG", "GroupCombatEventHandler: %s has overflow damage!", targetName)
 		GetUnitCache(targetUnitId):OnDeath(timems)
 
 	end

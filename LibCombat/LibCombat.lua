@@ -287,7 +287,6 @@ local function onBossesChanged(_) -- Detect Bosses
 end
 
 function FightHandler:GetMetaData()
-
 	self.date = GetTimeStamp()
 	self.time = GetTimeString()
 	self.zone = GetPlayerActiveZoneName()
@@ -308,23 +307,17 @@ function FightHandler:GetMetaData()
 	charData.CPtotal = GetUnitChampionPoints("player")
 
 	self.CP = GetCurrentCP()
-
 end
 
 function FightHandler:PrepareFight()
-
 	local timems = GetGameTimeMilliseconds()
 
 	if self.prepared ~= true then
-
 		Log("dev", "DEBUG", "PrepareFight")
-
 		self.combatstart = timems
-
 		libint.PurgeEffectBuffer(timems)
 
 		FightHandler:GetMetaData()
-
 		GetPlayerBuffs(timems)
 		GetOtherBuffs(timems)
 
@@ -353,7 +346,6 @@ function FightHandler:PrepareFight()
 		self:QueueStatUpdate(timems)
 		libfunc.GetCurrentSkillBars()
 		onBossesChanged()
-
 	end
 
 	EVENT_MANAGER:RegisterForUpdate("LibCombat_update", 500, function() self:onUpdate() end)
@@ -402,29 +394,73 @@ end
 local lastGetNewStatsCall = 0
 
 function FightHandler:QueueStatUpdate(timems)
-
 	if Events.Stats.active ~= true then return end
-
 	EVENT_MANAGER:UnregisterForUpdate("LibCombat_Stats")
 
 	timems = timems or GetGameTimeMilliseconds()
-
 	local lastcalldelta = timems - lastGetNewStatsCall
 
 	if lastcalldelta < 100 then
-
 		EVENT_MANAGER:RegisterForUpdate("LibCombat_Stats", (100 - lastcalldelta), function() self:QueueStatUpdate() end)
-
 		return
-
 	end
 
 	lastGetNewStatsCall = timems
-
 	libfunc.UpdateStats(timems)
-
 end
 
+function FightHandler:GetBossTargetDamage() -- Gets Damage done to bosses and counts enemy boss units.
+	if not self.bossfight then return end
+
+	local totalBossDamage = 0
+	local totalBossGroupDamage = 0
+	local starttime
+	local endtime = 0
+
+	for _, unit in pairs(self.units) do
+		local totalUnitDamage = unit.damageOutTotal
+		if (unit.bossId ~= nil and totalUnitDamage>0) then
+			totalBossDamage = totalBossDamage + totalUnitDamage
+			totalBossGroupDamage = totalBossGroupDamage + unit.groupDamageOut
+
+			if starttime == nil then
+				starttime = unit.dpsstart
+			elseif unit.dpsstart ~= nil then
+				starttime = zo_min(starttime, unit.dpsstart)
+			end
+
+			endtime = zo_max(endtime or unit.dpsend or 0, unit.dpsend or 0)
+		end
+	end
+
+	local bossTime
+	if starttime and starttime ~= endtime then
+		bossTime = (endtime - starttime)/1000
+	else
+		bossTime = self.dpstime
+	end
+
+	return bossTime, totalBossDamage, totalBossGroupDamage
+end
+
+function FightHandler:GetSingleTargetDamage()	-- Gets highest Single Target Damage and counts enemy units.
+	if self.bossfight then return self:GetBossTargetDamage() end
+
+	local damage, groupDamage, unittime = 0, 0, 0
+	for _, unit in pairs(self.units) do
+		local totalUnitDamage = unit.damageOutTotal
+		if totalUnitDamage > 0 and unit.isFriendly == false then
+			if totalUnitDamage > damage then
+				damage = totalUnitDamage
+				groupDamage = unit.groupDamageOut
+				unittime = unit.dpsend and unit.dpsstart and unit.dpsend - unit.dpsstart or 0
+			end
+		end
+	end
+
+	unittime = unittime > 0 and unittime/1000 or self.dpstime
+	return unittime, damage, groupDamage
+end
 
 --[[ TODO: 
 function FightHandler:AddCombatEvent(timems, result, targetUnitId, value, eventid, overflow)
@@ -475,8 +511,8 @@ function FightHandler:AddCombatEvent(timems, result, targetUnitId, value, eventi
 	end
 end
 
-function FightHandler:UpdateFightStats()
-
+--]]
+function FightHandler:UpdateStats()
 	libfunc.ProcessDeathRecaps()
 
 	if (self.dpsend == nil and self.hpsend == nil) or (self.dpsstart == nil and self.hpsstart == nil) then return end
@@ -488,41 +524,60 @@ function FightHandler:UpdateFightStats()
 	self.hpstime = hpstime
 
 	self:UpdateGrpStats()
+	local bossTime, totalBossDamage, totalBossGroupDamage = self:GetSingleTargetDamage()
 
 	self.DPSOut = zo_floor(self.damageOutTotal / dpstime + 0.5)
 	self.HPSOut = zo_floor(self.healingOutTotal / hpstime + 0.5)
 	self.HPSAOut = zo_floor(self.healingOutAbsolute / hpstime + 0.5)
 	self.DPSIn = zo_floor(self.damageInTotal / dpstime + 0.5)
 	self.HPSIn = zo_floor(self.healingInTotal / hpstime + 0.5)
+	self.HPSIn = zo_floor(self.healingInTotal / hpstime + 0.5)
+	local bossDPSOut = zo_floor(totalBossDamage / bossTime + 0.5)
 
 	local data = {
 		["DPSOut"] = self.DPSOut,
 		["DPSIn"] = self.DPSIn,
 		["HPSOut"] = self.HPSOut,
+		["OHPSOut"] = self.HPSAOut,
 		["HPSAOut"] = self.HPSAOut,
 		["HPSIn"] = self.HPSIn,
+		["overHealingOutTotal"] = self.healingOutAbsolute,
 		["healingOutTotal"] = self.healingOutTotal,
 		["damageOutTotal"] = self.damageOutTotal,
 		["dpstime"] = dpstime,
 		["hpstime"] = hpstime,
 		["bossfight"] = self.bossfight,
+		["group"] = self.group,
+		["groupDPSOut"] = self.DPSOut,
+		["groupDPSIn"] = self.DPSIn,
+		["groupHPSOut"] = self.HPSOut,
+		["damageOutTotalGroup"] = self.damageOutTotal,
+		["bossDPSOut"] = bossDPSOut,
+		["bossDamageTotal"] = totalBossDamage,
+		["bossDPSOutGroup"] = bossDPSOut,
+		["bossDamageTotalGroup"] = totalBossDamage,
+		["bossTime"] = bossTime,
 	}
+
+	if self.group and Events.CombatGrp.active then
+		data["groupDPSOut"] = self.groupDPSOut
+		data["groupDPSIn"] = self.groupDPSIn
+		data["groupHPSOut"] = self.groupHPSOut
+		data["damageOutTotalGroup"] = self.groupDamageOut
+		data["bossDamageTotalGroup"] = totalBossGroupDamage
+		data["bossDPSOutGroup"] = zo_floor(totalBossGroupDamage / bossTime + 0.5)
+	end
 
 	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_UNITS]), LIBCOMBAT_EVENT_UNITS, self.units)
 	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_FIGHTRECAP]), LIBCOMBAT_EVENT_FIGHTRECAP, data)
 
-	Log("dev", "DEBUG", "UpdateFightStats", self.damageOutTotal, dpstime)
-
 end
 
 function FightHandler:UpdateGrpStats() -- called by onUpdate
-
-	if not (libunits.inGroup and Events.CombatGrp.active) then return end
+	if not (self.group and Events.CombatGrp.active) then return end
 
 	local iend = (self.grplog and #self.grplog) or 0
-
 	if iend > 1 then
-
 		for i = iend, 1, -1 do 			-- go backwards for easier deletions
 
 			local line = self.grplog[i]
@@ -531,22 +586,18 @@ function FightHandler:UpdateGrpStats() -- called by onUpdate
 			local unit = self.units[unitId]
 
 			if unit and unit.isFriendly == false and action=="heal" then
-
 				table.remove(self.grplog,i)
 
 			elseif unit and unit.isFriendly == true and action=="heal" then --only events of identified units are removed. The others might be identified later.
-
 				self.groupHealingOut = self.groupHealingOut + value
 				table.remove(self.grplog,i)
 
 			elseif unit and unit.isFriendly == false and action=="dmg" then
-
 				unit.groupDamageOut = unit.groupDamageOut + value
 				self.groupDamageOut = self.groupDamageOut + value
 				table.remove(self.grplog,i)
 
 			elseif unit and unit.isFriendly == true and action=="dmg" then
-
 				self.groupDamageIn = self.groupDamageIn + value
 				table.remove(self.grplog,i)
 
@@ -566,20 +617,15 @@ function FightHandler:UpdateGrpStats() -- called by onUpdate
 	self.groupHPSIn = self.groupHPSOut
 
 	local data = {
-
-	["groupDPSOut"] = self.groupDPSOut,
-	["groupDPSIn"] = self.groupDPSIn,
-	["groupHPSOut"] = self.groupHPSOut,
-	["dpstime"] = dpstime,
-	["hpstime"] = hpstime
-
+		["groupDPSOut"] = self.groupDPSOut,
+		["groupDPSIn"] = self.groupDPSIn,
+		["groupHPSOut"] = self.groupHPSOut,
+		["dpstime"] = dpstime,
+		["hpstime"] = hpstime
 	}
 
 	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_GROUPRECAP]), LIBCOMBAT_EVENT_GROUPRECAP, data)
-
 end
-
---]]
 
 local function getCurrentBossHP()
 
@@ -663,43 +709,60 @@ function FightHandler:onUpdate()
 
 end
 
+
+local lastUpdateSingleStatsCall = 0
+
+function FightHandler:UpdateSingleStat(statId, timems)
+	if Events.Stats.active ~= true then return end
+	EVENT_MANAGER:UnregisterForUpdate("LibCombat_Stats_Single")
+
+	timems = timems or GetGameTimeMilliseconds()
+	local lastcalldelta = timems - lastUpdateSingleStatsCall
+
+	if lastcalldelta < 100 then
+		EVENT_MANAGER:RegisterForUpdate("LibCombat_Stats_Single", (100 - lastcalldelta), function() self:UpdateSingleStat(statId, nil) end)
+		return
+	end
+
+	lastUpdateSingleStatsCall = timems
+	local stats = libdata.stats
+	local oldValue = stats[statId]
+	local newValue = libfunc.GetSingleStat(statId)
+	local delta = oldValue and (newValue - oldValue) or 0
+	if oldValue == nil or delta ~= 0 then
+		assert(delta ~= nil)
+		assert(newValue ~= nil)
+		assert(statId ~= nil)
+		lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_PLAYERSTATS]), LIBCOMBAT_EVENT_PLAYERSTATS, timems, delta, newValue, statId)
+		stats[statId] = newValue
+	end
+
+end
+
 -- Event Functions
 
+
 function libint.onCombatState(event, inCombat)  -- Detect Combat Stage, local is defined above - Don't Change !!!
-
-	if inCombat ~= libdata.inCombat then     -- Check if player state changed
-
+	if inCombat ~= data.inCombat then     -- Check if player state changed
 		local timems = GetGameTimeMilliseconds()
 
 		if inCombat then
-
-			libdata.inCombat = inCombat
-
-			Log("fight","DEBUG", "Entering combat.")
-
+			data.inCombat = inCombat
+			Log("fight", LOG_LEVEL_DEBUG, "Entering combat.")
 			lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_MESSAGES]), LIBCOMBAT_EVENT_MESSAGES, timems, LIBCOMBAT_MESSAGE_COMBATSTART, 0)
-
-			libint.currentfight:PrepareFight()
-
+			currentfight:PrepareFight()
 		else
-
 			if IsOngoingBossfight() then
-
-				Log("fight","INFO", "Failed: Leaving combat.")
+				Log("fight", LOG_LEVEL_DEBUG, "Failed: Leaving combat.")
 				return
-
 			end
 
-			libdata.inCombat = false
+			data.inCombat = false
+			Log("fight", LOG_LEVEL_DEBUG, "Leaving combat.")
+			currentfight:FinishFight()
 
-			Log("fight","DEBUG", "Leaving combat.")
-
-			libint.currentfight:FinishFight()
-
-			if libint.currentfight.charData == nil then return end
-
+			if currentfight.charData == nil then return end
 			lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_MESSAGES]), LIBCOMBAT_EVENT_MESSAGES, timems, LIBCOMBAT_MESSAGE_COMBATEND, 0)
-
 		end
 	end
 end
@@ -856,20 +919,9 @@ function lib:UnregisterCallbackType(callbacktype, callback, name)
 end
 
 function lib:GetCurrentFight()
-
-	local copy = {}
-
 	if libint.currentfight.dpsstart ~= nil then
-
-		ZO_DeepTableCopy(libint.currentfight, copy)
-
-	else
-
-		copy = nil
-
+		return ZO_DeepTableCopy(libint.currentfight)
 	end
-
-	return copy
 end
 
 Events.General = EventHandler:New(
@@ -925,6 +977,7 @@ function lib.InitializeMain()
 	libdata.resources = {}
 	libdata.stats = {}
 	libdata.advancedStats = {}
+	libdata.currentQuickslotIndex = GetCurrentQuickslot()
 
 	--resetfightdata
 	libint.currentfight = FightHandler:New()
@@ -932,8 +985,6 @@ function lib.InitializeMain()
 	InitCallbackIndex()
 
 	onBossesChanged()
-
-	libfunc.InitAdvancedStats()
 
 	EVENT_MANAGER:RegisterForEvent("LibCombatActive", EVENT_PLAYER_ACTIVATED, function() libdata.isUIActivated = true end)
 	EVENT_MANAGER:RegisterForEvent("LibCombatActive", EVENT_PLAYER_DEACTIVATED, function() libdata.isUIActivated = false end)

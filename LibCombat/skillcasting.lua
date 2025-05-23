@@ -365,11 +365,9 @@ local function onAbilityUsed(eventCode, result, isError, abilityName, abilityGra
 
 	local origId = GetReducedSlotId(reducedslot)
 
-	local channeled, castTime, channelTime = GetAbilityCastInfo(origId)
+	local channeled, castTime = GetAbilityCastInfo(origId)
 
-	castTime = channeled and channelTime or castTime
-
-	Log("events", "VERBOSE", "[%.3f] Skill fired: %s (%d), Duration: %ds Target: %s", timems/1000, GetAbilityName(origId), origId, castTime/1000, tostring(targetName))
+	Log("events", "VERBOSE", "[%.3f] Skill fired: %s (%d), Duration: %ds Target: %s", timems/1000, GetAbilityName(origId), origId, (castTime or 0)/1000, tostring(targetName))
 
 	HeavyAttackCharging = libint.directHeavyAttacks[origId] and origId or nil
 
@@ -391,7 +389,7 @@ local function onAbilityUsed(eventCode, result, isError, abilityName, abilityGra
 
 		local status = channeled and LIBCOMBAT_SKILLSTATUS_BEGIN_CHANNEL or LIBCOMBAT_SKILLSTATUS_BEGIN_DURATION
 
-		lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_SKILL_TIMINGS]), LIBCOMBAT_EVENT_SKILL_TIMINGS, timems, reducedslot, origId, status, skillDelay)
+		lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_SKILL_TIMINGS]), LIBCOMBAT_EVENT_SKILL_TIMINGS, timems, reducedslot, origId, status, skillDelay, hitValue)
 
 		local convertedId = libint.abilityConversions[origId] and libint.abilityConversions[origId][3] or abilityId
 
@@ -496,6 +494,22 @@ local function onSkillSlotUsed(_, slot)
 	end
 end
 
+local function onQuickSlotChanged(_, actionSlotIndex)
+	libdata.currentQuickslotIndex = actionSlotIndex
+	local itemLink = GetSlotItemLink(libdata.currentQuickslotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
+	Log("debug", "INFO", "Quickslot New: %s", itemLink, actionSlotIndex)
+end
+
+local function onQuickSlotUsed(_, itemSoundCategory)
+	local timems = GetGameTimeMilliseconds()
+	-- if data.inCombat == false then return end
+	local itemLink = GetSlotItemLink(libdata.currentQuickslotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
+	Log("debug", "INFO", "Used: %s", itemLink)
+	if itemSoundCategory ~= GetSlotItemSound(libdata.currentQuickslotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL) then return end
+	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_QUICKSLOT]), LIBCOMBAT_EVENT_QUICKSLOT, timems, itemLink)
+end
+
+
 local function UpdateSkillEvents(self)
 
 	for _, skill in pairs(SlotSkills) do
@@ -574,6 +588,25 @@ libint.Events.Skills = libint.EventHandler:New(
 
 	end
 )
+
+
+libint.Events.QuickSlot = libint.EventHandler:New(
+	{LIBCOMBAT_EVENT_QUICKSLOT},
+	function (self)
+		self:RegisterEvent(EVENT_INVENTORY_ITEM_USED, onQuickSlotUsed)
+		self:RegisterEvent(EVENT_ACTIVE_QUICKSLOT_CHANGED, onQuickSlotChanged)
+		self.active = true
+	end
+)
+
+-- Events.Synergy = EventHandler:New(
+-- 	{LIBCOMBAT_EVENT_SYNERGY},
+-- 	function (self)
+-- 		-- self:RegisterEvent(EVENT_PLAYER_DEACTIVATED, onSynergyAvailable)
+-- 		-- self:RegisterEvent(EVENT_PLAYER_DEACTIVATED, onSynergyTaken)
+-- 		self.active = true
+-- 	end
+-- )
 
 local isFileInitialized = false
 

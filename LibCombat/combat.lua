@@ -8,14 +8,12 @@ local libfunc = libint.functions
 local Log = libint.Log
 
 local function onInitilizeFight(processor, fight)
-
 	if processor.active ~= true then return end
 
 	fight.damageDone = {}
 	fight.damageReceived = {}
 	fight.healingDone = {}
 	fight.healingReceived = {}
-
 end
 
 local function onCombatStarted()

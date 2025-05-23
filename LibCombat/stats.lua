@@ -207,14 +207,31 @@ function libfunc.GetShadowBonus(effectSlot)
 
 	local calcBonus =  zo_floor(11 * (1 + totalBonus/100))
 
-	data.critBonusMundus = calcBonus - ZOSBonus -- mundus bonus difference
+	libdata.critBonusMundus = calcBonus - ZOSBonus -- mundus bonus difference
 
-	Log("other", "INFO", "Shadow Mundus Offset: %d%% (calc %d%% - ZOS %d%%)", data.critBonusMundus, calcBonus, ZOSBonus)
+	Log("other", "INFO", "Shadow Mundus Offset: %d%% (calc %d%% - ZOS %d%%)", libdata.critBonusMundus, calcBonus, ZOSBonus)
 end
 
 local TFSBonus = 0
 
-local function GetCritbonus()
+local function GetStat(stat)
+	return GetPlayerStat(stat, STAT_BONUS_OPTION_APPLY_BONUS)
+end
+libfunc.GetStat = GetStat
+
+local function GetPenetrationStat(stat)
+	if stat == STAT_SPELL_PENETRATION or stat == STAT_PHYSICAL_PENETRATION then 
+		return GetStat(stat) + TFSBonus
+	end
+	Log(nil, "ERROR", "Invalid stat type provided. Must be either STAT_SPELL_PENETRATION or STAT_PHYSICAL_PENETRATION.")
+end
+
+local function GetCritStat(stat)
+	local maxcrit = zo_floor(100/GetCriticalStrikeChance(1))
+	return zo_min(GetStat(stat), maxcrit)
+end
+
+function GetCritbonus()
 
 	local _, _, valueFromZos = GetAdvancedStatValue(ADVANCED_STAT_DISPLAY_TYPE_CRITICAL_DAMAGE)
 	local total2 = 50 + valueFromZos + libdata.backstabber + libdata.critBonusMundus
@@ -226,157 +243,110 @@ local function GetCritbonus()
 
 end
 
+
+local function GetStatusEffectChance()
+	local SEBonus = libdata.statusEffectBonus
+	local weaponPair = GetHeldWeaponPair()
+	local hotBar = weaponPair >= 1 and (weaponPair - 1) or nil
+	local arcanistBonus = hotBar and SEBonus.arcanistBonus[hotBar] or 0
+	local chargedBonus = hotBar and SEBonus.charged[hotBar] or 0
+	local destroBonus = hotBar and SEBonus.destro[hotBar] or 0
+	local CPBonus = SEBonus.CP
+	local FEBonus = SEBonus.focusedEfforts
+
+	local wealdBonus = 0
+	if SEBonus.wealdBonus > 0 and select(4, GetItemSetInfo(757)) >= 5 then
+		local current, maxHealth = GetUnitPower("player", COMBAT_MECHANIC_FLAGS_HEALTH)
+		if current/maxHealth > 0.5 then wealdBonus = SEBonus.wealdBonus end
+	end
+
+	local totalBonus = arcanistBonus + chargedBonus + destroBonus + wealdBonus + FEBonus + CPBonus
+
+	return totalBonus
+end
+
 local statData = {
-	[LIBCOMBAT_STAT_MAXMAGICKA]			= 0,
-	[LIBCOMBAT_STAT_SPELLPOWER]			= 0,
-	[LIBCOMBAT_STAT_SPELLCRIT]			= 0,
-	[LIBCOMBAT_STAT_SPELLCRITBONUS]		= 0,
-	[LIBCOMBAT_STAT_SPELLPENETRATION]	= 0,
+	[LIBCOMBAT_STAT_MAXMAGICKA]				= 0,
+	[LIBCOMBAT_STAT_SPELLPOWER]				= 0,
+	[LIBCOMBAT_STAT_SPELLCRIT]				= 0,
+	[LIBCOMBAT_STAT_SPELLCRITBONUS]			= 0,
+	[LIBCOMBAT_STAT_SPELLPENETRATION]		= 0,
 
-	[LIBCOMBAT_STAT_MAXSTAMINA]			= 0,
-	[LIBCOMBAT_STAT_WEAPONPOWER]		= 0,
-	[LIBCOMBAT_STAT_WEAPONCRIT]			= 0,
-	[LIBCOMBAT_STAT_WEAPONCRITBONUS]	= 0,
-	[LIBCOMBAT_STAT_WEAPONPENETRATION]	= 0,
+	[LIBCOMBAT_STAT_MAXSTAMINA]				= 0,
+	[LIBCOMBAT_STAT_WEAPONPOWER]			= 0,
+	[LIBCOMBAT_STAT_WEAPONCRIT]				= 0,
+	[LIBCOMBAT_STAT_WEAPONCRITBONUS]		= 0,
+	[LIBCOMBAT_STAT_WEAPONPENETRATION]		= 0,
 
-	[LIBCOMBAT_STAT_MAXHEALTH]			= 0,
-	[LIBCOMBAT_STAT_PHYSICALRESISTANCE]	= 0,
-	[LIBCOMBAT_STAT_SPELLRESISTANCE]	= 0,
-	[LIBCOMBAT_STAT_CRITICALRESISTANCE]	= 0,
+	[LIBCOMBAT_STAT_MAXHEALTH]				= 0,
+	[LIBCOMBAT_STAT_PHYSICALRESISTANCE]		= 0,
+	[LIBCOMBAT_STAT_SPELLRESISTANCE]		= 0,
+	[LIBCOMBAT_STAT_CRITICALRESISTANCE]		= 0,
+	[LIBCOMBAT_STAT_STATUS_EFFECT_CHANCE]	= 0,
 }
 
-local function GetStat(stat) -- helper function to make code shorter
-	return GetPlayerStat(stat, STAT_BONUS_OPTION_APPLY_BONUS)
+local statSourceFunctions = {
+	[LIBCOMBAT_STAT_MAXMAGICKA]				= GetStat,
+	[LIBCOMBAT_STAT_SPELLPOWER]				= GetStat,
+	[LIBCOMBAT_STAT_SPELLCRIT]				= GetCritStat,
+	[LIBCOMBAT_STAT_SPELLCRITBONUS]			= GetCritbonus,
+	[LIBCOMBAT_STAT_SPELLPENETRATION]		= GetPenetrationStat,
+
+	[LIBCOMBAT_STAT_MAXSTAMINA]				= GetStat,
+	[LIBCOMBAT_STAT_WEAPONPOWER]			= GetStat,
+	[LIBCOMBAT_STAT_WEAPONCRIT]				= GetCritStat,
+	[LIBCOMBAT_STAT_WEAPONCRITBONUS]		= GetCritbonus,
+	[LIBCOMBAT_STAT_WEAPONPENETRATION]		= GetPenetrationStat,
+
+	[LIBCOMBAT_STAT_MAXHEALTH]				= GetStat,
+	[LIBCOMBAT_STAT_PHYSICALRESISTANCE]		= GetStat,
+	[LIBCOMBAT_STAT_SPELLRESISTANCE]		= GetStat,
+	[LIBCOMBAT_STAT_CRITICALRESISTANCE]		= GetStat,
+	[LIBCOMBAT_STAT_STATUS_EFFECT_CHANCE]	= GetStatusEffectChance,
+}
+
+local zoDerivedStatIds = {
+	[LIBCOMBAT_STAT_MAXMAGICKA]				= STAT_MAGICKA_MAX,
+	[LIBCOMBAT_STAT_SPELLPOWER]				= STAT_SPELL_POWER,
+	[LIBCOMBAT_STAT_SPELLCRIT]				= STAT_SPELL_CRITICAL,
+	[LIBCOMBAT_STAT_SPELLPENETRATION]		= STAT_SPELL_PENETRATION,
+
+	[LIBCOMBAT_STAT_MAXSTAMINA]				= STAT_STAMINA_MAX,
+	[LIBCOMBAT_STAT_WEAPONPOWER]			= STAT_POWER,
+	[LIBCOMBAT_STAT_WEAPONCRIT]				= STAT_CRITICAL_STRIKE,
+	[LIBCOMBAT_STAT_WEAPONPENETRATION]		= STAT_PHYSICAL_PENETRATION,
+
+	[LIBCOMBAT_STAT_MAXHEALTH]				= STAT_HEALTH_MAX,
+	[LIBCOMBAT_STAT_PHYSICALRESISTANCE]		= STAT_PHYSICAL_RESIST,
+	[LIBCOMBAT_STAT_SPELLRESISTANCE]		= STAT_SPELL_RESIST,
+	[LIBCOMBAT_STAT_CRITICALRESISTANCE]		= STAT_CRITICAL_RESISTANCE,
+}
+
+local function GetSingleStat(statId)
+	if not libint.currentfight.prepared then libint.currentfight:PrepareFight() end
+	return statSourceFunctions[statId](zoDerivedStatIds[statId])
 end
-libfunc.GetStat = GetStat
+libfunc.GetSingleStat = GetSingleStat
 
 local function GetStats()
-
-	if libint.Events.Stats.active ~= true then return end
-
-	local weaponcritbonus, spellcritbonus = GetCritbonus()
-	local maxcrit = zo_floor(100/GetCriticalStrikeChance(1)) -- Critical Strike chance of 100%
-
-	statData[LIBCOMBAT_STAT_MAXMAGICKA]			= GetStat(STAT_MAGICKA_MAX)
-	statData[LIBCOMBAT_STAT_SPELLPOWER]			= GetStat(STAT_SPELL_POWER)
-	statData[LIBCOMBAT_STAT_SPELLCRIT]			= zo_min(GetStat(STAT_SPELL_CRITICAL), maxcrit)
-	statData[LIBCOMBAT_STAT_SPELLCRITBONUS]		= spellcritbonus
-	statData[LIBCOMBAT_STAT_SPELLPENETRATION]	= GetStat(STAT_SPELL_PENETRATION) + TFSBonus
-
-	statData[LIBCOMBAT_STAT_MAXSTAMINA]			= GetStat(STAT_STAMINA_MAX)
-	statData[LIBCOMBAT_STAT_WEAPONPOWER]		= GetStat(STAT_POWER)
-	statData[LIBCOMBAT_STAT_WEAPONCRIT]			= zo_min(GetStat(STAT_CRITICAL_STRIKE), maxcrit)
-	statData[LIBCOMBAT_STAT_WEAPONCRITBONUS]	= weaponcritbonus
-	statData[LIBCOMBAT_STAT_WEAPONPENETRATION]	= GetStat(STAT_PHYSICAL_PENETRATION) + TFSBonus
-
-	statData[LIBCOMBAT_STAT_MAXHEALTH]			= GetStat(STAT_HEALTH_MAX)
-	statData[LIBCOMBAT_STAT_PHYSICALRESISTANCE]	= GetStat(STAT_PHYSICAL_RESIST)
-	statData[LIBCOMBAT_STAT_SPELLRESISTANCE]	= GetStat(STAT_SPELL_RESIST)
-	statData[LIBCOMBAT_STAT_CRITICALRESISTANCE]	= GetStat(STAT_CRITICAL_RESISTANCE)
-
+	for statId, _ in pairs(statData) do
+		statData[statId] = GetSingleStat(statId)
+	end
 	return statData
 end
 
-local advancedStatData = {}
-
-function libfunc.InitAdvancedStats()
-
-	if true then return {} end
-
-	for statCategoryIndex = 1, GetNumAdvancedStatCategories() do
-
-		local statCategoryId = GetAdvancedStatsCategoryId(statCategoryIndex)
-		local _, numStats = GetAdvancedStatCategoryInfo(statCategoryId)
-
-		if numStats > 0 then
-
-			for statIndex = 1, numStats do
-
-				local statType = GetAdvancedStatInfo(statCategoryId, statIndex)
-
-				local _, flatValue, percentValue = GetAdvancedStatValue(statType)
-
-				advancedStatData[statType] = {flatValue, percentValue}
-
-			end
-		end
-	end
-end
-
-local function GetAdvancedStats()
-
-	if true then return {} end
-
-	for statType, _ in pairs(advancedStatData) do
-
-		local _, flatValue, percentValue = GetAdvancedStatValue(statType)
-
-		if flatValue then advancedStatData[statType][1] = flatValue end
-		if percentValue then advancedStatData[statType][2] = percentValue end
-
-	end
-
-	return advancedStatData
-end
-
 function libfunc.UpdateStats(timems)
-    local stats = libdata.stats
+	local stats = libdata.stats
 
 	for statId, newValue in pairs(GetStats()) do
-
 		local oldValue = stats[statId]
-
 		local delta = oldValue and (newValue - oldValue) or 0
-
 		if oldValue == nil or delta ~= 0 then
-
+			if newValue == nil then Log(nil, "ERROR", "Invalid values encountered: newValue is nil") return end
+			if delta == nil then Log(nil, "ERROR", "Invalid values encountered: delta is nil") return end
+			if statId == nil then Log(nil, "ERROR", "Invalid values encountered: statId is nil") return end
 			lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_PLAYERSTATS]), LIBCOMBAT_EVENT_PLAYERSTATS, timems, delta, newValue, statId)
-
 			stats[statId] = newValue
-
-		end
-	end
-
-	if libint.Events.AdvancedStats.active ~= true then return end
-
-	local advancedStats = libdata.advancedStats
-
-	for statId, values in pairs(GetAdvancedStats()) do
-
-		local newValue1 = values[1]
-		local newValue2 = values[2]
-
-		if advancedStats[statId] == nil then advancedStats[statId] = {} end
-
-		local oldValues = advancedStats[statId]
-
-		if newValue1 then
-
-			local oldValue = oldValues[1]
-
-			local delta = oldValue and (newValue1 - oldValue) or 0
-
-			if oldValue == nil or delta ~= 0 then
-
-				lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_PLAYERSTATS_ADVANCED]), LIBCOMBAT_EVENT_PLAYERSTATS_ADVANCED, timems, delta, newValue1, statId)
-
-				advancedStats[statId][1] = newValue1
-
-			end
-		end
-
-		if newValue2 then
-
-			local oldValue = oldValues[2]
-
-			local delta = oldValue and (newValue2 - oldValue) or 0
-
-			if oldValue == nil or delta ~= 0 then
-
-				lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_PLAYERSTATS_ADVANCED]), LIBCOMBAT_EVENT_PLAYERSTATS_ADVANCED, timems, delta, newValue2, statId + 2048)
-
-				advancedStats[statId][2] = newValue2
-			end
 		end
 	end
 end
