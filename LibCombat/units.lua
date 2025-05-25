@@ -2,9 +2,9 @@ local _
 local libunits = {}
 local lib = LibCombat
 local libint = lib.internal
-local libdata = libint.data
-libdata.units = libunits
-local Log = libint.Log
+local ld = libint.data
+ld.units = libunits
+local logger
 local spairs = libint.functions.spairs
 
 ---@diagnostic disable-next-line: undefined-global
@@ -154,7 +154,7 @@ local function onBossesChanged(_) -- Detect Bosses
 
 			if bossTagByName[rawName] and bossTagByName[rawName] ~= unitTag then
 
-				Log("dev", "WARNING", "Multiple tags found for %s (%s, %s)", rawName, bossTagByName[rawName], unitTag)
+				logger:Warning("Multiple tags found for %s (%s, %s)", rawName, bossTagByName[rawName], unitTag)
 				bossTagByName[rawName] = hasMultipleTags
 
 			end
@@ -286,7 +286,7 @@ local function OnTargetChange()
 		if libunits.unitIdsByTag["reticleover"] then 
 
 			UpdateUnitTagId("reticleover", nil)
-			Log("dev", "INFO", "ReticleOverUnit removed.")
+			logger:Info("ReticleOverUnit removed.")
 
 		end
 
@@ -303,7 +303,7 @@ local function OnTargetChange()
 
 		if unit and unit.effectTimeData[buffSlot] == endTime then
 
-			Log("dev", "INFO", "ReticleOverUnit found: %s (%d)", unit.name, unitId)
+			logger:Info("ReticleOverUnit found: %s (%d)", unit.name, unitId)
 
 			unit:UpdateUnitTag("reticleover")
 			break
@@ -311,7 +311,7 @@ local function OnTargetChange()
 		end
 	end
 
-	Log("dev", "INFO", "ReticleOverUnit not found: %s (%d buffs)", GetUnitName("reticleover"), numBuffs)
+	logger:Info("ReticleOverUnit not found: %s (%d buffs)", GetUnitName("reticleover"), numBuffs)
 end
 
 local function OnEffectChanged(eventCode, changeType, effectSlot, effectName, unitTag, beginTime, endTime, stackCount,
@@ -371,7 +371,7 @@ function UnitHandler:Initialize(rawName, unitId, unitType, unitTag)
 
 	UnitCache[unitId] = self
 
-	Log("dev", "INFO", "New Unit: %s (%d, %d, %s)", name, unitId, unitType, unitTag or "")
+	logger:Info("New Unit: %s (%d, %d, %s)", name, unitId, unitType, unitTag or "")
 end
 
 function UnitHandler:LookupUnitTag()
@@ -829,8 +829,8 @@ libint.Events.Units = libint.EventHandler:New(
 local isFileInitialized = false
 
 function lib.InitializeUnits()
-
 	if isFileInitialized == true then return false end
+	logger = libint.initSublogger("units")
 
 	libunits.rawPlayername = GetRawUnitName("player")
 	libunits.playername = ZO_CachedStrFormat(SI_UNIT_NAME, libunits.rawPlayername)
@@ -841,5 +841,4 @@ function lib.InitializeUnits()
 
 	isFileInitialized = true
 	return true
-
 end

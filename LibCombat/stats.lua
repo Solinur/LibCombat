@@ -2,11 +2,11 @@
 
 local lib = LibCombat
 local libint = lib.internal
-local libfunc = libint.functions
+local lf = libint.functions
 ---@type fun(actionSlotIndex: integer, hotbarCategory: HotBarCategory): integer, integer?
-local GetSlottedAbilityId = libfunc.GetSlottedAbilityId
-local libdata = libint.data
-local Log = libint.Log
+local GetSlottedAbilityId = lf.GetSlottedAbilityId
+local ld = libint.data
+local logger
 local CallbackKeys = libint.callbackKeys
 
 local DivineSlots = {EQUIP_SLOT_HEAD, EQUIP_SLOT_SHOULDERS, EQUIP_SLOT_CHEST, EQUIP_SLOT_HAND, EQUIP_SLOT_WAIST, EQUIP_SLOT_LEGS, EQUIP_SLOT_FEET}
@@ -28,7 +28,7 @@ local function CheckForHeraldAbility()
 	local bonus = ParseDescriptionBonus(description, startindex)
 
 	if bonus == nil and parseHeraldFail == false then
-		Log("main", "WARNING", "Failed to parse description for SE bonus: %s", description)
+		logger:Warning("Failed to parse description for SE bonus: %s", description)
 		parseHeraldFail = true
 	end
 
@@ -167,7 +167,7 @@ local function GetFocusedEffortsBonus()
 	return bonus or 0
 end
 
-function libfunc.InitStatusEffectBonuses()
+function lf.InitStatusEffectBonuses()
 	local SEBonus = {}
 	SEBonus.arcanistBonus = CheckForHeraldAbility()
 	SEBonus.charged = GetChargedBonus()
@@ -176,10 +176,10 @@ function libfunc.InitStatusEffectBonuses()
 	SEBonus.destro = CheckDestroPassive()
 	SEBonus.CP = CheckCPBonus()
 	SEBonus.focusedEfforts = GetFocusedEffortsBonus()
-	libdata.statusEffectBonus = SEBonus
+	ld.statusEffectBonus = SEBonus
 end
 
-function libfunc.GetCritBonusFromCP(CPdata)
+function lf.GetCritBonusFromCP(CPdata)
 
 	local slots = CPdata[1].slotted
 	local points = CPdata[1].stars
@@ -189,7 +189,7 @@ function libfunc.GetCritBonusFromCP(CPdata)
 	return backstabber
 end
 
-function libfunc.GetShadowBonus(effectSlot)
+function lf.GetShadowBonus(effectSlot)
 	local totalBonus = 0
 	for _, key in pairs(DivineSlots) do
 		local trait, desc = GetItemLinkTraitInfo(GetItemLink(BAG_WORN, key, LINK_STYLE_DEFAULT))
@@ -207,9 +207,9 @@ function libfunc.GetShadowBonus(effectSlot)
 
 	local calcBonus =  zo_floor(11 * (1 + totalBonus/100))
 
-	libdata.critBonusMundus = calcBonus - ZOSBonus -- mundus bonus difference
+	ld.critBonusMundus = calcBonus - ZOSBonus -- mundus bonus difference
 
-	Log("other", "INFO", "Shadow Mundus Offset: %d%% (calc %d%% - ZOS %d%%)", libdata.critBonusMundus, calcBonus, ZOSBonus)
+	logger:Info("Shadow Mundus Offset: %d%% (calc %d%% - ZOS %d%%)", ld.critBonusMundus, calcBonus, ZOSBonus)
 end
 
 local TFSBonus = 0
@@ -217,13 +217,13 @@ local TFSBonus = 0
 local function GetStat(stat)
 	return GetPlayerStat(stat, STAT_BONUS_OPTION_APPLY_BONUS)
 end
-libfunc.GetStat = GetStat
+lf.GetStat = GetStat
 
 local function GetPenetrationStat(stat)
 	if stat == STAT_SPELL_PENETRATION or stat == STAT_PHYSICAL_PENETRATION then 
 		return GetStat(stat) + TFSBonus
 	end
-	Log(nil, "ERROR", "Invalid stat type provided. Must be either STAT_SPELL_PENETRATION or STAT_PHYSICAL_PENETRATION.")
+	logger:Error("Invalid stat type provided. Must be either STAT_SPELL_PENETRATION or STAT_PHYSICAL_PENETRATION.")
 end
 
 local function GetCritStat(stat)
@@ -234,7 +234,7 @@ end
 function GetCritbonus()
 
 	local _, _, valueFromZos = GetAdvancedStatValue(ADVANCED_STAT_DISPLAY_TYPE_CRITICAL_DAMAGE)
-	local total2 = 50 + valueFromZos + libdata.backstabber + libdata.critBonusMundus
+	local total2 = 50 + valueFromZos + ld.backstabber + ld.critBonusMundus
 
 	local spelltotal = total2
 	local weapontotal = total2
@@ -245,7 +245,7 @@ end
 
 
 local function GetStatusEffectChance()
-	local SEBonus = libdata.statusEffectBonus
+	local SEBonus = ld.statusEffectBonus
 	local weaponPair = GetHeldWeaponPair()
 	local hotBar = weaponPair >= 1 and (weaponPair - 1) or nil
 	local arcanistBonus = hotBar and SEBonus.arcanistBonus[hotBar] or 0
@@ -326,7 +326,7 @@ local function GetSingleStat(statId)
 	if not libint.currentfight.prepared then libint.currentfight:PrepareFight() end
 	return statSourceFunctions[statId](zoDerivedStatIds[statId])
 end
-libfunc.GetSingleStat = GetSingleStat
+lf.GetSingleStat = GetSingleStat
 
 local function GetStats()
 	for statId, _ in pairs(statData) do
@@ -335,23 +335,23 @@ local function GetStats()
 	return statData
 end
 
-function libfunc.UpdateStats(timems)
-	local stats = libdata.stats
+function lf.UpdateStats(timems)
+	local stats = ld.stats
 
 	for statId, newValue in pairs(GetStats()) do
 		local oldValue = stats[statId]
 		local delta = oldValue and (newValue - oldValue) or 0
 		if oldValue == nil or delta ~= 0 then
-			if newValue == nil then Log(nil, "ERROR", "Invalid values encountered: newValue is nil") return end
-			if delta == nil then Log(nil, "ERROR", "Invalid values encountered: delta is nil") return end
-			if statId == nil then Log(nil, "ERROR", "Invalid values encountered: statId is nil") return end
+			if newValue == nil then logger:Error("Invalid values encountered: newValue is nil") return end
+			if delta == nil then logger:Error("Invalid values encountered: delta is nil") return end
+			if statId == nil then logger:Error("Invalid values encountered: statId is nil") return end
 			lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_PLAYERSTATS]), LIBCOMBAT_EVENT_PLAYERSTATS, timems, delta, newValue, statId)
 			stats[statId] = newValue
 		end
 	end
 end
 
-function libfunc.onTFSChanged(_, changeType, _, _, _, _, _, stackCount, _, _, _, _, _, _, _, _, _)
+function lf.onTFSChanged(_, changeType, _, _, _, _, _, stackCount, _, _, _, _, _, _, _, _, _)
 
 	if (changeType == EFFECT_RESULT_GAINED or changeType == EFFECT_RESULT_UPDATED) and stackCount > 1 then
 
@@ -368,8 +368,8 @@ end
 
 local function onShadowMundus( _, changeType, effectSlot)
 
-	if changeType == EFFECT_RESULT_GAINED or changeType == EFFECT_RESULT_UPDATED then libfunc.GetShadowBonus(effectSlot)
-	elseif changeType == EFFECT_RESULT_FADED then libdata.critBonusMundus = 0 end
+	if changeType == EFFECT_RESULT_GAINED or changeType == EFFECT_RESULT_UPDATED then lf.GetShadowBonus(effectSlot)
+	elseif changeType == EFFECT_RESULT_FADED then ld.critBonusMundus = 0 end
 
 	if libint.currentfight.prepared == true then libint.currentfight:QueueStatUpdate() end
 
@@ -381,7 +381,7 @@ libint.Events.Stats = libint.EventHandler:New(
 
 		self:RegisterEvent(EVENT_EFFECT_CHANGED, onShadowMundus, REGISTER_FILTER_UNIT_TAG, "player", REGISTER_FILTER_ABILITY_ID, 13984)
 
-		self:RegisterEvent(EVENT_EFFECT_CHANGED, libfunc.onTFSChanged, REGISTER_FILTER_UNIT_TAG, "player", REGISTER_FILTER_ABILITY_ID, 51176)  -- to track TFS procs, which aren't recognized for stacks > 1 in penetration stat.
+		self:RegisterEvent(EVENT_EFFECT_CHANGED, lf.onTFSChanged, REGISTER_FILTER_UNIT_TAG, "player", REGISTER_FILTER_ABILITY_ID, 51176)  -- to track TFS procs, which aren't recognized for stacks > 1 in penetration stat.
 
 		self.active = true
 	end
@@ -397,6 +397,7 @@ libint.Events.AdvancedStats = libint.EventHandler:New(
 local isFileInitialized = false
 function lib.InitializeStats()
 	if isFileInitialized == true then return false end
+	logger = libint.initSublogger("stats")
 
     isFileInitialized = true
 	return true

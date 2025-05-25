@@ -1,6 +1,6 @@
 local lib = LibCombat
 local libint = lib.internal
-local Log = libint.Log
+local logger
 
 -- Cache formatted Ability Names and Icons. Makes sure they stay consistent, since some addons like to meddle with them.
 
@@ -345,7 +345,7 @@ function lib:GetCombatLogString(fight, logline, fontsize, showIds)
 		local _, _, reducedslot, abilityId, status, skillDelay = unpack(logline)
 
 		if reducedslot == nil then
-			Log("events","DEBUG", "Invalid Slot: %s (%d), Status: %d)", GetAbilityName(abilityId), abilityId, status)
+			logger:Debug("Invalid Slot: %s (%d), Status: %d)", GetAbilityName(abilityId), abilityId, status)
 			return
 		end
 
@@ -409,6 +409,7 @@ local isFileInitialized = false
 
 function lib.InitializeUtility()
 	if isFileInitialized == true then return false end
+	logger = libint.initSublogger("util")
 
     isFileInitialized = true
 	return true

@@ -14,16 +14,16 @@ Add more debug Functions
 
 local lib = LibCombat
 local libint = lib.internal
-local libdata = libint.data
-local libunits = libdata.units
-local libfunc = libint.functions
+local ld = libint.data
+local libunits = ld.units
+local lf = libint.functions
 local EventHandler = libint.EventHandler
 local Events = libint.Events
 
 --aliases
 
 local _
-local Log = libint.Log
+local logger
 local CallbackKeys = libint.callbackKeys
 local reset = false
 local timeout = 800
@@ -93,9 +93,9 @@ end
 
 function FightHandler:ResetFight()
 
-	Log("dev", "INFO", "ResetFight")
+	logger:Info("Reset Fight")
 
-	if libdata.inCombat ~= true then return end
+	if ld.inCombat ~= true then return end
 
 	reset = true
 
@@ -125,7 +125,7 @@ local function GetPlayerBuffs(timems)
 
 	end
 
-	libdata.critBonusMundus = 0
+	ld.critBonusMundus = 0
 
 	for i=1,GetNumBuffs("player") do
 
@@ -133,7 +133,7 @@ local function GetPlayerBuffs(timems)
 
 		local _, _, endTime, effectSlot, stackCount, _, _, effectType, abilityType, _, abilityId, _, castByPlayer = GetUnitBuffInfo("player",i)
 
-		Log("events","VERBOSE", "player has the %s %d x %s (%d, ET: %d, self: %s)", effectType == BUFF_EFFECT_TYPE_BUFF and "buff" or "debuff", stackCount, GetFormattedAbilityName(abilityId), abilityId, abilityType, tostring(castByPlayer))
+		logger:Verbose("player has the %s %d x %s (%d, ET: %d, self: %s)", effectType == BUFF_EFFECT_TYPE_BUFF and "buff" or "debuff", stackCount, GetFormattedAbilityName(abilityId), abilityId, abilityType, tostring(castByPlayer))
 
 		local unitType = castByPlayer and COMBAT_UNIT_TYPE_PLAYER or COMBAT_UNIT_TYPE_NONE
 
@@ -148,11 +148,11 @@ local function GetPlayerBuffs(timems)
 
 		end
 
-		if abilityId ==	13984 then libfunc.GetShadowBonus(effectSlot) end
+		if abilityId ==	13984 then lf.GetShadowBonus(effectSlot) end
 
 		if abilityId ==	51176 then -- TFS workaround
 
-			libfunc.onTFSChanged(_, EFFECT_RESULT_GAINED, _, _, _, _, _, stackCount)
+			lf.onTFSChanged(_, EFFECT_RESULT_GAINED, _, _, _, _, _, stackCount)
 
 		end
 	end
@@ -249,11 +249,11 @@ local function GetCurrentCP()
 end
 
 
-function libfunc.onPlayerActivated()
+function lf.onPlayerActivated()
 
-	Log("dev", "DEBUG", "onPlayerActivated")
+	logger:Debug("onPlayerActivated")
 
-	zo_callLater(libfunc.GetCurrentSkillBars, 100)
+	zo_callLater(lf.GetCurrentSkillBars, 100)
 	libint.isInPortalWorld = false
 
 	LibCombat_Save = LibCombat_Save or {}
@@ -263,8 +263,8 @@ end
 
 local function onBossesChanged(_) -- Detect Bosses
 
-	libdata.bossInfo = {}
-	local bossdata = libdata.bossInfo
+	ld.bossInfo = {}
+	local bossdata = ld.bossInfo
 
 	for i = 1, 12 do
 
@@ -313,7 +313,7 @@ function FightHandler:PrepareFight()
 	local timems = GetGameTimeMilliseconds()
 
 	if self.prepared ~= true then
-		Log("dev", "DEBUG", "PrepareFight")
+		logger:Debug("PrepareFight")
 		self.combatstart = timems
 		libint.PurgeEffectBuffer(timems)
 
@@ -321,17 +321,17 @@ function FightHandler:PrepareFight()
 		GetPlayerBuffs(timems)
 		GetOtherBuffs(timems)
 
-		libdata.resources[COMBAT_MECHANIC_FLAGS_HEALTH] = GetUnitPower("player", COMBAT_MECHANIC_FLAGS_HEALTH)
-		libdata.resources[COMBAT_MECHANIC_FLAGS_MAGICKA] = GetUnitPower("player", COMBAT_MECHANIC_FLAGS_MAGICKA)
-		libdata.resources[COMBAT_MECHANIC_FLAGS_STAMINA] = GetUnitPower("player", COMBAT_MECHANIC_FLAGS_STAMINA)
-		libdata.resources[COMBAT_MECHANIC_FLAGS_ULTIMATE] = GetUnitPower("player", COMBAT_MECHANIC_FLAGS_ULTIMATE)
+		ld.resources[COMBAT_MECHANIC_FLAGS_HEALTH] = GetUnitPower("player", COMBAT_MECHANIC_FLAGS_HEALTH)
+		ld.resources[COMBAT_MECHANIC_FLAGS_MAGICKA] = GetUnitPower("player", COMBAT_MECHANIC_FLAGS_MAGICKA)
+		ld.resources[COMBAT_MECHANIC_FLAGS_STAMINA] = GetUnitPower("player", COMBAT_MECHANIC_FLAGS_STAMINA)
+		ld.resources[COMBAT_MECHANIC_FLAGS_ULTIMATE] = GetUnitPower("player", COMBAT_MECHANIC_FLAGS_ULTIMATE)
 
-		libdata.backstabber = libfunc.GetCritBonusFromCP(self.CP)
+		ld.backstabber = lf.GetCritBonusFromCP(self.CP)
 
-		self.startBar = libdata.bar
+		self.startBar = ld.bar
 
-		libdata.stats = {}
-		libdata.advancedStats = {}
+		ld.stats = {}
+		ld.advancedStats = {}
 		libint.lastQueuedAbilities = {}
 		libint.usedCastTimeAbility = {}
 
@@ -344,7 +344,7 @@ function FightHandler:PrepareFight()
 		self.prepared = true
 
 		self:QueueStatUpdate(timems)
-		libfunc.GetCurrentSkillBars()
+		lf.GetCurrentSkillBars()
 		onBossesChanged()
 	end
 
@@ -384,10 +384,10 @@ function FightHandler:FinishFight()
 	libint.lastAbilityActivations = {}
 	libint.isProjectile = {}
 
-	Log("dev", "DEBUG", "FinishFight")
-	Log("other", "DEBUG", "Number of Projectile data entries: %d", NonContiguousCount(libint.isProjectile))
+	logger:Debug("FinishFight")
+	logger:Debug("Number of Projectile data entries: %d", NonContiguousCount(libint.isProjectile))
 
-	libdata.lastabilities = {}
+	ld.lastabilities = {}
 end
 
 
@@ -406,7 +406,7 @@ function FightHandler:QueueStatUpdate(timems)
 	end
 
 	lastGetNewStatsCall = timems
-	libfunc.UpdateStats(timems)
+	lf.UpdateStats(timems)
 end
 
 function FightHandler:GetBossTargetDamage() -- Gets Damage done to bosses and counts enemy boss units.
@@ -513,7 +513,7 @@ end
 
 --]]
 function FightHandler:UpdateStats()
-	libfunc.ProcessDeathRecaps()
+	lf.ProcessDeathRecaps()
 
 	if (self.dpsend == nil and self.hpsend == nil) or (self.dpsstart == nil and self.hpsstart == nil) then return end
 
@@ -647,12 +647,12 @@ local function IsOngoingBossfight()
 
 	if libint.isInPortalWorld then -- prevent fight reset in bossfights when using a portal.
 
-		Log("other","DEBUG", "Prevented combat reset because player is in Portal!")
+		logger:Debug("Prevented combat reset because player is in Portal!")
 		return true
 
 	elseif getCurrentBossHP() > 0 and getCurrentBossHP() < 1 then
 
-		Log("other","INFO", "Prevented combat reset because boss is still in fight!")
+		logger:Info("Prevented combat reset because boss is still in fight!")
 		return true
 
 	else
@@ -667,7 +667,7 @@ function FightHandler:onUpdate()
 	libint.onCombatState(EVENT_PLAYER_COMBAT_STATE, IsUnitInCombat("player"))
 
 	--reset data
-	if reset == true or (libdata.inCombat == false and self.combatend > 0 and (GetGameTimeMilliseconds() > (self.combatend + timeout)) ) then
+	if reset == true or (ld.inCombat == false and self.combatend > 0 and (GetGameTimeMilliseconds() > (self.combatend + timeout)) ) then
 
 		reset = false
 
@@ -675,33 +675,33 @@ function FightHandler:onUpdate()
 
 		if self.damageOutTotal>0 or self.healingOutTotal>0 or self.damageInTotal>0 then
 
-			Log("fight","DEBUG", "Time: %.2fs (DPS) | %.2fs (HPS) ", self.dpstime, self.hpstime)
-			Log("fight","DEBUG", "Dmg: %d (DPS: %d)", self.damageOutTotal, self.DPSOut)
-			Log("fight","DEBUG", "Heal: %d (HPS: %d)", self.healingOutTotal, self.HPSOut)
-			Log("fight","DEBUG", "IncDmg: %d (Shield: %d, IncDPS: %d)", self.damageInTotal, self.damageInShielded, self.DPSIn)
-			Log("fight","DEBUG", "IncHeal: %d (IncHPS: %d)", self.healingInTotal, self.HPSIn)
+			logger:Debug("Time: %.2fs (DPS) | %.2fs (HPS) ", self.dpstime, self.hpstime)
+			logger:Debug("Dmg: %d (DPS: %d)", self.damageOutTotal, self.DPSOut)
+			logger:Debug("Heal: %d (HPS: %d)", self.healingOutTotal, self.HPSOut)
+			logger:Debug("IncDmg: %d (Shield: %d, IncDPS: %d)", self.damageInTotal, self.damageInShielded, self.DPSIn)
+			logger:Debug("IncHeal: %d (IncHPS: %d)", self.healingInTotal, self.HPSIn)
 
 			if libunits.inGroup and Events.CombatGrp.active then
 
-				Log("fight","DEBUG", "GrpDmg: %d (DPS: %d)", self.groupDamageOut, self.groupDPSOut)
-				Log("fight","DEBUG", "GrpHeal: %d (HPS: %d)", self.groupHealingOut, self.groupHPSOut)
-				Log("fight","DEBUG", "GrpIncDmg: %d (IncDPS: %d)", self.groupDamageIn, self.groupDPSIn)
+				logger:Debug("GrpDmg: %d (DPS: %d)", self.groupDamageOut, self.groupDPSOut)
+				logger:Debug("GrpHeal: %d (HPS: %d)", self.groupHealingOut, self.groupHPSOut)
+				logger:Debug("GrpIncDmg: %d (IncDPS: %d)", self.groupDamageIn, self.groupDPSIn)
 
 			end
 		end
 
-		Log("fight","DEBUG", "resetting...")
+		logger:Debug("resetting...")
 
 		self.grplog = {}
 
 		lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_FIGHTSUMMARY]), LIBCOMBAT_EVENT_FIGHTSUMMARY, self)
 
 		libint.currentfight = FightHandler:New()
-		libfunc.ClearUnitCaches()
+		lf.ClearUnitCaches()
 
 		EVENT_MANAGER:UnregisterForUpdate("LibCombat_update")
 
-	elseif libdata.inCombat == true then
+	elseif ld.inCombat == true then
 
 		self:UpdateFightStats()
 
@@ -725,9 +725,9 @@ function FightHandler:UpdateSingleStat(statId, timems)
 	end
 
 	lastUpdateSingleStatsCall = timems
-	local stats = libdata.stats
+	local stats = ld.stats
 	local oldValue = stats[statId]
-	local newValue = libfunc.GetSingleStat(statId)
+	local newValue = lf.GetSingleStat(statId)
 	local delta = oldValue and (newValue - oldValue) or 0
 	if oldValue == nil or delta ~= 0 then
 		assert(delta ~= nil)
@@ -788,18 +788,18 @@ local function onWeaponSwap(_, isHotbarSwap)
 
 	local newbar = GetActiveHotbarCategory() + 1
 
-	if libdata.bar == newbar then return end
+	if ld.bar == newbar then return end
 
-	libdata.bar = newbar
+	ld.bar = newbar
 
-	libfunc.GetCurrentSkillBars()
+	lf.GetCurrentSkillBars()
 
 	local inCombat = libint.currentfight.prepared
 
 	if inCombat == true then
 
 		local timems = GetGameTimeMilliseconds()
-		lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_MESSAGES]), LIBCOMBAT_EVENT_MESSAGES, timems, LIBCOMBAT_MESSAGE_WEAPONSWAP, libdata.bar)
+		lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_MESSAGES]), LIBCOMBAT_EVENT_MESSAGES, timems, LIBCOMBAT_MESSAGE_WEAPONSWAP, ld.bar)
 
 		libint.currentfight:QueueStatUpdate(timems)
 
@@ -864,34 +864,25 @@ local function UpdateResources(name, callbacktype, callback)
 end
 
 local function InitCallbackIndex()
-
 	for i=LIBCOMBAT_EVENT_MIN,LIBCOMBAT_EVENT_MAX do
-
 		ActiveCallbackTypes[i]={}
-
 	end
 end
 
 function lib:RegisterForLogableCombatEvents(name, callback)
-
 	for i = LIBCOMBAT_EVENT_DAMAGE_OUT, LIBCOMBAT_EVENT_MAX do
-
 		lib:RegisterForCombatEvent(name, i, callback)
-
 	end
 end
 
 function lib:RegisterForCombatEvent(name, callbacktype, callback)
-
 	local isRegistered = UpdateResources(name, callbacktype, callback)
 	if isRegistered then lib.cm:RegisterCallback(CallbackKeys[callbacktype], callback) end
 
 	return isRegistered
-
 end
 
 function lib:UnregisterForCombatEvent(name, callbacktype)
-
 	local isUnregistered, callback = UpdateResources(name, callbacktype)
 	lib.cm:UnregisterCallback(CallbackKeys[callbacktype], callback)
 
@@ -901,21 +892,15 @@ end
 --- Legacy
 
 function lib:RegisterAllLogCallbacks(callback, name)
-
 	lib:RegisterForLogableCombatEvents(name, callback)
-
 end
 
 function lib:RegisterCallbackType(callbacktype, callback, name)
-
 	lib:RegisterForCombatEvent(name, callbacktype, callback)
-
 end
 
 function lib:UnregisterCallbackType(callbacktype, callback, name)
-
 	lib:UnregisterForCombatEvent(name, callbacktype)
-
 end
 
 function lib:GetCurrentFight()
@@ -927,12 +912,11 @@ end
 Events.General = EventHandler:New(
 	libint.GetAllCallbackTypes(),
 	function (self)
-
 		self:RegisterEvent(EVENT_PLAYER_COMBAT_STATE, libint.onCombatState)
 		self:RegisterEvent(EVENT_BOSSES_CHANGED, onBossesChanged)
 
-		self:RegisterEvent(EVENT_HOTBAR_SLOT_CHANGE_REQUESTED, libfunc.GetCurrentSkillBars)
-		self:RegisterEvent(EVENT_PLAYER_ACTIVATED, libfunc.onPlayerActivated)
+		self:RegisterEvent(EVENT_HOTBAR_SLOT_CHANGE_REQUESTED, lf.GetCurrentSkillBars)
+		self:RegisterEvent(EVENT_PLAYER_ACTIVATED, lf.onPlayerActivated)
 		self:RegisterEvent(EVENT_EFFECT_CHANGED, onMageExplode, REGISTER_FILTER_ABILITY_ID, 50184)
 		self:RegisterEvent(EVENT_EFFECT_CHANGED, onPortalWorld, REGISTER_FILTER_ABILITY_ID, 108045)
 		self:RegisterEvent(EVENT_EFFECT_CHANGED, onPortalWorld, REGISTER_FILTER_ABILITY_ID, 121216)
@@ -945,8 +929,6 @@ Events.Messages = EventHandler:New(
 	{LIBCOMBAT_EVENT_MESSAGES, LIBCOMBAT_EVENT_FIGHTSUMMARY, LIBCOMBAT_EVENT_SKILL_TIMINGS},
 	function (self)
 		self:RegisterEvent(EVENT_ACTION_SLOTS_FULL_UPDATE, onWeaponSwap)
-
-
 		self.active = true
 	end
 )
@@ -962,22 +944,21 @@ Events.BossHP = EventHandler:New(
 local isFileInitialized = false
 
 function lib.InitializeMain()
-
 	if isFileInitialized == true then return false end
+	logger = libint.logger.main
+	logger:Debug("Initialize")
 
-	Log("dev", "DEBUG", "Initialize")
-
-	libdata.inCombat = IsUnitInCombat("player")
-	libdata.bossInfo = {}
-	libdata.PlayerPets = {}
-	libdata.lastabilities = {}
-	libdata.backstabber = 0
-	libdata.critBonusMundus = 0
-	libdata.bar = GetActiveWeaponPairInfo()
-	libdata.resources = {}
-	libdata.stats = {}
-	libdata.advancedStats = {}
-	libdata.currentQuickslotIndex = GetCurrentQuickslot()
+	ld.inCombat = IsUnitInCombat("player")
+	ld.bossInfo = {}
+	ld.PlayerPets = {}
+	ld.lastabilities = {}
+	ld.backstabber = 0
+	ld.critBonusMundus = 0
+	ld.bar = GetActiveWeaponPairInfo()
+	ld.resources = {}
+	ld.stats = {}
+	ld.advancedStats = {}
+	ld.currentQuickslotIndex = GetCurrentQuickslot()
 
 	--resetfightdata
 	libint.currentfight = FightHandler:New()
@@ -986,8 +967,8 @@ function lib.InitializeMain()
 
 	onBossesChanged()
 
-	EVENT_MANAGER:RegisterForEvent("LibCombatActive", EVENT_PLAYER_ACTIVATED, function() libdata.isUIActivated = true end)
-	EVENT_MANAGER:RegisterForEvent("LibCombatActive", EVENT_PLAYER_DEACTIVATED, function() libdata.isUIActivated = false end)
+	EVENT_MANAGER:RegisterForEvent("LibCombatActive", EVENT_PLAYER_ACTIVATED, function() ld.isUIActivated = true end)
+	EVENT_MANAGER:RegisterForEvent("LibCombatActive", EVENT_PLAYER_DEACTIVATED, function() ld.isUIActivated = false end)
 
 	isFileInitialized = true
 	return true

@@ -115,6 +115,9 @@ local foodBuffIdToItemLinks = {
 	[147687] = "|H0:item:171323:124:10:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h", 	-- Colovian War Torte
 }
 
+---comment
+---@param abilityId integer
+---@return string itemLink
 function lib.GetFoodDrinkItemLinkFromAbilityId(abilityId)
 	return foodBuffIdToItemLinks[abilityId]
 end
@@ -135,11 +138,15 @@ local MundusStones = {
 	[13974] = true,
 }
 
-lib.MundusStones = MundusStones
+---@param abilityId integer
+---@return boolean
+function lib.IsMundusBuff(abilityId)
+	return MundusStones[abilityId] == true
+end
+
 
 local isFileInitialized = false
 function lib.InitializeGlobals()
-
 	if isFileInitialized == true then return false end
 
     isFileInitialized = true

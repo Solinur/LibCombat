@@ -2,8 +2,8 @@
 
 local lib = LibCombat
 local libint = lib.internal
-local libdata = libint.data
-local Log = libint.Log
+local ld = libint.data
+local logger
 
 local Events = {}
 libint.Events = Events
@@ -55,7 +55,7 @@ function EventHandler:RegisterEvent(event, callback, ...) -- convinience functio
 
 	if active then libint.totalevents = libint.totalevents + 1 end
 
-	if libdata.isUIActivated and event == EVENT_PLAYER_ACTIVATED then callback(EVENT_PLAYER_ACTIVATED, false) end
+	if ld.isUIActivated and event == EVENT_PLAYER_ACTIVATED then callback(EVENT_PLAYER_ACTIVATED, false) end
 
 	return active
 end
@@ -128,10 +128,9 @@ end
 local isFileInitialized = false
 
 function lib.InitializeEvents()
-
 	if isFileInitialized == true then return false end
+	logger = libint.initSublogger("events")
 
     isFileInitialized = true
 	return true
-
 end

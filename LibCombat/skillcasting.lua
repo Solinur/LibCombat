@@ -9,9 +9,9 @@ TBD: Save replacements per patch or relearn on use?
 local lib = LibCombat
 local libint = lib.internal
 local CallbackKeys = libint.callbackKeys
-local libfunc = libint.functions
-local libdata = libint.data
-local Log = libint.Log
+local lf = libint.functions
+local ld = libint.data
+local logger
 libint.ABILITY_RESOURCE_CACHE_SIZE = 20
 local maxSkillDelay = 2000
 
@@ -272,9 +272,9 @@ local function UpdateSlotSkillEvents()
 
 	local registeredIds = {}
 
-	if libdata.skillBars == nil then libdata.skillBars = {} end
+	if ld.skillBars == nil then ld.skillBars = {} end
 
-	for _, bar in pairs(libdata.skillBars) do
+	for _, bar in pairs(ld.skillBars) do
 
 		for _, abilityId in pairs(bar) do
 
@@ -307,12 +307,12 @@ local function GetSlottedAbilityId(actionSlotIndex, hotbarCategory)	-- thanks to
 
 	return abilityId, nil
 end
-libfunc.GetSlottedAbilityId = GetSlottedAbilityId
+lf.GetSlottedAbilityId = GetSlottedAbilityId
 
-function libfunc.GetCurrentSkillBars()
-	local skillBars = libdata.skillBars
-	local scribedSkills = libdata.scribedSkills
-	local bar = libdata.bar
+function lf.GetCurrentSkillBars()
+	local skillBars = ld.skillBars
+	local scribedSkills = ld.scribedSkills
+	local bar = ld.bar
 
 	skillBars[bar] = {}
 	local currentbar = skillBars[bar]
@@ -330,7 +330,7 @@ function libfunc.GetCurrentSkillBars()
 		if conversion and conversion[3] then IdToReducedSlot[conversion[3]] = reducedslot end
 		if scribedAbilityId and scribedSkills[id] == nil then
 			scribedSkills[id] = {GetCraftedAbilityActiveScriptIds(scribedAbilityId)}
-			Log("debug", LOG_LEVEL_INFO, "ScribedSkill: ", scribedAbilityId, unpack(scribedSkills[id]))
+			logger:Debug(LOG_LEVEL_INFO, "ScribedSkill: ", scribedAbilityId, unpack(scribedSkills[id]))
 		end
 	end
 	UpdateSlotSkillEvents()
@@ -342,7 +342,7 @@ local function GetReducedSlotId(reducedslot)
 
 	local slot = reducedslot%10
 
-	local origId = (libdata.skillBars and libdata.skillBars[bar] and libdata.skillBars[bar][slot])
+	local origId = (ld.skillBars and ld.skillBars[bar] and ld.skillBars[bar][slot])
 
 	return origId
 
@@ -352,7 +352,7 @@ local HeavyAttackCharging
 
 local function onAbilityUsed(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId, overflow)
 
-	if libint.Events.Skills.active ~= true or libdata.inCombat == false or not (validSkillStartResults[result] or (validNonProjectileSkillStartResults[result] and not libint.isProjectile[abilityId])) then return end
+	if libint.Events.Skills.active ~= true or ld.inCombat == false or not (validSkillStartResults[result] or (validNonProjectileSkillStartResults[result] and not libint.isProjectile[abilityId])) then return end
 
 	local timems = GetGameTimeMilliseconds()
 
@@ -367,7 +367,7 @@ local function onAbilityUsed(eventCode, result, isError, abilityName, abilityGra
 
 	local channeled, castTime = GetAbilityCastInfo(origId)
 
-	Log("events", "VERBOSE", "[%.3f] Skill fired: %s (%d), Duration: %ds Target: %s", timems/1000, GetAbilityName(origId), origId, (castTime or 0)/1000, tostring(targetName))
+	logger:Verbose("[%.3f] Skill fired: %s (%d), Duration: %ds Target: %s", timems/1000, GetAbilityName(origId), origId, (castTime or 0)/1000, tostring(targetName))
 
 	HeavyAttackCharging = libint.directHeavyAttacks[origId] and origId or nil
 
@@ -376,7 +376,7 @@ local function onAbilityUsed(eventCode, result, isError, abilityName, abilityGra
 
 	if lastQ and lasttime then
 
-		Log("events", "VERBOSE", "%s: act: %d, Q: %d, Diff: %d", lib.GetFormattedAbilityName(origId), timems-lasttime, timems-lastQ, lastQ - lasttime)
+		logger:Verbose("%s: act: %d, Q: %d, Diff: %d", lib.GetFormattedAbilityName(origId), timems-lasttime, timems-lastQ, lastQ - lasttime)
 
 	end
 
@@ -428,7 +428,7 @@ end
 
 local function onQueueEvent(_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, abilityId)
 
-	if libdata.inCombat == false then return end
+	if ld.inCombat == false then return end
 
 	local timems = GetGameTimeMilliseconds()
 
@@ -465,7 +465,7 @@ end
 
 local function onSkillSlotUsed(_, slot)
 
-	if libdata.inCombat == false or slot > 8 then return end
+	if ld.inCombat == false or slot > 8 then return end
 
 	local timems = GetGameTimeMilliseconds()
 	local abilityId = GetSlotBoundId(slot, GetActiveHotbarCategory())
@@ -486,7 +486,7 @@ local function onSkillSlotUsed(_, slot)
 			libint.lastAbilityActivations[convertedId] = timems
 			HeavyAttackCharging = nil
 
-			local reducedslot = (libdata.bar - 1) * 10 + slot
+			local reducedslot = (ld.bar - 1) * 10 + slot
 
 			lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_SKILL_TIMINGS]), LIBCOMBAT_EVENT_SKILL_TIMINGS, timems, reducedslot, abilityId, LIBCOMBAT_SKILLSTATUS_REGISTERED)
 
@@ -495,17 +495,17 @@ local function onSkillSlotUsed(_, slot)
 end
 
 local function onQuickSlotChanged(_, actionSlotIndex)
-	libdata.currentQuickslotIndex = actionSlotIndex
-	local itemLink = GetSlotItemLink(libdata.currentQuickslotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
-	Log("debug", "INFO", "Quickslot New: %s", itemLink, actionSlotIndex)
+	ld.currentQuickslotIndex = actionSlotIndex
+	local itemLink = GetSlotItemLink(ld.currentQuickslotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
+	logger:Info("Quickslot New: %s", itemLink, actionSlotIndex)
 end
 
 local function onQuickSlotUsed(_, itemSoundCategory)
 	local timems = GetGameTimeMilliseconds()
 	-- if data.inCombat == false then return end
-	local itemLink = GetSlotItemLink(libdata.currentQuickslotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
-	Log("debug", "INFO", "Used: %s", itemLink)
-	if itemSoundCategory ~= GetSlotItemSound(libdata.currentQuickslotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL) then return end
+	local itemLink = GetSlotItemLink(ld.currentQuickslotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
+	logger:Info("Used: %s", itemLink)
+	if itemSoundCategory ~= GetSlotItemSound(ld.currentQuickslotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL) then return end
 	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_QUICKSLOT]), LIBCOMBAT_EVENT_QUICKSLOT, timems, itemLink)
 end
 
@@ -518,7 +518,7 @@ local function UpdateSkillEvents(self)
 
 		if not registeredSkills[id] then
 
-			Log("events","VERBOSE", "Skill registered: %d: %s (%s), End:  %d: %s (%s))", id, GetAbilityName(id), tostring(result), id2 or 0, GetAbilityName(id2 or 0), tostring(result2))
+			logger:Verbose("Skill registered: %d: %s (%s), End:  %d: %s (%s))", id, GetAbilityName(id), tostring(result), id2 or 0, GetAbilityName(id2 or 0), tostring(result2))
 
 			local active
 
@@ -556,7 +556,7 @@ local function GetCurrentSkillBarsDelayed()
 
 	-- reregister skill
 
-	zo_callLater(libfunc.GetCurrentSkillBars, 400) 	-- temporary workaround for NB skill Assasins Will
+	zo_callLater(lf.GetCurrentSkillBars, 400) 	-- temporary workaround for NB skill Assasins Will
 
 end
 
@@ -611,13 +611,12 @@ libint.Events.QuickSlot = libint.EventHandler:New(
 local isFileInitialized = false
 
 function lib.InitializeSkillcasting()
-
 	if isFileInitialized == true then return false end
+	logger = libint.initSublogger("skillcasting")
 
-	libdata.skillBars= {}
-	libdata.scribedSkills= {}
+	ld.skillBars= {}
+	ld.scribedSkills= {}
 
     isFileInitialized = true
 	return true
-
 end

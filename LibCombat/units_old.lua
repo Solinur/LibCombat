@@ -1,7 +1,7 @@
 local lib = LibCombat
 local libint = lib.internal
-local libdata = libint.data
-local Log = libint.Log
+local ld = libint.data
+local logger
 local CallbackKeys = libint.callbackKeys
 local GetFormattedAbilityName = lib.GetFormattedAbilityName
 
@@ -31,9 +31,9 @@ function UnitHandler:Initialize(name, unitId, unitType)
 
 	if unitType == COMBAT_UNIT_TYPE_PLAYER then
 
-		libdata.units.playerId = unitId
+		ld.units.playerId = unitId
 		libint.currentfight.playerid = unitId
-		self.displayname = libdata.accountname
+		self.displayname = ld.accountname
 		self.unitTag = "player"
 		self.isDead = IsUnitDeadOrReincarnating("player")
 
@@ -56,7 +56,7 @@ end
 
 function UnitHandler:UpdateGroupData()
 
-	local groupdata = libdata.groupInfo
+	local groupdata = ld.groupInfo
 
 	local unitTag = groupdata.nameToTag[self.name]
 
@@ -93,7 +93,7 @@ function UnitHandler:UpdateZenData(callbackKeys, eventid, timeMs, unitId, abilit
 		local stacks = isActive and zo_min(self.stacksOfZen, 5) or 0
 
 		lib.cm:FireCallbacks(callbackKeys, eventid, timeMs, unitId, libint.abilityIdZen, changeType, effectType, stacks, sourceType, effectSlot)	-- stack count is 1 to 6, with 1 meaning 0% bonus, and 6 meaning 5% bonus from Z'en
-		Log("debug", "VERBOSE", table.concat({eventid, timeMs, unitId, libint.abilityIdZen, changeType, effectType, stacks, sourceType, effectSlot}, ", "))
+		logger:Debug("VERBOSE", table.concat({eventid, timeMs, unitId, libint.abilityIdZen, changeType, effectType, stacks, sourceType, effectSlot}, ", "))
 		self.zenEffectSlot = (isActive and effectSlot) or nil
 
 	elseif abilityType == ABILITY_TYPE_DAMAGE then
@@ -104,7 +104,7 @@ function UnitHandler:UpdateZenData(callbackKeys, eventid, timeMs, unitId, abilit
 
 		elseif changeType == EFFECT_RESULT_FADED then
 
-			if self.stacksOfZen - 1 < 0 then Log("debug", "WARNING", "Encountered negative Z'en stacks: %s (%d)", GetFormattedAbilityName(abilityId), abilityId) end
+			if self.stacksOfZen - 1 < 0 then logger:Debug("WARNING", "Encountered negative Z'en stacks: %s (%d)", GetFormattedAbilityName(abilityId), abilityId) end
 			self.stacksOfZen = zo_max(0, self.stacksOfZen - 1)
 
 		end
@@ -133,7 +133,7 @@ function UnitHandler:UpdateForceOfNatureData(_, _, timeMs, unitId, abilityId, ch
 		self.forceOfNatureStacks = self.forceOfNatureStacks + 1
 
 		if self.forceOfNatureStacks == 1 then forceOfNatureChangeType = EFFECT_RESULT_GAINED end
-		if self.forceOfNatureStacks > 8 then Log("debug", "WARNING", "Encountered too many Force of Nature stacks (%d): %s (%d)", self.forceOfNatureStacks, GetFormattedAbilityName(abilityId), abilityId) end
+		if self.forceOfNatureStacks > 8 then logger:Debug("WARNING", "Encountered too many Force of Nature stacks (%d): %s (%d)", self.forceOfNatureStacks, GetFormattedAbilityName(abilityId), abilityId) end
 		debugChangeType = "+"
 
 	elseif changeType == EFFECT_RESULT_FADED and self.forceOfNature[abilityId] == true then
@@ -141,7 +141,7 @@ function UnitHandler:UpdateForceOfNatureData(_, _, timeMs, unitId, abilityId, ch
 		self.forceOfNature[abilityId] = nil
 
 		if self.forceOfNatureStacks == 0 then forceOfNatureChangeType = EFFECT_RESULT_FADED end
-		if self.forceOfNatureStacks - 1 < 0 then Log("debug", "WARNING", "Encountered negative Force of Nature stacks: %s (%d)", GetFormattedAbilityName(abilityId), abilityId) end
+		if self.forceOfNatureStacks - 1 < 0 then logger:Debug("WARNING", "Encountered negative Force of Nature stacks: %s (%d)", GetFormattedAbilityName(abilityId), abilityId) end
 
 		self.forceOfNatureStacks = zo_max(0, self.forceOfNatureStacks - 1)
 		debugChangeType = "-"
@@ -150,7 +150,7 @@ function UnitHandler:UpdateForceOfNatureData(_, _, timeMs, unitId, abilityId, ch
 
 	local stacks = zo_min(self.forceOfNatureStacks, 8)
 	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_EFFECTS_OUT]), LIBCOMBAT_EVENT_EFFECTS_OUT, timeMs, unitId, libint.abilityIdForceOfNature, forceOfNatureChangeType, BUFF_EFFECT_TYPE_DEBUFF, stacks, COMBAT_UNIT_TYPE_PLAYER, 0)
-	Log("debug", "VERBOSE", "Force of Nature: %s (%d) x%d, %s%s", self.name, self.unitId, stacks, GetFormattedAbilityName(abilityId), debugChangeType)
+	logger:Debug("VERBOSE", "Force of Nature: %s (%d) x%d, %s%s", self.name, self.unitId, stacks, GetFormattedAbilityName(abilityId), debugChangeType)
 end
 
 local isFileInitialized = false

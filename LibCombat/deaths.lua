@@ -3,10 +3,10 @@
 local lib = LibCombat
 local libint = lib.internal
 local CallbackKeys = libint.callbackKeys
-local libfunc = libint.functions
-local libdata = libint.data
-local libunits = libdata.units
-local Log = libint.Log
+local lf = libint.functions
+local ld = libint.data
+local libunits = ld.units
+local logger
 
 local lastdeaths = {}
 local CombatEventCache = {}
@@ -15,19 +15,19 @@ local UnitDeathsToProcess = {}
 local deathRecapTimePeriod = 10000
 
 
-function libfunc.ProcessDeathRecaps()
+function lf.ProcessDeathRecaps()
 	local timems = GetGameTimeMilliseconds()
 
 	for unitId, UnitDeathCache in pairs(UnitDeathsToProcess) do
 		if timems - UnitDeathCache.timems > 200 then
-			Log("dev","DEBUG", "ProcessDeath: %s (%d)", libint.currentfight.units[unitId].name, unitId)
+			logger:Debug("ProcessDeath: %s (%d)", libint.currentfight.units[unitId].name, unitId)
 			UnitDeathCache:ProcessDeath()
 		end
 	end
 end
 
-function libfunc.ClearUnitCaches()
-	Log("dev","DEBUG", "ClearUnitCaches (%d)", NonContiguousCount(CombatEventCache))
+function lf.ClearUnitCaches()
+	logger:Debug("ClearUnitCaches (%d)", NonContiguousCount(CombatEventCache))
 
 	for unitId, UnitDeathCache in pairs(CombatEventCache) do
 		CombatEventCache[unitId] = nil
@@ -58,7 +58,7 @@ function UnitDeathCacheHandler:Initialize(unitId)
 
 	local unitname = libint.currentfight.units[unitId] and libint.currentfight.units[unitId].name or "Unknown"
 
-	Log("dev","DEBUG", "Init unit death cache: %s (%d)", unitname, unitId)
+	logger:Debug("Init unit death cache: %s (%d)", unitname, unitId)
 
 end
 
@@ -72,7 +72,7 @@ function UnitDeathCacheHandler:OnDeath(timems)
 
 	local unitname = libint.currentfight.units[self.unitId] and libint.currentfight.units[self.unitId].name or "Unknown"
 
-	Log("dev","DEBUG", "UnitCacheHandler:OnDeath: %s (%d)", unitname, self.unitId)
+	logger:Debug("UnitCacheHandler:OnDeath: %s (%d)", unitname, self.unitId)
 
 end
 
@@ -99,7 +99,7 @@ function UnitDeathCacheHandler:ProcessDeath()
 
 		local deleted = 0
 
-		Log("dev","DEBUG", "Processing death event cache. Offset: %d, length:%d", offset, length)
+		logger:Debug("Processing death event cache. Offset: %d, length:%d", offset, length)
 
 		for i = 0, length - 1 do
 
@@ -233,7 +233,7 @@ local function CheckForWipe()	-- TODO use preassembled group unit tags
 
 	libint.currentfight.isWipe = true
 
-	Log("DoA","DEBUG", "=== This is a wipe ! ===")
+	logger:Debug("=== This is a wipe ! ===")
 
 end
 
@@ -241,18 +241,18 @@ local function OnDeathStateChanged(_, unitTag, isDead) 	-- death (for group disp
 
 	local unitId = unitTag == "player" and libunits.playerId or libunits.unitIdsByTag[unitTag]
 
-	Log("dev","DEBUG", "OnDeathStateChanged: %s (%s) is dead: %s", unitTag, tostring(unitId), tostring(isDead))
+	logger:Debug("OnDeathStateChanged: %s (%s) is dead: %s", unitTag, tostring(unitId), tostring(isDead))
 
-	if libdata.inCombat == false or unitId == nil then
+	if ld.inCombat == false or unitId == nil then
 
-		Log("dev","DEBUG", "OnDeathStateChanged: Combat: %s", tostring(libdata.inCombat))
+		logger:Debug("OnDeathStateChanged: Combat: %s", tostring(ld.inCombat))
 		return
 	end
 
 	local unit = libint.currentfight.units[unitId]
 	if unit then unit.isDead = isDead else
 
-		Log("dev","DEBUG", "OnDeathStateChanged: no unit")
+		logger:Debug("OnDeathStateChanged: no unit")
 		return
 	end
 
@@ -266,7 +266,7 @@ local function OnDeathStateChanged(_, unitTag, isDead) 	-- death (for group disp
 
 		GetUnitCache(unitId):OnDeath(timems)
 
-		Log("dev","DEBUG", "OnDeathStateChanged: fire callback")
+		logger:Debug("OnDeathStateChanged: fire callback")
 		lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_DEATH]), LIBCOMBAT_EVENT_DEATH, timems, LIBCOMBAT_UNIT_STATE_DEAD, unitId)
 
 		CheckForWipe()
@@ -279,7 +279,7 @@ local function OnDeathStateChanged(_, unitTag, isDead) 	-- death (for group disp
 end
 
 local function OnPlayerReincarnated()
-	Log("DoA","DEBUG", "You revived")
+	logger:Debug("You revived")
 end
 
 
@@ -298,7 +298,7 @@ end
 
 local function OnResurrect(_, result, _, abilityName, _, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, _, sourceUnitId, targetUnitId, abilityId)
 	local timems = GetGameTimeMilliseconds()
-	if targetUnitId == nil or targetUnitId == 0 or libdata.inCombat == false then return end
+	if targetUnitId == nil or targetUnitId == 0 or ld.inCombat == false then return end
 	local unitdata = libint.currentfight.units[targetUnitId]
 	if unitdata == nil or unitdata.type ~= COMBAT_UNIT_TYPE_GROUP then return end
 	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_DEATH]), LIBCOMBAT_EVENT_DEATH, timems, LIBCOMBAT_UNIT_STATE_ALIVE, targetUnitId)
@@ -306,7 +306,7 @@ end
 
 local function OnResurrectResult(_, targetCharacterName, result, targetDisplayName)
 
-	Log("DoA","DEBUG", "OnResurrectResult: %s", targetCharacterName)
+	logger:Debug("OnResurrectResult: %s", targetCharacterName)
 
 	local timems = GetGameTimeMilliseconds()
 
@@ -324,7 +324,7 @@ end
 
 local function OnResurrectRequest(_, requesterCharacterName, timeLeftToAccept, requesterDisplayName)
 
-	Log("DoA","DEBUG", "OnResurrectRequest: %s", requesterCharacterName)
+	logger:Debug("OnResurrectRequest: %s", requesterCharacterName)
 
 	local timems = GetGameTimeMilliseconds()
 
@@ -339,7 +339,7 @@ local function OnResurrectRequest(_, requesterCharacterName, timeLeftToAccept, r
 end
 local function GroupCombatEventHandler(isheal, result, _, abilityName, _, _, sourceName, sourceType, targetName, _, hitValue, powerType, damageType, _, sourceUnitId, targetUnitId, abilityId, overflow)  -- called by Event
 
-	if (hitValue + (overflow or 0)) < 0 or (not (targetUnitId > 0)) or (libdata.inCombat == false and (result==ACTION_RESULT_DOT_TICK_CRITICAL or result==ACTION_RESULT_DOT_TICK or isheal) ) then return end -- only record if both unitids are valid or player is in combat or a non dot damage action happens
+	if (hitValue + (overflow or 0)) < 0 or (not (targetUnitId > 0)) or (ld.inCombat == false and (result==ACTION_RESULT_DOT_TICK_CRITICAL or result==ACTION_RESULT_DOT_TICK or isheal) ) then return end -- only record if both unitids are valid or player is in combat or a non dot damage action happens
 
 	local timems = GetGameTimeMilliseconds()
 
@@ -351,7 +351,7 @@ local function GroupCombatEventHandler(isheal, result, _, abilityName, _, _, sou
 
 	if overflow and overflow > 0 and not isheal then
 
-		Log("dev","DEBUG", "GroupCombatEventHandler: %s has overflow damage!", targetName)
+		logger:Debug("GroupCombatEventHandler: %s has overflow damage!", targetName)
 		GetUnitCache(targetUnitId):OnDeath(timems)
 
 	end
@@ -450,12 +450,10 @@ libint.Events.DeathRecap = libint.EventHandler:New(
 )
 
 local isFileInitialized = false
-
 function lib.InitializeDeaths()
-
 	if isFileInitialized == true then return false end
+	logger = libint.initSublogger("death")
 
     isFileInitialized = true
 	return true
-
 end

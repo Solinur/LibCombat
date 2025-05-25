@@ -3,14 +3,15 @@
 local lib = LibCombat
 local libint = lib.internal
 local CallbackKeys = libint.callbackKeys
-local libfunc = libint.functions
-local libdata = libint.data
-local Log = libint.Log
+local lf = libint.functions
+local ld = libint.data
+local logger
 
 
-libfunc.LogProcessingHandler = ZO_InitializingObject:Subclass() -- object to store log proccessing routines
-libfunc.LogTypeProcessors = {}
-libfunc.LogProcessors = {}
+local LogProcessingHandler = ZO_InitializingObject:Subclass() -- object to store log proccessing routines
+lf.LogProcessingHandler = LogProcessingHandler
+lf.LogTypeProcessors = {}
+lf.LogProcessors = {}
 
 ---@param name string
 ---@param onInitilizeFight function
@@ -19,7 +20,6 @@ libfunc.LogProcessors = {}
 ---@param ProcessLogLine function
 ---@param AllowedLogTypes table
 function LogProcessingHandler:Initialize(name, onInitilizeFight, onCombatStarted, onCombatFinished, ProcessLogLine, AllowedLogTypes)
-
 	self.active = false
 	self.onInitilizeFight = onInitilizeFight
 	self.onCombatStarted = onCombatStarted
@@ -29,17 +29,15 @@ function LogProcessingHandler:Initialize(name, onInitilizeFight, onCombatStarted
 	self.idCounter = 1
 	self.RegisteredLogTypes = {}
 
-	libfunc.LogProcessors[name] = self
+	lf.LogProcessors[name] = self
 
 	for _, logType in pairs(AllowedLogTypes) do
-		libfunc.LogTypeProcessors[logType] = function(...) self:ProcessLogLine(...) end
+		lf.LogTypeProcessors[logType] = function(...) self:ProcessLogLine(...) end
 		self.RegisteredLogTypes[logType] = false
 	end
-
 end
 
 function LogProcessingHandler:Activate()
-
 	self.active  = true
 
 	--[[ Todo: register events and link them to a log handler
@@ -54,16 +52,11 @@ function LogProcessingHandler:Activate()
 	--]]
 end
 
-
-
-
 local isFileInitialized = false
-
 function lib.InitializeCalculations()
-
 	if isFileInitialized == true then return false end
+	logger = libint.initSublogger("calc")
 
     isFileInitialized = true
 	return true
-
 end

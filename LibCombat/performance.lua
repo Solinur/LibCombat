@@ -1,7 +1,7 @@
 local lib = LibCombat
 local libint = lib.internal
 local CallbackKeys = libint.callbackKeys
-local Log = libint.Log
+local logger
 
 local playerActivatedTime = 10000
 local frameIndex = 1
@@ -87,8 +87,8 @@ libint.Events.Performance = libint.EventHandler:New(
 local isFileInitialized = false
 
 function lib.InitializePerformance()
-
 	if isFileInitialized == true then return false end
+	logger = libint.initSublogger("performance")
 
     isFileInitialized = true
 	return true
