@@ -16,13 +16,8 @@ local function onInitilizeFight(processor, fight)
 	fight.healingReceived = {}
 end
 
-local function onCombatStarted()
-	
-end
-
-local function onCombatFinished()
-	
-end
+local function onCombatStarted() end
+local function onCombatFinished() end
 
 local countResultKeys = {
 	[ACTION_RESULT_DAMAGE]            = "normalHits",
@@ -53,15 +48,10 @@ local damageResultKeys = {
 }
 
 local function ProcessLogLine(processor, fight, logType, ...)
-
 	if logType == LIBCOMBAT_LOG_EVENT_DAMAGE then
-
 		processor:ProcessLogLineDamage(fight, logType, ...)
-
 	elseif logType == LIBCOMBAT_LOG_EVENT_HEAL then
-
 		processor:ProcessLogLineHeal(fight, logType, ...)
-
 	end
 
 	-- generally: make an object for every callback
@@ -80,7 +70,6 @@ local AllowedLogTypes = {
 local LogProcessorCombat = lf.LogProcessingHandler:New("combat", onInitilizeFight, onCombatStarted, onCombatFinished, ProcessLogLine, AllowedLogTypes)
 
 local function InitUnitData(data, unitId)
-
 	local unitData = {}
 	data[unitId] = unitData
 
@@ -88,16 +77,13 @@ local function InitUnitData(data, unitId)
 end
 
 local function GetUnitData(data, unitIdSelf, unitIdOther)
-
 	local unitDataSelf = data[unitIdSelf] or InitUnitData(data, unitIdSelf)
-
 	if unitDataSelf[unitIdOther] == nil then return InitUnitData(unitDataSelf, unitIdOther) end
 
 	return unitDataSelf[unitIdOther]
 end
 
 local function InitDamageAbilityData(unit, abilityId, damageType)
-
 	local abilityData = {
 		normalDamage   = 0,
 		criticalDamage = 0,
@@ -115,21 +101,16 @@ local function InitDamageAbilityData(unit, abilityId, damageType)
 	}
 
 	unit[abilityId] = abilityData
-
 	return abilityData
 end
 
 local function GetDamageAbilityData(data, unitIdSelf, unitIdOther, abilityId, damageType)
-
 	local unit = GetUnitData(data, unitIdSelf, unitIdOther)
-
 	if unit[abilityId] == nil then return InitDamageAbilityData(unit, abilityId, damageType) end
-
 	return unit[abilityId]
 end
 
 local function UpdateDamageAbilityData(abilitydata, hitValue, overflow, result)
-
 	local fullValue = hitValue + overflow
 
 	local resultkey = damageResultKeys[result]
@@ -147,32 +128,24 @@ local function UpdateDamageAbilityData(abilitydata, hitValue, overflow, result)
 		abilitydata["shieldedHits"] = abilitydata["shieldedHits"] + 1
 
 	end
-
 	-- IncrementStatSum(fight, damageType, resultkey, isDamageOut, hitValue, false, unit) TODO: Move to stat module
-
 end
 
 function LogProcessorCombat:ProcessLogLineDamage(fight, logType, timems, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType, overflow)
-
 	-- if timems < (fight.combatstart-500) or fight.units[sourceUnitId] == nil or fight.units[targetUnitId] == nil then return end
 
 	if sourceUnitId and sourceUnitId > 0 then
-
 		local sourceData = GetDamageAbilityData(fight.damageDone, sourceUnitId, targetUnitId or 0, abilityId, damageType)
 		UpdateDamageAbilityData(sourceData, hitValue, overflow, result)
-
 	end
 
 	if targetUnitId and targetUnitId > 0 then
-
 		local targetData = GetDamageAbilityData(fight.damageReceived, targetUnitId, sourceUnitId or 0, abilityId, damageType)
 		UpdateDamageAbilityData(targetData, hitValue, overflow, result)
-
 	end
 end
 
 local function InitHealAbilityData(unit, abilityId, powerType)
-
 	local abilityData = {
 		normalHealing   = 0,
 		criticalHealing = 0,
@@ -186,24 +159,17 @@ local function InitHealAbilityData(unit, abilityId, powerType)
 	}
 
 	unit[abilityId] = abilityData
-
 	return abilityData
 end
 
 local function GetHealAbilityData(data, unitIdSelf, unitIdOther, abilityId, powerType)
-
 	local unit = GetUnitData(data, unitIdSelf, unitIdOther)
-
 	if unit[abilityId] == nil then return InitHealAbilityData(unit, abilityId, powerType) end
-
 	return unit[abilityId]
-
 end
 
 local function UpdateHealAbilityData(abilitydata, hitValue, overflow, result)
-
 	local fullValue = hitValue + overflow
-
 	local resultkey = damageResultKeys[result]
 	local hitKey = countResultKeys[result]
 
@@ -214,14 +180,10 @@ local function UpdateHealAbilityData(abilitydata, hitValue, overflow, result)
 	abilitydata.min = zo_min(abilitydata.min, fullValue)
 
 	if overflow > 0 then -- shielded damage
-
 		abilitydata["shieldedDamage"] = abilitydata["shieldedDamage"] + overflow
 		abilitydata["shieldedHits"] = abilitydata["shieldedHits"] + 1
-
 	end
-
 	-- IncrementStatSum(fight, damageType, resultkey, isDamageOut, hitValue, false, unit) TODO: Move to stat module
-
 end
 
 function LogProcessorCombat:ProcessLogLineHeal(fight, logType, timems, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType, overflow)
