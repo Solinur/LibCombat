@@ -7,10 +7,11 @@ LIBCOMBAT_LINE_SIZE = zo_ceil(GuiRoot:GetWidth()/tonumber(GetCVar("WindowedWidth
 
 -- Basic values
 lib.name = "LibCombat"
-lib.version = 64
+lib.version = 85
 lib.cm = ZO_CallbackObject:New()
+lib.internal = {}
 
-local libint = {}
+local libint = lib.internal
 libint.debug = false or GetDisplayName() == "@Solinur"
 
 local lf = {}
