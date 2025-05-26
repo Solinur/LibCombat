@@ -616,6 +616,8 @@ function lib.InitializeSkillcasting()
 
 	ld.skillBars= {}
 	ld.scribedSkills= {}
+	libint.lastQueuedAbilities = {}
+	libint.usedCastTimeAbility = {}
 
     isFileInitialized = true
 	return true

@@ -36,13 +36,6 @@ libint.isInPortalWorld = false	-- used to prevent fight reset in Cloudrest/Sunsp
 
 local lastBossHealthValue = 2
 
-libint.lastQueuedAbilities = {}
-libint.usedCastTimeAbility = {}
-
--- localize some functions for performance
-
-local ZO_CachedStrFormat = ZO_CachedStrFormat
-
 local FightHandler = ZO_Object:Subclass()
 
 ---@diagnostic disable-next-line: duplicate-set-field
