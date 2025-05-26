@@ -669,7 +669,7 @@ end
 
 -- Debug Utilities
 
-local logBase = zo_log(5)
+local logBase = math.log(5)
 
 local function GetUnitSummary() -- gives a list of all units with names and id and the last seen time: 
 
@@ -681,7 +681,7 @@ local function GetUnitSummary() -- gives a list of all units with names and id a
 
 		unitData[unitId] = {
 			["unitName"] = unit.name,
-			["lastSeenRange"] = zo_log(now - unit.lastSeen) / logBase,
+			["lastSeenRange"] = math.log(now - unit.lastSeen) / logBase,
 
 		}
 
