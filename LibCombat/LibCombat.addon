@@ -1,8 +1,8 @@
 ﻿## Title: LibCombat
-## APIVersion: 101040
+## APIVersion: 101046
 ## Author: Solinur
-## Version: 71
-## AddOnVersion: 71
+## Version: 85
+## AddOnVersion: 85
 ## IsLibrary: true
 ## DependsOn: 
 ## OptionalDependsOn: LibDebugLogger
@@ -21,14 +21,14 @@ lang/$(language).lua
 init.lua
 global.lua
 utility.lua
+calculations.lua
 events.lua
-effects.lua
-stats.lua
 units.lua
 combat.lua
+effects.lua
+stats.lua
 skillcasting.lua
 resources.lua
 performance.lua
 deaths.lua
-calculations.lua
 LibCombat.lua
