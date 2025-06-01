@@ -360,8 +360,8 @@ function FightHandler:FinishFight()
 
 	if charData == nil then return end
 
-	charData.skillBars = ZO_DeepTableCopy(data.skillBars)
-	charData.scribedSkills = ZO_DeepTableCopy(data.scribedSkills)
+	charData.skillBars = ZO_DeepTableCopy(ld.skillBars)
+	charData.scribedSkills = ZO_DeepTableCopy(ld.scribedSkills)
 	charData.equip = GetEquip()
 
 	local timems = GetGameTimeMilliseconds()
@@ -736,25 +736,25 @@ end
 
 
 function libint.onCombatState(event, inCombat)  -- Detect Combat Stage, local is defined above - Don't Change !!!
-	if inCombat ~= data.inCombat then     -- Check if player state changed
+	if inCombat ~= ld.inCombat then     -- Check if player state changed
 		local timems = GetGameTimeMilliseconds()
 
 		if inCombat then
-			data.inCombat = inCombat
-			Log("fight", LOG_LEVEL_DEBUG, "Entering combat.")
+			ld.inCombat = inCombat
+			logger:Debug("Entering combat.")
 			lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_MESSAGES]), LIBCOMBAT_EVENT_MESSAGES, timems, LIBCOMBAT_MESSAGE_COMBATSTART, 0)
-			currentfight:PrepareFight()
+			libint.currentfight:PrepareFight()
 		else
 			if IsOngoingBossfight() then
-				Log("fight", LOG_LEVEL_DEBUG, "Failed: Leaving combat.")
+				logger:Debug("Failed: Leaving combat.")
 				return
 			end
 
-			data.inCombat = false
-			Log("fight", LOG_LEVEL_DEBUG, "Leaving combat.")
-			currentfight:FinishFight()
+			ld.inCombat = false
+			logger:Debug("Leaving combat.")
+			libint.currentfight:FinishFight()
 
-			if currentfight.charData == nil then return end
+			if libint.currentfight.charData == nil then return end
 			lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_MESSAGES]), LIBCOMBAT_EVENT_MESSAGES, timems, LIBCOMBAT_MESSAGE_COMBATEND, 0)
 		end
 	end
@@ -839,6 +839,7 @@ local function UpdateEventRegistrations()
 end
 
 local function UpdateResources(name, callbacktype, callback)
+	if true then return end
 
 	local oldCallback = ActiveCallbackTypes[callbacktype][name]
 

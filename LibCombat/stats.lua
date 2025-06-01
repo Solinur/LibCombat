@@ -67,7 +67,7 @@ local function GetChargedBonus()
 			local bonus = ParseDescriptionBonus(description)
 
 			if bonus == nil and parseChargedFail == false then
-				Log("main", LOG_LEVEL_WARNING, "Failed to parse description for SE bonus: %s", description)
+				logger:Warning("Failed to parse description for SE bonus: %s", description)
 				parseChargedFail = true
 			end
 			
@@ -81,7 +81,7 @@ local function GetChargedBonus()
 			local bonus = ParseDescriptionBonus(description)
 
 			if bonus == nil and parseChargedFail == false then
-				Log("main", LOG_LEVEL_WARNING, "Failed to parse description for SE bonus: %s", description)
+				logger:Warning("Failed to parse description for SE bonus: %s", description)
 				parseChargedFail = true
 			end
 			
@@ -100,7 +100,7 @@ local function CheckHeartlandSet()
 	local bonus = ParseDescriptionBonus(description)
 
 	if bonus == nil and parseHeartlandFail == false then
-		Log("main", LOG_LEVEL_WARNING, "Failed to parse description for SE bonus: %s", description)
+		logger:Warning("Failed to parse description for SE bonus: %s", description)
 		parseHeartlandFail = true
 	end
 	return (bonus or 0) / 100
@@ -121,7 +121,7 @@ local function CheckDestroPassive()
 	local bonus = ParseDescriptionBonus(description)
 
 	if bonus == nil and parseDestroFail == false then
-		Log("main", LOG_LEVEL_WARNING, "Failed to parse description for SE bonus: %s", description)
+		logger:Warning("Failed to parse description for SE bonus: %s", description)
 		parseDestroFail = true
 	end
 
@@ -147,7 +147,7 @@ local function CheckWealdSet()
 	local bonus = ParseDescriptionBonus(description)
 
 	if bonus == nil and parseWealdFail == false then
-		Log("main", LOG_LEVEL_WARNING, "Failed to parse description for SE bonus: %s", description)
+		logger:Warning("Failed to parse description for SE bonus: %s", description)
 		parseWealdFail = true
 	end
 	return bonus or 0
@@ -161,7 +161,7 @@ local function GetFocusedEffortsBonus()
 	local bonus = ParseDescriptionBonus(description)
 
 	if bonus == nil and parseFocusedEffortsFail == false then
-		Log("main", LOG_LEVEL_WARNING, "Failed to parse description for SE bonus: %s", description)
+		logger:Warning("Failed to parse description for SE bonus: %s", description)
 		parseFocusedEffortsFail = true
 	end
 	return bonus or 0

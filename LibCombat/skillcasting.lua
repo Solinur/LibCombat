@@ -419,7 +419,7 @@ local function onAbilityFinished(eventCode, result, isError, abilityName, abilit
 
 	if libint.usedCastTimeAbility[abilityId] then
 
-		Log("events","VERBOSE" ,"Skill finished: %s (%d, R: %d)", GetAbilityName(origId), origId, result)
+		logger:Verbose("Skill finished: %s (%d, R: %d)", GetAbilityName(origId), origId, result)
 
 		lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_SKILL_TIMINGS]), LIBCOMBAT_EVENT_SKILL_TIMINGS, timems, reducedslot, origId, LIBCOMBAT_SKILLSTATUS_SUCCESS)
 
@@ -440,7 +440,7 @@ local function onQueueEvent(_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, abil
 
 	if reducedslot == nil then
 
-		Log("events","WARNING" ,"reducedslot missing on queue event: [%.3f s] %s (%d)", (timems - libint.currentfight.combatstart)/1000, GetAbilityName(abilityId), abilityId)
+		logger:Warning("reducedslot missing on queue event: [%.3f s] %s (%d)", (timems - libint.currentfight.combatstart)/1000, GetAbilityName(abilityId), abilityId)
 		return
 
 	end
@@ -457,7 +457,7 @@ local function onProjectileEvent(eventCode, result, isError, abilityName, abilit
 
 	libint.isProjectile[abilityId] = true
 
-	Log("events","VERBOSE" ,"[%.3f s] projectile: %s (%d)", (GetGameTimeMilliseconds() - libint.currentfight.combatstart)/1000, GetAbilityName(abilityId), abilityId)
+	logger:Verbose("[%.3f s] projectile: %s (%d)", (GetGameTimeMilliseconds() - libint.currentfight.combatstart)/1000, GetAbilityName(abilityId), abilityId)
 
 	-- if IdToReducedSlot[abilityId] then libint.isProjectile[abilityId] = true end TODO: Check if this should be limited
 
@@ -502,7 +502,7 @@ end
 
 local function onQuickSlotUsed(_, itemSoundCategory)
 	local timems = GetGameTimeMilliseconds()
-	-- if data.inCombat == false then return end
+	-- if ld.inCombat == false then return end
 	local itemLink = GetSlotItemLink(ld.currentQuickslotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
 	logger:Info("Used: %s", itemLink)
 	if itemSoundCategory ~= GetSlotItemSound(ld.currentQuickslotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL) then return end

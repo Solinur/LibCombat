@@ -124,7 +124,7 @@ function UnitDeathCacheHandler:ProcessDeath()
 			end
 		end
 
-		Log("dev","DEBUG" , "%s: cache: %d, log: %d, deleted: %d", unit and unit.name or "Unknown", #cache, #log, deleted)
+		logger:Debug("%s: cache: %d, log: %d, deleted: %d", unit and unit.name or "Unknown", #cache, #log, deleted)
 	end
 
 	self.cache = nil

@@ -41,43 +41,32 @@ local COMBAT_UNIT_TYPE_GROUP_COMPANION = COMBAT_UNIT_TYPE_GROUP_COMPANION or (CO
 -- Internal functions
 
 local function IsValidUnitId(unitId)
-
 	return unitId and (unitId >= 0)
-
 end
 
 local function IsValidUnitName(unitName)
-
 	return unitName and (unitName ~= "") and (unitName ~= "Offline")
-
 end
 
 local function IsValidUnitData(rawName, unitId, unitType)
-
 	return IsValidUnitName(rawName) and IsValidUnitId(unitId) and unitType
-
 end
 
 local function UpdatePlayerId(newPlayerId)
-
 	if libunits.playerId == newPlayerId then return end -- check if it changed
 
 	local oldPlayerId = libunits.playerId
 	libunits.playerId = newPlayerId
 
 	if oldPlayerId then UnitCache[oldPlayerId]:Delete() end -- delete old unit since it is obsolete
-
 end
 
 local function UpdateUnitTagId(unitTag, unitId)
-
 	local UnitIdsByTag = libunits.unitIdsByTag
-
 	local oldUnitId = UnitIdsByTag[unitTag]
 
 	if oldUnitId then UnitCache[oldUnitId]:RemoveUnitTag(unitTag) end
 	UnitIdsByTag[unitTag] = unitId
-
 end
 
 local function CheckForPetUnit(rawName, unitId) -- TODO: potentially detect other people's pets ?
@@ -85,54 +74,39 @@ local function CheckForPetUnit(rawName, unitId) -- TODO: potentially detect othe
 end
 
 -- Event Callbacks
-
 -- Discover names of special units:
 
 local GroupUnitTags = {} -- preassemble unit tags
 
 for i = 1, GROUP_SIZE_MAX do
-
 	GroupUnitTags[i] = ZO_CachedStrFormat("group<<1>>", i)
-
 end
-
 libunits.GroupUnitTags = GroupUnitTags
 
 local BossUnitTags = {} -- preassemble unit tags
-
 for i = 1, MAX_BOSSES do
-
 	BossUnitTags[i] = ZO_CachedStrFormat("boss<<1>>", i)
-
 end
 
 local PetUnitTags = {} -- preassemble unit tags
 
 for i = 1, MAX_PET_UNIT_TAGS do
-
 	PetUnitTags[i] = ZO_CachedStrFormat("playerpet<<1>>", i)
-
 end
 
 local function onGroupChange()
-
 	libunits.inGroup = IsUnitGrouped("player")
 	libunits.groupTagByName = {}
 
 	if libunits.inGroup == true then
-
 		local groupTagByName = libunits.groupTagByName
 
 		for i = 1, GetGroupSize() do
-
 			local unitTag = GroupUnitTags[i]
 
 			if DoesUnitExist(unitTag) == true and AreUnitsEqual(unitTag, "player") == false then
-
 				local rawName = GetUnitName(unitTag)
-
 				groupTagByName[rawName] = unitTag
-
 			end
 		end
 	end
@@ -141,50 +115,38 @@ end
 local hasMultipleTags = "multiple tags found"
 
 local function onBossesChanged(_) -- Detect Bosses
-
 	local bossTagByName = {} -- holds only bosses discovered in this round
 
 	for i = 1, MAX_BOSSES do
-
 		local unitTag = BossUnitTags[i]
 
 		if DoesUnitExist(unitTag) then
-
 			local rawName = GetUnitName(unitTag)
 
 			if bossTagByName[rawName] and bossTagByName[rawName] ~= unitTag then
-
 				logger:Warning("Multiple tags found for %s (%s, %s)", rawName, bossTagByName[rawName], unitTag)
 				bossTagByName[rawName] = hasMultipleTags
-
 			end
 
 			libunits.bossTagByName[rawName] = bossTagByName[rawName]
-
 		end
 	end
 end
 
 local function onPlayerPetsChanged(_) -- TODO: figure out when to call this
-
 	local petTagByName = libunits.petTagByName
 
 	for i = 1, MAX_PET_UNIT_TAGS do
-
 		local unitTag = PetUnitTags[i]
 
 		if DoesUnitExist(unitTag) == true then
-
 			local rawName = GetUnitName(unitTag)
-
 			petTagByName[rawName] = unitTag
-
 		end
 	end
 end
 
 local unitDetectionResults = {	-- valid values of result from combat events to determine info from
-
 	[ACTION_RESULT_DAMAGE] = true,
 	[ACTION_RESULT_CRITICAL_DAMAGE] = true,
 	[ACTION_RESULT_HEAL] = true,
@@ -232,7 +194,6 @@ local unitDetectionResults = {	-- valid values of result from combat events to d
 	[ACTION_RESULT_DOT_TICK_CRITICAL] = true,
 	[ACTION_RESULT_HOT_TICK] = true,
 	[ACTION_RESULT_HOT_TICK_CRITICAL] = true,
-
 }
 
 local function OnCombatEvent(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName,
@@ -242,28 +203,23 @@ local function OnCombatEvent(eventCode, result, isError, abilityName, abilityGra
 	if not unitDetectionResults[result] then return end
 
 	if IsValidUnitData(sourceName, sourceUnitId, sourceType) then
-
 		if UnitCache[sourceUnitId] == nil then
 			UnitHandler:New(sourceName, sourceUnitId, sourceType)
 		else
 			UnitCache[sourceUnitId]:Update(sourceName, sourceType)
 		end
-
 	end
 
 	if IsValidUnitData(targetName, targetUnitId, targetType) then
-
 		if UnitCache[targetUnitId] == nil then
 			UnitHandler:New(targetName, targetUnitId, targetType)
 		else
 			UnitCache[targetUnitId]:Update(targetName, targetType)
 		end
-
 	end
 end
 
 local function GetUnitTypeFromTag(unitTag)
-
 	if unitTag == "player" then return COMBAT_UNIT_TYPE_PLAYER
 	elseif unitTag == "companion" then return COMBAT_UNIT_TYPE_PLAYER_COMPANION
 	elseif string.sub(unitTag,1,9) == "playerpet" then return COMBAT_UNIT_TYPE_PLAYER_PET
@@ -276,18 +232,14 @@ local function GetUnitTypeFromTag(unitTag)
 		end
 	else return nil
 	end
-
 end
 
 local function OnTargetChange()
-
 	if not DoesUnitExist("reticleover") then
-
 		if libunits.unitIdsByTag["reticleover"] then 
 
 			UpdateUnitTagId("reticleover", nil)
 			logger:Info("ReticleOverUnit removed.")
-
 		end
 
 		return
@@ -295,19 +247,16 @@ local function OnTargetChange()
 	local numBuffs = GetNumBuffs("reticleover")
 
 	for i = 1, numBuffs do
-
 		local _, _, endTime, buffSlot, _, _, _, _, _, _, abilityId, _ = GetUnitBuffInfo("reticleover", i)
 
 		local unitId = EffectCache[abilityId] and EffectCache[abilityId][endTime] or nil
 		local unit = unitId and UnitCache[unitId] or nil
 
 		if unit and unit.effectTimeData[buffSlot] == endTime then
-
 			logger:Info("ReticleOverUnit found: %s (%d)", unit.name, unitId)
 
 			unit:UpdateUnitTag("reticleover")
 			break
-
 		end
 	end
 
@@ -319,15 +268,12 @@ local function OnEffectChanged(eventCode, changeType, effectSlot, effectName, un
                                , sourceType)
 
 	local unitType = GetUnitTypeFromTag(unitTag)
-
 	if IsValidUnitData(unitName, unitId, unitType) then	-- Allow even if unitType is not known?
-
 		if UnitCache[unitId] == nil then
 			UnitHandler:New(unitName, unitId, unitType, unitTag)
 		else
 			UnitCache[unitId]:Update(unitName, unitType, unitTag)
 		end
-
 	end
 
 	if (changeType ~= EFFECT_RESULT_GAINED and changeType ~= EFFECT_RESULT_FADED and changeType ~= EFFECT_RESULT_UPDATED) or
@@ -340,11 +286,17 @@ local function OnEffectChanged(eventCode, changeType, effectSlot, effectName, un
 	OnTargetChange()
 end
 
+
+local function onTrialDummy(_, _, _, _, _, _, _, _, _, _, _, _, _, _, sourceUnitId, _, _, _) -- TODO: this 
+	logger:Debug("Trial Dummy Detected: %d", sourceUnitId)
+
+	UnitCache[sourceUnitId]:UpdateTrialDummy()
+end
+
 -- UnitHandler
 
 ---@diagnostic disable-next-line: duplicate-set-field
 function UnitHandler:Initialize(rawName, unitId, unitType, unitTag)
-
 	if unitType == COMBAT_UNIT_TYPE_PLAYER then	UpdatePlayerId(unitId) end
 
 	local name = ZO_CachedStrFormat(SI_UNIT_NAME, rawName) -- name
@@ -375,48 +327,42 @@ function UnitHandler:Initialize(rawName, unitId, unitType, unitTag)
 end
 
 function UnitHandler:LookupUnitTag()
-
 	if self.unitType == nil then return end
 
-	if     self.unitType == COMBAT_UNIT_TYPE_PLAYER     then self:UpdateUnitTag("player")
-	elseif self.unitType == COMBAT_UNIT_TYPE_GROUP      then self:UpdateUnitTag(libunits.groupTagByName[self.rawName]) -- Todo: Group Companion? 
-	elseif self.unitType == COMBAT_UNIT_TYPE_PLAYER_PET then self:UpdateUnitTag(libunits.petTagByName[self.rawName])
+	if     self.unitType == COMBAT_UNIT_TYPE_PLAYER then 
+		self:UpdateUnitTag("player")
+	elseif self.unitType == COMBAT_UNIT_TYPE_GROUP then 
+		self:UpdateUnitTag(libunits.groupTagByName[self.rawName]) -- Todo: Group Companion? 
+	elseif self.unitType == COMBAT_UNIT_TYPE_PLAYER_PET then 
+		self:UpdateUnitTag(libunits.petTagByName[self.rawName])
 	else
-
 		CheckForPetUnit(self.rawName, self.unitId)
 		local bossTag = libunits.bossTagByName[self.rawName]
 
 		if bossTag then
-
 			self.isBoss = true
-
 			if bossTag ~= hasMultipleTags then
-
 				self:UpdateUnitTag(bossTag)
-
 			end
 		end
 	end
 end
 
+local friendlyUnitTypes = {
+	[COMBAT_UNIT_TYPE_PLAYER] = true,
+	[COMBAT_UNIT_TYPE_GROUP] = true,
+	[COMBAT_UNIT_TYPE_GROUP_COMPANION] = true,
+	[COMBAT_UNIT_TYPE_PLAYER_PET] = true,
+}
+
 function UnitHandler:UpdateFriendlyStatus(unitType)
-
-	self.isFriendly = false
-
-	if unitType == COMBAT_UNIT_TYPE_PLAYER or unitType == COMBAT_UNIT_TYPE_GROUP or unitType == COMBAT_UNIT_TYPE_GROUP_COMPANION or unitType == COMBAT_UNIT_TYPE_PLAYER_PET then
-
-		self.isFriendly = true
-
-	end
-
+	self.isFriendly = friendlyUnitTypes[unitType] == true
 end
 
 function UnitHandler:Update(rawName, unitType, unitTag)
-
 	self.lastSeen = GetGameTimeSeconds()
 
 	if self.rawName ~= rawName then
-
 		local unitId = self.unitId
 		self:Delete()
 		local unit = UnitHandler:New(rawName, unitId, unitType, unitTag)
@@ -427,10 +373,8 @@ function UnitHandler:Update(rawName, unitType, unitTag)
 	if unitTag then self:UpdateUnitTag(unitTag) end
 
 	if unitType and self.unitType ~= unitType then
-
-		Log("dev", "I", "unitType changed: %d -> %d %s (%d)", self.unitType, unitType, self.name, self.unitId)
+		logger.Info("unitType changed: %d -> %d %s (%d)", self.unitType, unitType, self.name, self.unitId)
 		self.unitType = unitType
-
 	end
 end
 
@@ -548,6 +492,10 @@ function UnitHandler:UpdateEffectData(abilityId, changeType, endTime, effectSlot
 		if EffectCache[abilityId] and EffectCache[abilityId][endTime] then EffectCache[abilityId][endTime] = nil end
 
 	end
+end
+
+function UnitHandler:SetTrialDummy()
+	self.isTrialdummy =true
 end
 
 -- Unit object for exporting info
@@ -737,14 +685,15 @@ local function UnitSummaryOrder(table, a, b)
 end
 
 local typeStrings = {
-	[0] = "npc", -- COMBAT_UNIT_TYPE_NONE
-	[1] = "player", -- COMBAT_UNIT_TYPE_PLAYER
-	[2] = "pet", -- COMBAT_UNIT_TYPE_PLAYER_PET
-	[3] = "group", -- COMBAT_UNIT_TYPE_GROUP
-	[4] = "other", -- COMBAT_UNIT_TYPE_OTHER
-	[5] = "dummy", -- COMBAT_UNIT_TYPE_TARGET_DUMMY
-	[6] = "companion", -- COMBAT_UNIT_TYPE_GROUP_COMPANION
+	[COMBAT_UNIT_TYPE_NONE] = "npc",
+	[COMBAT_UNIT_TYPE_PLAYER] = "player",
+	[COMBAT_UNIT_TYPE_PLAYER_PET] = "pet",
+	[COMBAT_UNIT_TYPE_GROUP] = "group",
+	[COMBAT_UNIT_TYPE_OTHER] = "other",
+	[COMBAT_UNIT_TYPE_TARGET_DUMMY] = "dummy",
+	[COMBAT_UNIT_TYPE_GROUP_COMPANION] = "companion",
 }
+
 local function UpdateDebugPanel()
 
 	local unitData = GetUnitSummary()
@@ -821,6 +770,7 @@ libint.Events.Units = libint.EventHandler:New(
         self:RegisterForEvent(EVENT_PLAYER_ACTIVATED, onBossesChanged)
 
         EVENT_MANAGER:RegisterForUpdate("LibCombat_PetStatus", 500, onPlayerPetsChanged) --  TODO: find better way to determine if pets changed
+		self:RegisterEvent(EVENT_COMBAT_EVENT, onTrialDummy, REGISTER_FILTER_ABILITY_ID, 120024, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_GAINED, REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_TARGET_DUMMY, REGISTER_FILTER_IS_ERROR, false)
 
 		self.active = true
 	end
