@@ -26,14 +26,14 @@ local countResultKeys = {
 	[ACTION_RESULT_DOT_TICK_CRITICAL] = "criticalHits",
 	[ACTION_RESULT_BLOCKED_DAMAGE]    = "blockedHits",
 	[ACTION_RESULT_DAMAGE_SHIELDED]   = "shieldedHits",
-	[ACTION_RESULT_HOT_TICK]          = "normalHeal",
 	[ACTION_RESULT_HEAL]              = "normalHeal",
+	[ACTION_RESULT_HOT_TICK]          = "normalHeal",
 	[ACTION_RESULT_CRITICAL_HEAL]     = "criticalHeal",
 	[ACTION_RESULT_HOT_TICK_CRITICAL] = "criticalHeal",
 	[ACTION_RESULT_HEAL_ABSORBED]     = "absorbedHeal",
 }
 
-local damageResultKeys = {
+local amountResultKeys = {
 	[ACTION_RESULT_DAMAGE]            = "normalDamage",
 	[ACTION_RESULT_DOT_TICK]          = "normalDamage",
 	[ACTION_RESULT_CRITICAL_DAMAGE]   = "criticalDamage",
@@ -49,17 +49,14 @@ local damageResultKeys = {
 
 local function ProcessLogLine(processor, fight, logType, ...)
 	if logType == LIBCOMBAT_LOG_EVENT_DAMAGE then
-		processor:ProcessLogLineDamage(fight, logType, ...)
-	elseif logType == LIBCOMBAT_LOG_EVENT_HEAL then
-		processor:ProcessLogLineHeal(fight, logType, ...)
+		processor:ProcessLogEntryDamage(fight, logType, ...)
+		return
 	end
-
-	-- generally: make an object for every callback
-	-- put singletons into the objects
-
-	-- make a singleton for every unique combination of abilityId - source - target
-	-- copy the references to allow respective traversings
-	-- calculate stats out of the singletons
+	if logType == LIBCOMBAT_LOG_EVENT_HEAL then
+		processor:ProcessLogEntryHeal(fight, logType, ...)
+		return
+	end
+	logger:Error("Unsupported logtype: %s", logType)
 end
 
 local AllowedLogTypes = {
@@ -89,14 +86,12 @@ local function InitDamageAbilityData(unit, abilityId, damageType)
 		criticalDamage = 0,
 		blockedDamage  = 0,
 		absorbedDamage = 0,
-		overflowDamage = 0,
 		totalDamage    = 0,
 		normalHits     = 0,
 		criticalHits   = 0,
 		blockedHits    = 0,
 		absorbedHits   = 0,
 		totalHits      = 0,
-		overflowHits   = 0,
 		damageType     = damageType,
 	}
 
@@ -113,7 +108,7 @@ end
 local function UpdateDamageAbilityData(abilitydata, hitValue, overflow, result)
 	local fullValue = hitValue + overflow
 
-	local resultkey = damageResultKeys[result]
+	local resultkey = amountResultKeys[result]
 	local hitKey = countResultKeys[result]
 
 	abilitydata[resultkey] = abilitydata[resultkey] + fullValue
@@ -122,12 +117,6 @@ local function UpdateDamageAbilityData(abilitydata, hitValue, overflow, result)
 	abilitydata.max = zo_max(abilitydata.max, fullValue)
 	abilitydata.min = zo_min(abilitydata.min, fullValue)
 
-	if overflow > 0 then -- shielded damage
-
-		abilitydata["shieldedDamage"] = abilitydata["shieldedDamage"] + overflow
-		abilitydata["shieldedHits"] = abilitydata["shieldedHits"] + 1
-
-	end
 	-- IncrementStatSum(fight, damageType, resultkey, isDamageOut, hitValue, false, unit) TODO: Move to stat module
 end
 
@@ -149,10 +138,12 @@ local function InitHealAbilityData(unit, abilityId, powerType)
 	local abilityData = {
 		normalHealing   = 0,
 		criticalHealing = 0,
+		overflowHealing = 0,
 		absorbedHealing = 0,
 		totalHealing    = 0,
 		normalHits      = 0,
 		criticalHits    = 0,
+		overflowHits    = 0,
 		absorbedHits    = 0,
 		totalHits       = 0,
 		powerType       = powerType,
@@ -169,20 +160,20 @@ local function GetHealAbilityData(data, unitIdSelf, unitIdOther, abilityId, powe
 end
 
 local function UpdateHealAbilityData(abilitydata, hitValue, overflow, result)
-	local fullValue = hitValue + overflow
-	local resultkey = damageResultKeys[result]
+	local resultkey = amountResultKeys[result]
 	local hitKey = countResultKeys[result]
 
-	abilitydata[resultkey] = abilitydata[resultkey] + fullValue
+	abilitydata[resultkey] = abilitydata[resultkey] + hitValue
 	abilitydata[hitKey] = abilitydata[hitKey] + 1
 
-	abilitydata.max = zo_max(abilitydata.max, fullValue)
-	abilitydata.min = zo_min(abilitydata.min, fullValue)
+	abilitydata.max = zo_max(abilitydata.max, hitValue + overflow)
+	abilitydata.min = zo_min(abilitydata.min, hitValue + overflow)
 
 	if overflow > 0 then -- shielded damage
-		abilitydata["shieldedDamage"] = abilitydata["shieldedDamage"] + overflow
-		abilitydata["shieldedHits"] = abilitydata["shieldedHits"] + 1
+		abilitydata["overflowHealing"] = abilitydata["overflowHealing"] + overflow
+		abilitydata["overflowHits"] = abilitydata["overflowHits"] + 1
 	end
+	-- TODO: decide on handling overflow healing
 	-- IncrementStatSum(fight, damageType, resultkey, isDamageOut, hitValue, false, unit) TODO: Move to stat module
 end
 
@@ -203,13 +194,16 @@ end
 local DamageShieldBuffer = {}
 libint.DamageShieldBuffer = DamageShieldBuffer
 
-local function CheckForShield(timems, sourceUnitId, targetUnitId)
-	for i = #DamageShieldBuffer, 1, -1 do
-		local shieldTimems, shieldSourceUnitId, shieldTargetUnitId, shieldHitValue = unpack(DamageShieldBuffer[i])
+local HealAbsorbBuffer = {}
+libint.HealAbsorbBuffer = HealAbsorbBuffer
+
+local function CheckForShield(buffer, timems, sourceUnitId, targetUnitId)
+	for i = #buffer, 1, -1 do
+		local shieldTimems, shieldSourceUnitId, shieldTargetUnitId, shieldHitValue = unpack(buffer[i])
 
 		logger:Verbose("Eval Shield Index %d: Source: %s, Target: %s, Time: %d", i, tostring(shieldSourceUnitId == sourceUnitId), tostring(shieldTargetUnitId == targetUnitId), timems - shieldTimems)
 		if shieldSourceUnitId == sourceUnitId and shieldTargetUnitId == targetUnitId and timems - shieldTimems < 100 then
-			table.remove(DamageShieldBuffer, i)
+			table.remove(buffer, i)
 			return shieldHitValue
 		end
 	end
@@ -221,24 +215,44 @@ local function onCombatEventDamage(_, result, _, _, _, _, _, _, targetName, _, h
 	local timeMs = GetGameTimeMilliseconds()
 	if hitValue > 200000 then logger:Warning("Big Damage Event: (%d) %s did %d damage to %d", abilityId, lib.GetFormattedAbilityName(abilityId), hitValue, tostring(targetName)) end
 	
-	local shieldHitValue = CheckForShield(timeMs, sourceUnitId, targetUnitId) or 0
-	if (hitValue + (overflow or 0) + shieldHitValue) <= 0 then return end
-	if libint.currentfight.prepared ~= true then libint.currentfight:OnCombatStart() end
-	lib.cm:FireCallbacks((libint.callbackKeys[LIBCOMBAT_LOG_EVENT_DAMAGE]), LIBCOMBAT_LOG_EVENT_DAMAGE, timeMs, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType, (overflow or 0), shieldHitValue)
+	local absorb = CheckForShield(DamageShieldBuffer, timeMs, sourceUnitId, targetUnitId) or 0
+	if (hitValue + overflow + absorb) <= 0 then 
+		logger:Debug("Empty Damage Event %s (%d) -> targetName", lib.GetFormattedAbilityName(abilityId), abilityId, tostring(targetName)) 
+		return
+	end
+
+	if libint.currentfight.prepared ~= true then libint.currentfight:OnCombatStart() end	if absorb > 0 then 
+		lib.cm:FireCallbacks((libint.callbackKeys[LIBCOMBAT_LOG_EVENT_DAMAGE]), LIBCOMBAT_LOG_EVENT_DAMAGE, timeMs, ACTION_RESULT_DAMAGE_SHIELDED, sourceUnitId, targetUnitId, abilityId, hitValue, damageType, 0)
+	end
+	lib.cm:FireCallbacks((libint.callbackKeys[LIBCOMBAT_LOG_EVENT_DAMAGE]), LIBCOMBAT_LOG_EVENT_DAMAGE, timeMs, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType, overflow)
 end
 
-local function onCombatEventHeal(_, result, _, _, _, _, _, _, _, _, hitValue, powerType, _, _, sourceUnitId, targetUnitId, abilityId, overflow)  -- called by Event
-	if (hitValue + (overflow or 0)) <= 0 then return end
+local function onCombatEventHeal(_, result, _, _, _, _, _, _, targetName, _, hitValue, powerType, _, _, sourceUnitId, targetUnitId, abilityId, overflow)  -- called by Event
 	local timeMs = GetGameTimeMilliseconds()
+	local absorb = CheckForShield(HealAbsorbBuffer, timeMs, sourceUnitId, targetUnitId) or 0
+	if (hitValue + overflow + absorb) <= 0 then
+		logger:Debug("Empty Damage Event %s (%d) -> targetName", lib.GetFormattedAbilityName(abilityId), abilityId, tostring(targetName)) 
+		return
+	end
 
-	lib.cm:FireCallbacks((libint.callbackKeys[LIBCOMBAT_LOG_EVENT_HEAL]), LIBCOMBAT_LOG_EVENT_HEAL, timeMs, result, sourceUnitId, targetUnitId, abilityId, hitValue, powerType, (overflow or 0))
+	if absorb > 0 then 
+		lib.cm:FireCallbacks((libint.callbackKeys[LIBCOMBAT_LOG_EVENT_HEAL]), LIBCOMBAT_LOG_EVENT_HEAL, timeMs, ACTION_RESULT_HEAL_ABSORBED, sourceUnitId, targetUnitId, abilityId, absorb, powerType, 0)
+	end
+	lib.cm:FireCallbacks((libint.callbackKeys[LIBCOMBAT_LOG_EVENT_HEAL]), LIBCOMBAT_LOG_EVENT_HEAL, timeMs, result, sourceUnitId, targetUnitId, abilityId, hitValue, powerType, overflow)
 end
 
-local function onCombatEventAbsorbed(_, _, _, _, _, _, _, _, _, _, hitValue, _, _, _, sourceUnitId, targetUnitId, _, overflow)
+local function onCombatEventDamageAbsorbed(_, result, _, _, _, _, _, _, _, _, hitValue, _, _, _, sourceUnitId, targetUnitId, _, overflow)
 	if overflow and overflow > 0 then logger:Info("Overflow! Add %d (+%d) Shield: %d -> %d  (%d)", hitValue, overflow, sourceUnitId, targetUnitId, #DamageShieldBuffer) end
 	DamageShieldBuffer[#DamageShieldBuffer + 1] = {GetGameTimeMilliseconds(), sourceUnitId, targetUnitId, hitValue}
 
 	logger:Debug("Add %d Shield: %d -> %d  (%d)", hitValue, sourceUnitId, targetUnitId, #DamageShieldBuffer)
+end
+
+local function onCombatEventHealAbsorbed(_, result, _, _, _, _, _, _, _, _, hitValue, _, _, _, sourceUnitId, targetUnitId, _, overflow)
+	if overflow and overflow > 0 then logger:Info("Overflow! Add %d (+%d) Heal Absorption: %d -> %d  (%d)", hitValue, overflow, sourceUnitId, targetUnitId, #HealAbsorbBuffer) end
+	HealAbsorbBuffer[#HealAbsorbBuffer + 1] = {GetGameTimeMilliseconds(), sourceUnitId, targetUnitId, hitValue}
+
+	logger:Debug("Add %d Shield: %d -> %d  (%d)", hitValue, sourceUnitId, targetUnitId, #HealAbsorbBuffer)
 end
 
 
@@ -253,17 +267,16 @@ libint.Events.Damage = libint.EventHandler:New(
 		local filters = {
 			ACTION_RESULT_DAMAGE,
 			ACTION_RESULT_DOT_TICK,
-			ACTION_RESULT_BLOCKED_DAMAGE,
 			ACTION_RESULT_CRITICAL_DAMAGE,
 			ACTION_RESULT_DOT_TICK_CRITICAL,
+			ACTION_RESULT_BLOCKED_DAMAGE,
 		}
 
 		for i=1,#filters do
 			self:RegisterEvent(EVENT_COMBAT_EVENT, onCombatEventDamage, REGISTER_FILTER_COMBAT_RESULT, filters[i], REGISTER_FILTER_IS_ERROR, false)
 		end
 
-		self:RegisterEvent(EVENT_COMBAT_EVENT, onCombatEventAbsorbed, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_DAMAGE_SHIELDED, REGISTER_FILTER_IS_ERROR, false)
-		self:RegisterEvent(EVENT_COMBAT_EVENT, onCombatEventAbsorbed, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_HEAL_ABSORBED, REGISTER_FILTER_IS_ERROR, false)
+		self:RegisterEvent(EVENT_COMBAT_EVENT, onCombatEventDamageAbsorbed, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_DAMAGE_SHIELDED, REGISTER_FILTER_IS_ERROR, false)
 
 		self.active = true
 	end
@@ -274,16 +287,17 @@ libint.Events.Healing = libint.EventHandler:New(
 	function (self)
 
 		local filters = {
-			ACTION_RESULT_HOT_TICK,
 			ACTION_RESULT_HEAL,
 			ACTION_RESULT_CRITICAL_HEAL,
+			ACTION_RESULT_HOT_TICK,
 			ACTION_RESULT_HOT_TICK_CRITICAL,
-			ACTION_RESULT_HEAL_ABSORBED,
 		}
 
 		for i=1,#filters do
 			self:RegisterEvent(EVENT_COMBAT_EVENT, onCombatEventHeal, REGISTER_FILTER_COMBAT_RESULT, filters[i], REGISTER_FILTER_IS_ERROR, false)
 		end
+
+		self:RegisterEvent(EVENT_COMBAT_EVENT, onCombatEventHealAbsorbed, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_HEAL_ABSORBED, REGISTER_FILTER_IS_ERROR, false)
 
 		self.active = true
 	end
