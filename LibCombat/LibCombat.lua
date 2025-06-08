@@ -1139,7 +1139,6 @@ end
 local parseHeraldFail = false
 local function CheckForHeraldAbility()
 	local bonusData = {[0] = 0, [1] = 0}
-	if GetUnitClassId("player") ~= 117 then return bonusData end
 	local skillType, lineIndex, skillIndex  = GetSpecificSkillAbilityKeysByAbilityId(184873)
 	local abilityId = GetSkillAbilityId(skillType, lineIndex, skillIndex, false)
 	local description = GetAbilityDescription(abilityId)
