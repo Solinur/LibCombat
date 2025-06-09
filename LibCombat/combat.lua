@@ -7,18 +7,6 @@ local libunits = ld.units
 local lf = libint.functions
 local logger
 
-local function onInitilizeFight(processor, fight)
-	if processor.active ~= true then return end
-
-	fight.damageDone = {}
-	fight.damageReceived = {}
-	fight.healingDone = {}
-	fight.healingReceived = {}
-end
-
-local function onCombatStarted() end
-local function onCombatFinished() end
-
 local countResultKeys = {
 	[ACTION_RESULT_DAMAGE]            = "normalHits",
 	[ACTION_RESULT_DOT_TICK]          = "normalHits",
@@ -47,13 +35,26 @@ local amountResultKeys = {
 	[ACTION_RESULT_HEAL_ABSORBED]     = "absorbedHealing",
 }
 
+
+local function onInitilizeFight(processor, fight)
+	if processor.active ~= true then return end
+
+	fight.damageDone = {}
+	fight.damageReceived = {}
+	fight.healingDone = {}
+	fight.healingReceived = {}
+end
+
+local function onCombatStarted() end
+local function onCombatFinished() end
+
 local function ProcessLogLine(processor, fight, logType, ...)
 	if logType == LIBCOMBAT_LOG_EVENT_DAMAGE then
-		processor:ProcessLogEntryDamage(fight, logType, ...)
+		processor:ProcessLogLineDamage(fight, logType, ...)
 		return
 	end
 	if logType == LIBCOMBAT_LOG_EVENT_HEAL then
-		processor:ProcessLogEntryHeal(fight, logType, ...)
+		processor:ProcessLogLineHeal(fight, logType, ...)
 		return
 	end
 	logger:Error("Unsupported logtype: %s", logType)

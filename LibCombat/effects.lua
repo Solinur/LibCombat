@@ -5,6 +5,7 @@ local libint = lib.internal
 local ld = libint.data
 local logger
 local CallbackKeys = libint.callbackKeys
+local lf = libint.functions
 
 libint.badAbility = {
 	[51487] = true, -- Shehai Shockwave
@@ -57,6 +58,241 @@ libint.statusEffectIds = {
 libint.sourceBuggedBuffs = {   -- buffs where ZOS messed up the source, causing CMX to falsely not track them
 	88401,  -- Minor Magickasteal
 }
+
+-- Log Handling -- 
+
+
+local function AcquireEffectData(unit, abilityId, effectType, stacks)
+
+	local name = GetFormattedAbilityName(abilityId)
+
+	local buffs = unit.buffs
+
+	if buffs[name] == nil then
+
+		buffs[name] = EffectHandler:New(effectType, name, abilityId)
+
+	end
+
+	local buffdata = buffs[name]
+
+	buffdata:CheckInstance(abilityId, stacks)
+
+	buffdata.maxStacks = zo_max(stacks, buffdata.maxStacks)
+
+	return buffs[name]
+
+end
+
+function EffectHandler:Initialize(effectType, name, abilityId)
+
+	self.name = name
+	self.iconId = abilityId
+	self.uptime = 0						-- uptime of effect caused by player
+	self.count = 0						-- count of effect applications caused by player
+	self.groupUptime = 0				-- uptime of effect caused by the whole group
+	self.groupCount = 0					-- count of effect applications caused by the whole group
+	self.effectType = effectType		-- buff or debuff
+	self.maxStacks = 0					-- stacks = 0 if the effect wasn't tracked trough EVENT_EFFECT_CHANGED
+	self.firstStartTime = nil			-- temp variable to track when uptime for a buff initially started
+	self.firstGroupStartTime = nil		-- temp variable to track when uptime for a buff from the group initially started
+	self.slots = {}						-- slotid is unique for each application, this is the temporary place to track them
+	self.instances = {}					-- some buff, epecially major/minor ones can be applied via several buff Id's
+
+end
+
+function EffectHandler:CheckInstance(abilityId, stacks)
+
+	local instances = self.instances
+	local instance = instances[abilityId]
+
+	if instance == nil then
+
+		instance = {}
+		instances[abilityId] = instance
+
+	end
+
+	local stackData = instance[stacks]
+
+	if stackData == nil then
+
+		stackData = {
+
+			uptime = 0,			-- uptime of effect caused by player
+			count = 0,			-- count of effect applications caused by player
+			groupUptime = 0,	-- uptime of effect caused by the whole group
+			groupCount = 0,		-- count of effect applications caused by the whole group}
+
+		}
+
+		instance[stacks] = stackData
+
+	end
+end
+
+local function CountSlots(slots)
+
+	local slotcount = 0
+	local groupSlotCount = 0
+
+	for _, slotData in pairs(slots) do
+
+		if slotData.isPlayerSource then slotcount = slotcount + 1 end
+		groupSlotCount = groupSlotCount + 1
+
+	end
+
+	return slotcount, groupSlotCount
+end
+
+local function ProcessLogLineEffects(fight, logline)
+
+	local callbacktype, timems, unitId, abilityId, changeType, effectType, stacks, sourceType, slotId, hitValue = unpackLogline(logline, 1, 10)
+
+	local currentstacks = stacks or 0
+
+	if timems < (fight.combatstart - 500) or fight.units[unitId] == nil then return end
+
+	local unit = fight:AcquireUnitData(unitId, timems)
+	local effectdata = unit:AcquireEffectData(abilityId, effectType, currentstacks)
+
+	local isPlayerSource = sourceType == COMBAT_UNIT_TYPE_PLAYER or sourceType == COMBAT_UNIT_TYPE_PLAYER_PET
+
+	local slots = effectdata.slots
+	local slotcount, groupSlotCount = CountSlots(slots)
+
+	local slotdata = slots[slotId]
+	local instance = effectdata.instances[abilityId]
+
+	if (changeType == EFFECT_RESULT_GAINED or changeType == EFFECT_RESULT_UPDATED) and timems < fight.endtime then
+
+		local starttime = zo_max(timems, fight.starttime)
+
+		if slotcount == 0 and isPlayerSource then effectdata.firstStartTime = starttime end
+		if groupSlotCount == 0 then effectdata.firstGroupStartTime = starttime end
+
+		if slotdata == nil then
+
+			slotdata = {
+				["isPlayerSource"] = isPlayerSource,
+				["abilityId"] = abilityId,
+			}
+
+			slots[slotId] = slotdata
+
+		end
+
+		local minStacks = abilityId == 126597 and 0 or 1
+
+		for stacks = minStacks, currentstacks do
+
+			if slotdata[stacks] == nil then
+
+				slotdata[stacks] = starttime
+				effectdata:CheckInstance(abilityId, stacks)
+
+			end
+		end
+
+		for stacks, starttime in pairs(slotdata) do
+
+			if type(stacks) == "number" and stacks > currentstacks then
+
+				local stackData = instance[stacks]
+				local duration = zo_min(timems, fight.endtime) - starttime
+
+				if isPlayerSource then
+
+					stackData.uptime = stackData.uptime + duration
+					stackData.count = stackData.count + 1
+
+				end
+
+				stackData.groupUptime = stackData.groupUptime + duration
+				stackData.groupCount = stackData.groupCount + 1
+
+				slotdata[stacks] = nil
+
+			end
+		end
+
+	elseif changeType == EFFECT_RESULT_FADED then
+
+		slots[slotId] = nil
+
+		if slotdata and timems > fight.starttime then
+
+			if slotdata.isPlayerSource then slotcount = slotcount - 1 end
+			groupSlotCount = groupSlotCount - 1
+
+			slotdata.isPlayerSource = nil	-- remove, so the loop gets only stackData
+			slotdata.abilityId = nil
+
+			for stacks, starttime in pairs(slotdata) do
+
+				local stackData = instance[stacks]
+				local duration = zo_min(timems, fight.endtime) - starttime
+
+				if isPlayerSource then
+
+					stackData.uptime = stackData.uptime + duration
+					stackData.count = stackData.count + 1
+
+				end
+
+				stackData.groupUptime = stackData.groupUptime + duration
+				stackData.groupCount = stackData.groupCount + 1
+			end
+
+			if slotcount == 0 and effectdata.firstStartTime then
+
+				local duration = zo_min(timems, fight.endtime) - effectdata.firstStartTime
+
+				effectdata.uptime = effectdata.uptime + duration
+				effectdata.count = effectdata.count + 1
+
+				effectdata.firstStartTime = nil
+
+			end
+
+			if groupSlotCount == 0 and effectdata.firstGroupStartTime then
+
+				local duration = zo_min(timems,fight.endtime) - effectdata.firstGroupStartTime
+
+				effectdata.groupUptime = effectdata.groupUptime + duration
+				effectdata.groupCount = effectdata.groupCount + 1
+
+				effectdata.firstGroupStartTime = nil
+
+			end
+
+		end
+	end
+
+	unit:UpdateStats(fight, effectdata, abilityId, hitValue)
+end
+
+
+local function onInitilizeFight(processor, fight)
+	if processor.active ~= true then return end
+
+	fight.effects = {}
+end
+
+local function onCombatStarted(processor)
+	if processor.active ~= true then return end
+end
+
+local function onCombatFinished(processor)
+	if processor.active ~= true then return end 
+end
+
+local AllowedLogTypes = {
+	LIBCOMBAT_LOG_EVENT_EFFECT,
+}
+
+local LogProcessorEffects = lf.LogProcessingHandler:New("combat", onInitilizeFight, onCombatStarted, onCombatFinished, ProcessLogLineEffects, AllowedLogTypes)
 
 -- EffectBuffer --
 
@@ -228,7 +464,7 @@ local function onSpecialDebuffEvent(...)
 	SpecialBuffEventHandler(true, ...)		-- (isdebuff, ...)
 end
 
---[[ TODO: implement Z'en and FoN tracking on analysis side
+---[[ TODO: implement Z'en and FoN tracking on analysis side
 
 function UnitHandler:UpdateZenData(callbackKeys, eventid, timeMs, unitId, abilityId, changeType, effectType, _, sourceType, effectSlot, abilityType)
 
