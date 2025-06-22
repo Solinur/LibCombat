@@ -100,23 +100,23 @@ local function InitDamageAbilityData(unit, abilityId, damageType)
 	return abilityData
 end
 
-local function GetDamageAbilityData(data, unitIdSelf, unitIdOther, abilityId, damageType)
-	local unit = GetUnitData(data, unitIdSelf, unitIdOther)
+local function GetDamageAbilityData(abilityData, unitIdSelf, unitIdOther, abilityId, damageType)
+	local unit = GetUnitData(abilityData, unitIdSelf, unitIdOther)
 	if unit[abilityId] == nil then return InitDamageAbilityData(unit, abilityId, damageType) end
 	return unit[abilityId]
 end
 
-local function UpdateDamageAbilityData(abilitydata, hitValue, overflow, result)
+local function UpdateDamageAbilityData(abilityData, hitValue, overflow, result)
 	local fullValue = hitValue + overflow
 
 	local resultkey = amountResultKeys[result]
 	local hitKey = countResultKeys[result]
 
-	abilitydata[resultkey] = abilitydata[resultkey] + fullValue
-	abilitydata[hitKey] = abilitydata[hitKey] + 1
+	abilityData[resultkey] = abilityData[resultkey] + fullValue
+	abilityData[hitKey] = abilityData[hitKey] + 1
 
-	abilitydata.max = zo_max(abilitydata.max, fullValue)
-	abilitydata.min = zo_min(abilitydata.min, fullValue)
+	abilityData.max = zo_max(abilityData.max, fullValue)
+	abilityData.min = zo_min(abilityData.min, fullValue)
 
 	-- IncrementStatSum(fight, damageType, resultkey, isDamageOut, hitValue, false, unit) TODO: Move to stat module
 end
@@ -182,15 +182,17 @@ function LogProcessorCombat:ProcessLogLineHeal(fight, logType, timems, result, s
 	-- if timems < (fight.combatstart-500) or fight.units[sourceUnitId] == nil or fight.units[targetUnitId] == nil then return end
 
 	if sourceUnitId and sourceUnitId > 0 then
-		local sourceData = GetHealAbilityData(fight.damageDone, sourceUnitId, targetUnitId or 0, abilityId, damageType)
+		local sourceData = GetHealAbilityData(fight.healingDone, sourceUnitId, targetUnitId or 0, abilityId, damageType)
 		UpdateHealAbilityData(sourceData, hitValue, overflow, result)
 	end
 
 	if targetUnitId and targetUnitId > 0 then
-		local targetData = GetHealAbilityData(fight.damageReceived, targetUnitId, sourceUnitId or 0, abilityId, damageType)
+		local targetData = GetHealAbilityData(fight.healingReceived, targetUnitId, sourceUnitId or 0, abilityId, damageType)
 		UpdateHealAbilityData(targetData, hitValue, overflow, result)
 	end
 end
+
+-- Shield Buffers --
 
 local DamageShieldBuffer = {}
 libint.DamageShieldBuffer = DamageShieldBuffer
