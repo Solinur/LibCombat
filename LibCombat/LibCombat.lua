@@ -829,29 +829,19 @@ local function onBossHealthChanged(eventid, unitTag, _, powerType, powerValue, p
 end
 
 local function UpdateEventRegistrations()
-
 	for _,Eventgroup in pairs(Events) do
-
 		Eventgroup:UpdateEvents()
-
 	end
-
 end
 
 local function UpdateResources(name, callbacktype, callback)
-	if true then return end
-
 	local oldCallback = ActiveCallbackTypes[callbacktype][name]
 
-	if callback and oldCallback then
-
+	if callback and oldCallback then 
 		return false
-
 	else
-
 		ActiveCallbackTypes[callbacktype][name] = callback
 		zo_callLater(UpdateEventRegistrations, 0)	-- delay a frame to avoid an issue if functions get registered and deregistered within the same frame
-
 	end
 
 	return true, oldCallback
@@ -864,7 +854,7 @@ local function InitCallbackIndex()
 end
 
 function lib:RegisterForLogableCombatEvents(name, callback)
-	for i = LIBCOMBAT_EVENT_DAMAGE_OUT, LIBCOMBAT_EVENT_MAX do
+	for i = LIBCOMBAT_LOG_EVENT_MIN, LIBCOMBAT_LOG_EVENT_MAX do
 		lib:RegisterForCombatEvent(name, i, callback)
 	end
 end

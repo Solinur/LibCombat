@@ -56,11 +56,25 @@ libint.statusEffectIds = {
 }
 
 libint.sourceBuggedBuffs = {   -- buffs where ZOS messed up the source, causing CMX to falsely not track them
-	88401,  -- Minor Magickasteal
+88401,  -- Minor Magickasteal
 }
 
 -- Log Handling -- 
+local LogProcessorEffects = lf.LogProcessingHandler:New("effects", LIBCOMBAT_LOG_EVENT_EFFECT)
 
+function LogProcessorEffects:onInitilizeFight(fight)
+	if self.active ~= true then return end
+
+	fight.effects = {}
+end
+
+function LogProcessorEffects:onCombatStarted()
+	if self.active ~= true then return end
+end
+
+function LogProcessorEffects:onCombatFinished()
+	if self.active ~= true then return end 
+end
 
 local function InitUnitData(data, unitId)
 	local unitData = {}
@@ -88,7 +102,7 @@ local function InitEffectdata(unitData, abilityId, effectType)
 		slots = {},						-- slotid is unique for each application, this is the temporary place to track them
 		stacks = {}						-- tracking applied stacks
 	}
-
+	
 	unitData[abilityId] = effectData
 	return effectData
 end
@@ -120,13 +134,13 @@ local function CountSlots(slots)
 		if slotData.isPlayerSource then slotcount = slotcount + 1 end
 		groupSlotCount = groupSlotCount + 1
 	end
-
+	
 	return slotcount, groupSlotCount
 end
 
 local abilityIdZen = libint.abilityIdZen
 
-local function ProcessLogLineEffects(processor, fight, logType, timems, unitId, abilityId, changeType, effectType, stacks, sourceType, slotId, hitValue)
+function LogProcessorEffects:ProcessLogLineEffects(fight, logType, timems, unitId, abilityId, changeType, effectType, stacks, sourceType, slotId, hitValue)
 	-- if timems < (fight.combatstart - 500) or fight.units[unitId] == nil then return end
 	
 	local currentstacks = stacks or 0
@@ -216,26 +230,6 @@ local function ProcessLogLineEffects(processor, fight, logType, timems, unitId, 
 
 	-- unit:UpdateStats(fight, effectData, abilityId, hitValue) -- TODO: Setup when stats module works
 end
-
-local function onInitilizeFight(processor, fight)
-	if processor.active ~= true then return end
-
-	fight.effects = {}
-end
-
-local function onCombatStarted(processor)
-	if processor.active ~= true then return end
-end
-
-local function onCombatFinished(processor)
-	if processor.active ~= true then return end 
-end
-
-local AllowedLogTypes = {
-	LIBCOMBAT_LOG_EVENT_EFFECT,
-}
-
-local LogProcessorEffects = lf.LogProcessingHandler:New("combat", onInitilizeFight, onCombatStarted, onCombatFinished, ProcessLogLineEffects, AllowedLogTypes)
 
 -- EffectBuffer --
 
@@ -327,7 +321,9 @@ local function BuffEventHandler(isspecial, groupeffect, _, changeType, effectSlo
 		if unit then
 			unit.starttime = unit.starttime or timems
 			unit.endtime = timems
-
+			
+			-- TODO: requires new implementation
+			--[[
 			if sourceType == COMBAT_UNIT_TYPE_PLAYER and (abilityId == libint.abilityIdZen or abilityType == ABILITY_TYPE_DAMAGE) then
 				unit:UpdateZenData((CallbackKeys[eventid]), eventid, timems, unitId, abilityId, changeType, effectType, stacks, sourceType, effectSlot, abilityType) 
 			end
@@ -335,6 +331,7 @@ local function BuffEventHandler(isspecial, groupeffect, _, changeType, effectSlo
 			if libint.StatusEffectIds[abilityId] and (sourceType == COMBAT_UNIT_TYPE_PLAYER or (unitName == "" and unit.forceOfNature[abilityId] and libint.SpecialDebuffs[abilityId])) then 
 				unit:UpdateForceOfNatureData((CallbackKeys[eventid]), eventid, timems, unitId, abilityId, changeType, effectType, stacks, sourceType, effectSlot) 
 			end
+			]]
 		end
 
 		lib.cm:FireCallbacks((CallbackKeys[eventid]), eventid, timems, unitId, abilityId, changeType, effectType, stacks, sourceType, effectSlot)

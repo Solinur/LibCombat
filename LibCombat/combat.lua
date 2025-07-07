@@ -36,8 +36,15 @@ local amountResultKeys = {
 }
 
 
-local function onInitilizeFight(processor, fight)
-	if processor.active ~= true then return end
+local AllowedLogTypes = {
+	LIBCOMBAT_LOG_EVENT_DAMAGE,
+	LIBCOMBAT_LOG_EVENT_HEAL,
+}
+
+local LogProcessorCombat = lf.LogProcessingHandler:New("combat", AllowedLogTypes)
+
+function LogProcessorCombat:onInitilizeFight(fight)
+	if self.active ~= true then return end
 
 	fight.damageDone = {}
 	fight.damageReceived = {}
@@ -45,27 +52,21 @@ local function onInitilizeFight(processor, fight)
 	fight.healingReceived = {}
 end
 
-local function onCombatStarted() end
-local function onCombatFinished() end
+function LogProcessorCombat:onCombatStarted() end
+function LogProcessorCombat:onCombatFinished() end
 
-local function ProcessLogLine(processor, fight, logType, ...)
+function LogProcessorCombat:ProcessLogLine(fight, logType, ...)
 	if logType == LIBCOMBAT_LOG_EVENT_DAMAGE then
-		processor:ProcessLogLineDamage(fight, logType, ...)
+		self:ProcessLogLineDamage(fight, logType, ...)
 		return
 	end
 	if logType == LIBCOMBAT_LOG_EVENT_HEAL then
-		processor:ProcessLogLineHeal(fight, logType, ...)
+		self:ProcessLogLineHeal(fight, logType, ...)
 		return
 	end
-	logger:Error("Unsupported logtype: %s", logType)
+	logger:Error("Unsupported logtype %s for processor %s", logType, self.name)
 end
 
-local AllowedLogTypes = {
-	LIBCOMBAT_LOG_EVENT_DAMAGE,
-	LIBCOMBAT_LOG_EVENT_HEAL,
-}
-
-local LogProcessorCombat = lf.LogProcessingHandler:New("combat", onInitilizeFight, onCombatStarted, onCombatFinished, ProcessLogLine, AllowedLogTypes)
 
 local function InitUnitData(data, unitId)
 	local unitData = {}

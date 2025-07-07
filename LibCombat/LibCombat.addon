@@ -26,9 +26,9 @@ events.lua
 units.lua
 combat.lua
 effects.lua
-stats.lua
-skillcasting.lua
-resources.lua
-performance.lua
-deaths.lua
+; stats.lua
+; skillcasting.lua
+; resources.lua
+; performance.lua
+; deaths.lua
 LibCombat.lua

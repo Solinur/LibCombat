@@ -1,17 +1,23 @@
 -- This file contains definitions of global variables
 
 local lib = LibCombat
+local CallbackKeys = {}
+lib.internal.callbackKeys = CallbackKeys
 
--- types of callbacks: Units, DPS/HPS, DPS/HPS for Group, Logevents
 
-LIBCOMBAT_EVENT_MIN = 0
-LIBCOMBAT_EVENT_UNITS = 0					-- LIBCOMBAT_EVENT_UNITS, {units}
-LIBCOMBAT_EVENT_FIGHTRECAP = 1				-- LIBCOMBAT_EVENT_FIGHTRECAP, {data}
-LIBCOMBAT_EVENT_FIGHTSUMMARY = 2			-- LIBCOMBAT_EVENT_FIGHTSUMMARY, {fight}
-LIBCOMBAT_EVENT_GROUPRECAP = 3				-- LIBCOMBAT_EVENT_GROUPRECAP, groupDPSOut, groupDPSIn, groupHPS, dpstime, hpstime
-LIBCOMBAT_EVENT_DEATHRECAP = 4				-- LIBCOMBAT_EVENT_DEATHRECAP, timems, {data}
-LIBCOMBAT_EVENT_MAX = 4
+LIBCOMBAT_EVENT_MIN = 50
+LIBCOMBAT_EVENT_UNITS = 50					-- LIBCOMBAT_EVENT_UNITS, {units}
+LIBCOMBAT_EVENT_FIGHTRECAP = 51				-- LIBCOMBAT_EVENT_FIGHTRECAP, {data}
+LIBCOMBAT_EVENT_FIGHTSUMMARY = 52			-- LIBCOMBAT_EVENT_FIGHTSUMMARY, {fight}
+LIBCOMBAT_EVENT_GROUPRECAP = 53				-- LIBCOMBAT_EVENT_GROUPRECAP, groupDPSOut, groupDPSIn, groupHPS, dpstime, hpstime
+LIBCOMBAT_EVENT_DEATHRECAP = 54				-- LIBCOMBAT_EVENT_DEATHRECAP, timems, {data}
+LIBCOMBAT_EVENT_MAX = 54
 
+for i = LIBCOMBAT_EVENT_MIN, LIBCOMBAT_EVENT_MAX do
+	CallbackKeys[i] = "LibCombat" .. i
+end
+
+LIBCOMBAT_LOG_EVENT_MIN = 1
 LIBCOMBAT_LOG_EVENT_COMBATSTATE = 1				-- LIBCOMBAT_EVENT_MESSAGES, timems, combatMessage, value
 LIBCOMBAT_LOG_EVENT_DAMAGE = 2					-- LIBCOMBAT_EVENT_DAMAGE_OUT, timems, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType, overflow
 LIBCOMBAT_LOG_EVENT_HEAL = 3					-- LIBCOMBAT_EVENT_HEAL_OUT, timems, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType, overflow
@@ -23,19 +29,20 @@ LIBCOMBAT_LOG_EVENT_SKILL_CAST = 8				-- LIBCOMBAT_EVENT_SKILL_TIMINGS, timems, 
 LIBCOMBAT_LOG_EVENT_PERFORMANCE = 9				-- LIBCOMBAT_EVENT_PERFORMANCE, timems, avg, min, max, ping
 LIBCOMBAT_LOG_EVENT_QUICKSLOT = 10				-- LIBCOMBAT_EVENT_QUICKSLOT, timems, itemLink
 LIBCOMBAT_LOG_EVENT_SYNERGY = 11				-- LIBCOMBAT_EVENT_SYNERGY, timems, abilityId, status	
+LIBCOMBAT_LOG_EVENT_MAX = 11
+
+for i = LIBCOMBAT_LOG_EVENT_MIN, LIBCOMBAT_LOG_EVENT_MAX do
+	CallbackKeys[i] = "LibCombat" .. i
+end
+
+lib.internal.callbackKeys = CallbackKeys
+
+-- state
 
 LIBCOMBAT_UNIT_STATE_DEAD = 1
 LIBCOMBAT_UNIT_STATE_ALIVE = 2
 LIBCOMBAT_UNIT_STATE_RESURRECTING = 3
 LIBCOMBAT_UNIT_STATE_RESURRECTED = 4
-
-local CallbackKeys = {}
-
-for i = LIBCOMBAT_EVENT_MIN, LIBCOMBAT_EVENT_MAX do
-	CallbackKeys[i] = "LibCombat" .. i
-end
-
-lib.internal.callbackKeys = CallbackKeys
 
 -- combatMessage
 
