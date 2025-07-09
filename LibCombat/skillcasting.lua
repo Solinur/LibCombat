@@ -612,7 +612,7 @@ local isFileInitialized = false
 
 function lib.InitializeSkillcasting()
 	if isFileInitialized == true then return false end
-	logger = libint.initSublogger("skillcasting")
+	logger = lf.initSublogger("skillcasting")
 
 	ld.skillBars= {}
 	ld.scribedSkills= {}

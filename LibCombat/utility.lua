@@ -1,5 +1,6 @@
 local lib = LibCombat
 local libint = lib.internal
+local lf = libint.functions
 local logger
 
 -- Cache formatted Ability Names and Icons. Makes sure they stay consistent, since some addons like to meddle with them.
@@ -409,7 +410,7 @@ local isFileInitialized = false
 
 function lib.InitializeUtility()
 	if isFileInitialized == true then return false end
-	logger = libint.initSublogger("util")
+	logger = lf.initSublogger("util")
 
     isFileInitialized = true
 	return true

@@ -343,7 +343,7 @@ local isFileInitialized = false
 
 function lib.InitializeResources()
 	if isFileInitialized == true then return false end
-	logger = libint.initSublogger("resource")
+	logger = lf.initSublogger("resource")
 
     isFileInitialized = true
 	return true

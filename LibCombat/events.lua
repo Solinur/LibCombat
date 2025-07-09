@@ -3,6 +3,7 @@
 local lib = LibCombat
 local libint = lib.internal
 local ld = libint.data
+local lf = libint.functions
 local logger
 
 local Events = {}
@@ -82,54 +83,42 @@ function EventHandler:UpdateEvents()
 end
 
 function EventHandler:UnregisterEvents()
-
 	for k,reg in pairs(self.data) do
-
 		local inactive = EVENT_MANAGER:UnregisterForEvent(lib.name..reg.id, reg.event)
 
 		if inactive then
-
 			ZO_ClearTable(reg)
 			self.data[k] = nil
-
 		end
 	end
 
 	self.active = false
-
 	if self.resetIds then ZO_ClearTable(libint.registeredSkills) end
 end
 
 local function UnregisterAllEvents()
-
 	for _,Eventgroup in pairs(Events) do
-
 		Eventgroup:UnregisterEvents()
-        
 	end
 end
 
 --  lib.UnregisterAllEvents = UnregisterAllEvents 	-- debug exposure
 
 function libint.GetAllCallbackTypes()
-
 	local t={}
 
 	for i=LIBCOMBAT_EVENT_MIN,LIBCOMBAT_EVENT_MAX do
-
 		t[i]=i
-
 	end
 
 	return t
-
 end
 
 local isFileInitialized = false
 
 function lib.InitializeEvents()
 	if isFileInitialized == true then return false end
-	logger = libint.initSublogger("events")
+	logger = lf.initSublogger("events")
 
     isFileInitialized = true
 	return true

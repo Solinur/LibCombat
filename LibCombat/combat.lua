@@ -43,6 +43,7 @@ local AllowedLogTypes = {
 
 local LogProcessorCombat = lf.LogProcessingHandler:New("combat", AllowedLogTypes)
 
+
 function LogProcessorCombat:onInitilizeFight(fight)
 	if self.active ~= true then return end
 
@@ -50,10 +51,27 @@ function LogProcessorCombat:onInitilizeFight(fight)
 	fight.damageReceived = {}
 	fight.healingDone = {}
 	fight.healingReceived = {}
+
+	fight.damageStats = {
+		groupDamageOut = 0,			-- dmg from and to the group
+		groupDamageIn = 0,			-- dmg from and to the group
+		groupDamageShielded = 0,	-- dmg from and to the group
+		damageOutTotal = 0,			-- total damage out
+		damageInTotal = 0,			-- total damage in
+		damageInShielded = 0,		-- total damage in shielded
+	}
+	fight.healStats = {
+		healingOut = 0,				-- total healing out
+		healingOutOver = 0,			-- total healing out including Overheal
+		healingIn = 0,				-- total healing in
+		groupHealingOut = 0,		-- heal of the group
+		groupHealingIn = 0,			-- heal of the group
+		groupHealingOver = 0,		-- total healing out including Overheal
+	}
 end
 
-function LogProcessorCombat:onCombatStarted() end
-function LogProcessorCombat:onCombatFinished() end
+function LogProcessorCombat:onCombatStart() end
+function LogProcessorCombat:onCombatEnd() end
 
 function LogProcessorCombat:ProcessLogLine(fight, logType, ...)
 	if logType == LIBCOMBAT_LOG_EVENT_DAMAGE then
@@ -68,21 +86,23 @@ function LogProcessorCombat:ProcessLogLine(fight, logType, ...)
 end
 
 
-local function InitUnitData(data, unitId)
+local function InitUnitData(fight, data, unitId)
+	fight:CheckUnit()
+
 	local unitData = {}
 	data[unitId] = unitData
 
 	return unitData
 end
 
-local function GetUnitData(data, unitIdSelf, unitIdOther)
-	local unitDataSelf = data[unitIdSelf] or InitUnitData(data, unitIdSelf)
-	if unitDataSelf[unitIdOther] == nil then return InitUnitData(unitDataSelf, unitIdOther) end
+local function GetUnitData(fight, data, unitIdSelf, unitIdOther)
+	local unitDataSelf = data[unitIdSelf] or InitUnitData(fight, data, unitIdSelf)
+	if unitDataSelf[unitIdOther] == nil then return InitUnitData(fight, unitDataSelf, unitIdOther) end
 
 	return unitDataSelf[unitIdOther]
 end
 
-local function InitDamageAbilityData(unit, abilityId, damageType)
+local function InitDamageAbilityData(timems, damageType)
 	local abilityData = {
 		normalDamage   = 0,
 		criticalDamage = 0,
@@ -95,19 +115,19 @@ local function InitDamageAbilityData(unit, abilityId, damageType)
 		absorbedHits   = 0,
 		totalHits      = 0,
 		damageType     = damageType,
+		startTime = timems,
 	}
 
-	unit[abilityId] = abilityData
 	return abilityData
 end
 
-local function GetDamageAbilityData(abilityData, unitIdSelf, unitIdOther, abilityId, damageType)
-	local unit = GetUnitData(abilityData, unitIdSelf, unitIdOther)
-	if unit[abilityId] == nil then return InitDamageAbilityData(unit, abilityId, damageType) end
+local function GetDamageAbilityData(fight, fightData, timems, unitIdSelf, unitIdOther, abilityId, damageType)
+	local unit = GetUnitData(fight, fightData, unitIdSelf, unitIdOther)
+	if unit[abilityId] == nil then unit[abilityId] = InitDamageAbilityData(timems, damageType) end
 	return unit[abilityId]
 end
 
-local function UpdateDamageAbilityData(abilityData, hitValue, overflow, result)
+local function UpdateDamageAbilityData(abilityData, timems, hitValue, overflow, result)
 	local fullValue = hitValue + overflow
 
 	local resultkey = amountResultKeys[result]
@@ -118,6 +138,7 @@ local function UpdateDamageAbilityData(abilityData, hitValue, overflow, result)
 
 	abilityData.max = zo_max(abilityData.max, fullValue)
 	abilityData.min = zo_min(abilityData.min, fullValue)
+	abilityData.endTime = timems
 
 	-- IncrementStatSum(fight, damageType, resultkey, isDamageOut, hitValue, false, unit) TODO: Move to stat module
 end
@@ -125,18 +146,21 @@ end
 function LogProcessorCombat:ProcessLogLineDamage(fight, logType, timems, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType, overflow)
 	-- if timems < (fight.combatstart-500) or fight.units[sourceUnitId] == nil or fight.units[targetUnitId] == nil then return end
 
+	if fight.damageStats.startTime == nil then fight.damageStats.startTime = timems end
+	fight.damageStats.endTime = timems
+
 	if sourceUnitId and sourceUnitId > 0 then
-		local sourceData = GetDamageAbilityData(fight.damageDone, sourceUnitId, targetUnitId or 0, abilityId, damageType)
-		UpdateDamageAbilityData(sourceData, hitValue, overflow, result)
+		local sourceData = GetDamageAbilityData(fight, fight.damageDone, timems, sourceUnitId, targetUnitId or 0, abilityId, damageType)
+		UpdateDamageAbilityData(sourceData, timems, hitValue, overflow, result)
 	end
 
 	if targetUnitId and targetUnitId > 0 then
-		local targetData = GetDamageAbilityData(fight.damageReceived, targetUnitId, sourceUnitId or 0, abilityId, damageType)
-		UpdateDamageAbilityData(targetData, hitValue, overflow, result)
+		local targetData = GetDamageAbilityData(fight, fight.damageReceived, timems,  targetUnitId, sourceUnitId or 0, abilityId, damageType)
+		UpdateDamageAbilityData(targetData, timems, hitValue, overflow, result)
 	end
 end
 
-local function InitHealAbilityData(unit, abilityId, powerType)
+local function InitHealAbilityData(timems, powerType)
 	local abilityData = {
 		normalHealing   = 0,
 		criticalHealing = 0,
@@ -149,31 +173,32 @@ local function InitHealAbilityData(unit, abilityId, powerType)
 		absorbedHits    = 0,
 		totalHits       = 0,
 		powerType       = powerType,
+		startTime       = timems,
 	}
 
-	unit[abilityId] = abilityData
 	return abilityData
 end
 
-local function GetHealAbilityData(data, unitIdSelf, unitIdOther, abilityId, powerType)
-	local unit = GetUnitData(data, unitIdSelf, unitIdOther)
-	if unit[abilityId] == nil then return InitHealAbilityData(unit, abilityId, powerType) end
+local function GetHealAbilityData(fight, fightData, timems, unitIdSelf, unitIdOther, abilityId, powerType)
+	local unit = GetUnitData(fight, fightData, unitIdSelf, unitIdOther)
+	if unit[abilityId] == nil then unit[abilityId] = InitHealAbilityData(timems, powerType) end
 	return unit[abilityId]
 end
 
-local function UpdateHealAbilityData(abilitydata, hitValue, overflow, result)
+local function UpdateHealAbilityData(abilityData, timems, hitValue, overflow, result)
 	local resultkey = amountResultKeys[result]
 	local hitKey = countResultKeys[result]
 
-	abilitydata[resultkey] = abilitydata[resultkey] + hitValue
-	abilitydata[hitKey] = abilitydata[hitKey] + 1
+	abilityData[resultkey] = abilityData[resultkey] + hitValue
+	abilityData[hitKey] = abilityData[hitKey] + 1
 
-	abilitydata.max = zo_max(abilitydata.max, hitValue + overflow)
-	abilitydata.min = zo_min(abilitydata.min, hitValue + overflow)
+	abilityData.max = zo_max(abilityData.max, hitValue + overflow)
+	abilityData.min = zo_min(abilityData.min, hitValue + overflow)
+	abilityData.endTime = timems
 
 	if overflow > 0 then -- shielded damage
-		abilitydata["overflowHealing"] = abilitydata["overflowHealing"] + overflow
-		abilitydata["overflowHits"] = abilitydata["overflowHits"] + 1
+		abilityData["overflowHealing"] = abilityData["overflowHealing"] + overflow
+		abilityData["overflowHits"] = abilityData["overflowHits"] + 1
 	end
 	-- TODO: decide on handling overflow healing
 	-- IncrementStatSum(fight, damageType, resultkey, isDamageOut, hitValue, false, unit) TODO: Move to stat module
@@ -182,14 +207,17 @@ end
 function LogProcessorCombat:ProcessLogLineHeal(fight, logType, timems, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType, overflow)
 	-- if timems < (fight.combatstart-500) or fight.units[sourceUnitId] == nil or fight.units[targetUnitId] == nil then return end
 
+	if fight.healStats.startTime == nil then fight.healStats.startTime = timems end
+	fight.healStats.endTime = timems
+
 	if sourceUnitId and sourceUnitId > 0 then
-		local sourceData = GetHealAbilityData(fight.healingDone, sourceUnitId, targetUnitId or 0, abilityId, damageType)
-		UpdateHealAbilityData(sourceData, hitValue, overflow, result)
+		local sourceData = GetHealAbilityData(fight, fight.healingDone, sourceUnitId, targetUnitId or 0, abilityId, damageType)
+		UpdateHealAbilityData(sourceData, timems, hitValue, overflow, result)
 	end
 
 	if targetUnitId and targetUnitId > 0 then
-		local targetData = GetHealAbilityData(fight.healingReceived, targetUnitId, sourceUnitId or 0, abilityId, damageType)
-		UpdateHealAbilityData(targetData, hitValue, overflow, result)
+		local targetData = GetHealAbilityData(fight, fight.healingReceived, targetUnitId, sourceUnitId or 0, abilityId, damageType)
+		UpdateHealAbilityData(targetData, timems, hitValue, overflow, result)
 	end
 end
 
@@ -311,7 +339,7 @@ local isFileInitialized = false
 
 function lib.InitializeCombat()
 	if isFileInitialized == true then return false end
-	logger = libint.initSublogger("combat")
+	logger = lf.initSublogger("combat")
 
     isFileInitialized = true
 	return true

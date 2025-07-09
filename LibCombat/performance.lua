@@ -1,5 +1,6 @@
 local lib = LibCombat
 local libint = lib.internal
+local lf = libint.functions
 local CallbackKeys = libint.callbackKeys
 local logger
 
@@ -88,7 +89,7 @@ local isFileInitialized = false
 
 function lib.InitializePerformance()
 	if isFileInitialized == true then return false end
-	logger = libint.initSublogger("performance")
+	logger = lf.initSublogger("performance")
 
     isFileInitialized = true
 	return true

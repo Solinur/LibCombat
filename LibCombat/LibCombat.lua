@@ -47,45 +47,18 @@ end
 
 function FightHandler:Initialize()
 	self.char = libunits.playername
-	self.combatstart = 0 - timeout - 1	-- start of combat in ms
-	self.combatend = -150				-- end of combat in ms
-	self.combattime = 0 				-- total combat time
-	self.dpsstart = nil 				-- start of dps in ms
-	self.dpsend = nil				 	-- end of dps in ms
-	self.hpsstart = nil 				-- start of hps in ms
-	self.hpsend = nil				 	-- end of hps in ms
-	self.dpstime = 0					-- total dps time
-	self.hpstime = 0					-- total dps time
-	self.units = {}
-	self.grplog = {}					-- log from group actions
-	self.groupDamageOut = 0				-- dmg from and to the group
-	self.groupDamageIn = 0				-- dmg from and to the group
-	self.groupHealingOut = 0				-- heal of the group
-	self.groupHealingIn = 0				-- heal of the group
-	self.groupDPSOut = 0				-- group dps
-	self.groupDPSIn = 0					-- incoming dps	on group
-	self.groupHPSOut = 0				-- group hps
-	self.groupHPSIn = 0					-- group hps
-	self.damageOutTotal = 0				-- total damage out
-	self.healingOutTotal = 0			-- total healing out
-	self.healingOutAbsolute = 0			-- total healing out including Overheal
-	self.damageInTotal = 0				-- total damage in
-	self.damageInShielded = 0			-- total damage in shielded
-	self.healingInTotal = 0				-- total healing in
-	self.DPSOut = 0						-- dps
-	self.HPSOut = 0						-- hps
-	self.HPSAOut = 0					-- hps including Overheal
-	self.DPSIn = 0						-- incoming dps
-	self.HPSIn = 0						-- incoming hps
 	self.group = libunits.inGroup
 	self.playerId = libunits.playerId
 	self.bosses = {}
 	self.dataVersion = 2
 	self.special = {}	-- for storing special information (like glacial presence before update 36)
+
+	self.combatstart = 0 - timeout - 1	-- start of combat in ms
+	self.combatend = -150				-- end of combat in ms
+	self.combattime = 0 	
 end
 
 function FightHandler:ResetFight()
-
 	logger:Info("Reset Fight")
 
 	if ld.inCombat ~= true then return end
@@ -96,7 +69,6 @@ function FightHandler:ResetFight()
 	self:onUpdate()
 
 	libint.currentfight:PrepareFight()
-
 	libint.onCombatState(EVENT_PLAYER_COMBAT_STATE, IsUnitInCombat("player"))
 end
 
@@ -355,7 +327,6 @@ local function GetEquip()
 end
 
 function FightHandler:FinishFight()
-
 	local charData = self.charData
 
 	if charData == nil then return end
@@ -366,7 +337,7 @@ function FightHandler:FinishFight()
 
 	local timems = GetGameTimeMilliseconds()
 	self.combatend = timems
-	self.combattime = zo_round((timems - self.combatstart)/10)/100
+	self.combattime = (timems - self.combatstart)/1000
 
 	self.starttime = zo_min(self.dpsstart or self.hpsstart or 0, self.hpsstart or self.dpsstart or 0)
 	self.endtime = zo_max(self.dpsend or 0, self.hpsend or 0)
@@ -383,7 +354,9 @@ function FightHandler:FinishFight()
 	ld.lastabilities = {}
 end
 
-
+function FightHandler:CheckUnit()
+	-- TODO: Copy over basic unit info (or mark for later copy ?)
+end
 local lastGetNewStatsCall = 0
 
 function FightHandler:QueueStatUpdate(timems)
@@ -505,6 +478,7 @@ function FightHandler:AddCombatEvent(timems, result, targetUnitId, value, eventi
 end
 
 --]]
+
 function FightHandler:UpdateStats()
 	lf.ProcessDeathRecaps()
 
@@ -563,65 +537,10 @@ function FightHandler:UpdateStats()
 
 	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_UNITS]), LIBCOMBAT_EVENT_UNITS, self.units)
 	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_FIGHTRECAP]), LIBCOMBAT_EVENT_FIGHTRECAP, data)
-
 end
 
-function FightHandler:UpdateGrpStats() -- called by onUpdate
-	if not (self.group and Events.CombatGrp.active) then return end
-
-	local iend = (self.grplog and #self.grplog) or 0
-	if iend > 1 then
-		for i = iend, 1, -1 do 			-- go backwards for easier deletions
-
-			local line = self.grplog[i]
-			local unitId, value, action = unpack(line)
-
-			local unit = self.units[unitId]
-
-			if unit and unit.isFriendly == false and action=="heal" then
-				table.remove(self.grplog,i)
-
-			elseif unit and unit.isFriendly == true and action=="heal" then --only events of identified units are removed. The others might be identified later.
-				self.groupHealingOut = self.groupHealingOut + value
-				table.remove(self.grplog,i)
-
-			elseif unit and unit.isFriendly == false and action=="dmg" then
-				unit.groupDamageOut = unit.groupDamageOut + value
-				self.groupDamageOut = self.groupDamageOut + value
-				table.remove(self.grplog,i)
-
-			elseif unit and unit.isFriendly == true and action=="dmg" then
-				self.groupDamageIn = self.groupDamageIn + value
-				table.remove(self.grplog,i)
-
-			end
-		end
-	end
-
-	local dpstime = self.dpstime
-	local hpstime = self.hpstime
-
-	self.groupHealingIn = self.groupHealingOut
-
-	self.groupDPSOut = zo_floor(self.groupDamageOut / dpstime + 0.5)
-	self.groupDPSIn = zo_floor(self.groupDamageIn / dpstime + 0.5)
-	self.groupHPSOut = zo_floor(self.groupHealingOut / hpstime + 0.5)
-
-	self.groupHPSIn = self.groupHPSOut
-
-	local data = {
-		["groupDPSOut"] = self.groupDPSOut,
-		["groupDPSIn"] = self.groupDPSIn,
-		["groupHPSOut"] = self.groupHPSOut,
-		["dpstime"] = dpstime,
-		["hpstime"] = hpstime
-	}
-
-	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_GROUPRECAP]), LIBCOMBAT_EVENT_GROUPRECAP, data)
-end
 
 local function getCurrentBossHP()
-
 	if BOSS_BAR.control:IsHidden() then return 0 end
 
 	local totalHealth = 0
@@ -633,73 +552,37 @@ local function getCurrentBossHP()
 	end
 
 	return totalHealth/totalMaxHealth
-
 end
 
 local function IsOngoingBossfight()
-
 	if libint.isInPortalWorld then -- prevent fight reset in bossfights when using a portal.
-
 		logger:Debug("Prevented combat reset because player is in Portal!")
 		return true
-
 	elseif getCurrentBossHP() > 0 and getCurrentBossHP() < 1 then
-
 		logger:Info("Prevented combat reset because boss is still in fight!")
 		return true
-
-	else
-
-		return false
-
 	end
+	return false
 end
 
 function FightHandler:onUpdate()
-
 	libint.onCombatState(EVENT_PLAYER_COMBAT_STATE, IsUnitInCombat("player"))
 
 	--reset data
 	if reset == true or (ld.inCombat == false and self.combatend > 0 and (GetGameTimeMilliseconds() > (self.combatend + timeout)) ) then
-
 		reset = false
-
 		self:UpdateFightStats()
-
-		if self.damageOutTotal>0 or self.healingOutTotal>0 or self.damageInTotal>0 then
-
-			logger:Debug("Time: %.2fs (DPS) | %.2fs (HPS) ", self.dpstime, self.hpstime)
-			logger:Debug("Dmg: %d (DPS: %d)", self.damageOutTotal, self.DPSOut)
-			logger:Debug("Heal: %d (HPS: %d)", self.healingOutTotal, self.HPSOut)
-			logger:Debug("IncDmg: %d (Shield: %d, IncDPS: %d)", self.damageInTotal, self.damageInShielded, self.DPSIn)
-			logger:Debug("IncHeal: %d (IncHPS: %d)", self.healingInTotal, self.HPSIn)
-
-			if libunits.inGroup and Events.CombatGrp.active then
-
-				logger:Debug("GrpDmg: %d (DPS: %d)", self.groupDamageOut, self.groupDPSOut)
-				logger:Debug("GrpHeal: %d (HPS: %d)", self.groupHealingOut, self.groupHPSOut)
-				logger:Debug("GrpIncDmg: %d (IncDPS: %d)", self.groupDamageIn, self.groupDPSIn)
-
-			end
-		end
-
 		logger:Debug("resetting...")
-
-		self.grplog = {}
 
 		lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_FIGHTSUMMARY]), LIBCOMBAT_EVENT_FIGHTSUMMARY, self)
 
 		libint.currentfight = FightHandler:New()
-		lf.ClearUnitCaches()
 
 		EVENT_MANAGER:UnregisterForUpdate("LibCombat_update")
 
 	elseif ld.inCombat == true then
-
 		self:UpdateFightStats()
-
 	end
-
 end
 
 
@@ -946,6 +829,8 @@ function lib.InitializeMain()
 
 	--resetfightdata
 	libint.currentfight = FightHandler:New()
+	libint.LogProcessingQueue:SetFight(libint.currentfight)
+	lf.ActivateProcessors()
 
 	InitCallbackIndex()
 

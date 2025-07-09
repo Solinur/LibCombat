@@ -68,13 +68,8 @@ function LogProcessorEffects:onInitilizeFight(fight)
 	fight.effects = {}
 end
 
-function LogProcessorEffects:onCombatStarted()
-	if self.active ~= true then return end
-end
-
-function LogProcessorEffects:onCombatFinished()
-	if self.active ~= true then return end 
-end
+function LogProcessorEffects:onCombatStart() end
+function LogProcessorEffects:onCombatEnd() end
 
 local function InitUnitData(data, unitId)
 	local unitData = {}
@@ -487,23 +482,17 @@ libint.Events.Effects = libint.EventHandler:New(
 		self:RegisterEvent(EVENT_EFFECT_CHANGED, onEffectChanged, REGISTER_FILTER_UNIT_TAG, "player", REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_OTHER)
 
 		for i=1,#libint.specialBuffs do
-
 			self:RegisterEvent(EVENT_COMBAT_EVENT, onSpecialBuffEvent, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_GAINED_DURATION, REGISTER_FILTER_ABILITY_ID, libint.specialBuffs[i], REGISTER_FILTER_IS_ERROR, false)
 			self:RegisterEvent(EVENT_COMBAT_EVENT, onSpecialBuffEvent, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_FADED, REGISTER_FILTER_ABILITY_ID, libint.specialBuffs[i], REGISTER_FILTER_IS_ERROR, false)
-
 		end
 
 		for i=1,#libint.specialDebuffs do
-
 			self:RegisterEvent(EVENT_COMBAT_EVENT, onSpecialDebuffEvent, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_GAINED_DURATION, REGISTER_FILTER_ABILITY_ID, libint.specialDebuffs[i], REGISTER_FILTER_IS_ERROR, false)
 			self:RegisterEvent(EVENT_COMBAT_EVENT, onSpecialDebuffEvent, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_FADED, REGISTER_FILTER_ABILITY_ID, libint.specialDebuffs[i], REGISTER_FILTER_IS_ERROR, false)
-
 		end
 
 		for i=1,#libint.sourceBuggedBuffs do
-
 			self:RegisterEvent(EVENT_EFFECT_CHANGED, onSourceBuggedEffectChanged, REGISTER_FILTER_ABILITY_ID, libint.sourceBuggedBuffs[i])
-
 		end
 		
 		self.active = true
@@ -533,7 +522,7 @@ local isFileInitialized = false
 
 function lib.InitializeEffects()
 	if isFileInitialized == true then return false end
-	logger = libint.initSublogger("effects")
+	logger = lf.initSublogger("effects")
 
     isFileInitialized = true
 	return true

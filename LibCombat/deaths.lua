@@ -452,7 +452,7 @@ libint.Events.DeathRecap = libint.EventHandler:New(
 local isFileInitialized = false
 function lib.InitializeDeaths()
 	if isFileInitialized == true then return false end
-	logger = libint.initSublogger("death")
+	logger = lf.initSublogger("death")
 
     isFileInitialized = true
 	return true

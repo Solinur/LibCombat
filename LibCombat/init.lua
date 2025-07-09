@@ -40,7 +40,7 @@ else
 	libint.logger.main = internalLogger
 end
 
-function libint.initSublogger(name)
+function lf.initSublogger(name)
 	local mainlogger = libint.logger.main
 	if mainlogger.Create == nil or name == nil or name == "" then return mainlogger end
 	if libint.logger[name] ~= nil then

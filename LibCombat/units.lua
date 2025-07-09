@@ -2,10 +2,11 @@ local _
 local libunits            = {}
 local lib                 = LibCombat
 local libint              = lib.internal
+local lf                  = libint.functions
 local ld                  = libint.data
 ld.units                  = libunits
 local logger
-local spairs              = libint.functions.spairs
+local spairs              = lf.spairs
 
 ---@diagnostic disable-next-line: undefined-global
 local em                  = EventCallbackManager and EventCallbackManager:New("LCU_EventManager") or GetEventManager()
@@ -723,7 +724,7 @@ local isFileInitialized = false
 
 function lib.InitializeUnits()
 	if isFileInitialized == true then return false end
-	logger = libint.initSublogger("units")
+	logger = lf.initSublogger("units")
 
 	libunits.rawPlayername = GetRawUnitName("player")
 	libunits.playername = ZO_CachedStrFormat(SI_UNIT_NAME, libunits.rawPlayername)
