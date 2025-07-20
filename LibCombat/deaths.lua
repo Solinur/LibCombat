@@ -238,8 +238,7 @@ local function CheckForWipe()	-- TODO use preassembled group unit tags
 end
 
 local function OnDeathStateChanged(_, unitTag, isDead) 	-- death (for group display, also works for different zones)
-
-	local unitId = unitTag == "player" and libunits.playerId or libunits.unitIdsByTag[unitTag]
+	local unitId = unitTag == "player" and lib.GetPlayerUnitId() or libunits.unitIdsByTag[unitTag]
 
 	logger:Debug("OnDeathStateChanged: %s (%s) is dead: %s", unitTag, tostring(unitId), tostring(isDead))
 
@@ -305,35 +304,25 @@ local function OnResurrect(_, result, _, abilityName, _, abilityActionSlotType, 
 end
 
 local function OnResurrectResult(_, targetCharacterName, result, targetDisplayName)
-
+	if result ~= RESURRECT_RESULT_SUCCESS then return end
 	logger:Debug("OnResurrectResult: %s", targetCharacterName)
 
-	local timems = GetGameTimeMilliseconds()
-
-	if result ~= RESURRECT_RESULT_SUCCESS then return end
-
 	local name = ZO_CachedStrFormat(SI_UNIT_NAME, targetCharacterName) or ""
-
 	local unitId = libunits.unitIdsByName[name]
-
 	if not unitId then return end
-
+	
+	local timems = GetGameTimeMilliseconds()
 	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_DEATH]), LIBCOMBAT_EVENT_DEATH, timems, LIBCOMBAT_UNIT_STATE_RESURRECTED, unitId, libunits.playerId)
-
 end
 
 local function OnResurrectRequest(_, requesterCharacterName, timeLeftToAccept, requesterDisplayName)
-
 	logger:Debug("OnResurrectRequest: %s", requesterCharacterName)
 
-	local timems = GetGameTimeMilliseconds()
-
 	local name = ZO_CachedStrFormat(SI_UNIT_NAME, requesterCharacterName) or ""
-
 	local unitId = libunits.unitIdsByName[name]
-
 	if not unitId then return end
-
+	
+	local timems = GetGameTimeMilliseconds()
 	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_DEATH]), LIBCOMBAT_EVENT_DEATH, timems, LIBCOMBAT_UNIT_STATE_RESURRECTED, libunits.playerId, unitId)
 
 end

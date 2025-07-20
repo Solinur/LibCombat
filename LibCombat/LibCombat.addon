@@ -31,4 +31,5 @@ effects.lua
 ; resources.lua
 ; performance.lua
 ; deaths.lua
+fighthandler.lua
 LibCombat.lua

@@ -12,7 +12,10 @@ local spairs              = lf.spairs
 local em                  = EventCallbackManager and EventCallbackManager:New("LCU_EventManager") or GetEventManager()
 local wm                  = GetWindowManager()
 
+---@class UnitHandler 
 local UnitHandler         = ZO_InitializingObject:Subclass() -- internal object to store everything about a unit
+
+---@class UnitAPIHandler 
 local UnitAPIHandler      = ZO_InitializingObject:Subclass() -- object to expose data about units
 
 -- internal objects
@@ -30,18 +33,17 @@ libunits.effectSlotCache  = {}
 libunits.UnitExportCache  = {}
 libunits.debugPanel       = { init = false }
 
+-- localized to optimze performace due to frequent calls by OnCombatEvent
+local UnitCache = libunits.unitData
+local EffectCache = libunits.effectCache
+local EffectSlotCache = libunits.effectSlotCache
 
-local UnitCache                        = libunits
-.unitData                                        -- localized for performance reasons since it is called very often by OnCombatEvent
-local EffectCache                      = libunits
-.effectCache                                     -- localized for performance reasons since it is called very often by OnCombatEvent
-local EffectSlotCache                  = libunits
-.effectSlotCache                                 -- localized for performance reasons since it is called very often by OnCombatEvent
-local UnitExportCache                  = libunits.UnitExportCache -- localized for convinience
+-- localized for convinience
+local UnitExportCache = libunits.UnitExportCache
 
 ---@diagnostic disable-next-line: undefined-global
 local COMBAT_UNIT_TYPE_GROUP_COMPANION = COMBAT_UNIT_TYPE_GROUP_COMPANION or (COMBAT_UNIT_TYPE_GROUP + 100)
-
+libint.COMBAT_UNIT_TYPE_GROUP_COMPANION = COMBAT_UNIT_TYPE_GROUP_COMPANION
 -- Internal functions
 
 local function IsValidUnitId(unitId)
@@ -136,6 +138,7 @@ local function onBossesChanged(_) -- Detect Bosses
 		end
 	end
 end
+lf.onBossesChanged = onBossesChanged
 
 local function onPlayerPetsChanged(_) -- TODO: figure out when to call this
 	local petTagByName = libunits.petTagByName
@@ -313,6 +316,8 @@ function UnitHandler:Initialize(rawName, unitId, unitType, unitTag)
 	self.effectData     = {}
 	self.effectTimeData = {}
 
+	self:UpdateFriendlyStatus()
+
 	if (unitTag == nil or unitTag == "") then self:LookupUnitTag() end
 
 	local UnitIdByRawName = libunits.unitIdsByRawName
@@ -356,13 +361,14 @@ end
 
 local friendlyUnitTypes = {
 	[COMBAT_UNIT_TYPE_PLAYER] = true,
+	[COMBAT_UNIT_TYPE_PLAYER_COMPANION] = true,
 	[COMBAT_UNIT_TYPE_GROUP] = true,
 	[COMBAT_UNIT_TYPE_GROUP_COMPANION] = true,
 	[COMBAT_UNIT_TYPE_PLAYER_PET] = true,
 }
 
-function UnitHandler:UpdateFriendlyStatus(unitType)
-	self.isFriendly = friendlyUnitTypes[unitType] == true
+function UnitHandler:UpdateFriendlyStatus()
+	self.isFriendly = friendlyUnitTypes[self.unitType] == true
 end
 
 function UnitHandler:Update(rawName, unitType, unitTag)
@@ -381,28 +387,43 @@ function UnitHandler:Update(rawName, unitType, unitTag)
 	if unitType and self.unitType ~= unitType then
 		logger.Info("unitType changed: %d -> %d %s (%d)", self.unitType, unitType, self.name, self.unitId)
 		self.unitType = unitType
+		self:UpdateFriendlyStatus()
 	end
 end
 
 function UnitHandler:UpdateUnitTagData(unitTag)
 	-- General
-	self.gender = GetUnitGender(unitTag)
+	UnitHandler:ValidateUnitTagUpdate("gender", GetUnitGender(unitTag))
+	UnitHandler:ValidateUnitTagUpdate("maxHealth", GetUnitPower(unitTag, COMBAT_MECHANIC_FLAGS_HEALTH))
 	
 	-- Player characters	TODO: check classification
-	self.displayName = GetUnitDisplayName(unitTag)
-	self.class = GetUnitClass(unitTag)
-	self.classId = GetUnitClassId(unitTag)
-	self.CP = GetUnitChampionPoints(unitTag)
-	self.effectiveCP = GetUnitEffectiveChampionPoints(unitTag)
-	self.effectiveLevel = GetUnitEffectiveLevel(unitTag)
+	UnitHandler:ValidateUnitTagUpdate("displayName", GetUnitDisplayName(unitTag))
+	UnitHandler:ValidateUnitTagUpdate("class", GetUnitClass(unitTag))
+	UnitHandler:ValidateUnitTagUpdate("classId", GetUnitClassId(unitTag))
+	UnitHandler:ValidateUnitTagUpdate("CP", GetUnitChampionPoints(unitTag))
+	UnitHandler:ValidateUnitTagUpdate("effectiveCP", GetUnitEffectiveChampionPoints(unitTag))
+	UnitHandler:ValidateUnitTagUpdate("effectiveLevel", GetUnitEffectiveLevel(unitTag))
 	
 	-- Status
-	self.isDead = IsUnitDead(unitTag)
-	self.isReincarnating = IsUnitReincarnating(unitTag)
-	self.isAlive = not IsUnitDeadOrReincarnating(unitTag)
+	UnitHandler:ValidateUnitTagUpdate("isDead", IsUnitDead(unitTag))
+	UnitHandler:ValidateUnitTagUpdate("isReincarnating", IsUnitReincarnating(unitTag))
+	UnitHandler:ValidateUnitTagUpdate("isAlive", not IsUnitDeadOrReincarnating(unitTag))
 	
 	-- TODO: check limitations and only update necessary values
+	-- TODO: check not to overwrite data
 	-- TODO: Add more data from unitTag if possible
+end
+
+function UnitHandler:ValidateUnitTagUpdate(key, value)
+	if value == nil then return end
+	if type(value) == "string" then
+		if value == "" then return end
+	end
+	if type(value) == "number" then
+		if value == 0 then return end
+	end
+
+	self[key] = value
 end
 
 function UnitHandler:UpdateUnitTag(newUnitTag)
@@ -487,14 +508,17 @@ function UnitAPIHandler:Initialize(unitId)
 	UnitExportCache[unitId] = self
 end
 
+
 function UnitAPIHandler:GetFullUnitData()
 	local unitData = {
-
-		["unitId"]   = self.unitId,
-		["name"]     = self:GetUnitName(),
-		["rawName"]  = self:GetUnitRawName(),
-		["unitType"] = self:GetUnitType()
-
+		unitId   = self.unitId,
+		name     = self:GetUnitName(),
+		rawName  = self:GetUnitRawName(),
+		unitType = self:GetUnitType(),
+		unitTags = self:GetUnitTags(),
+		isBoss   = self:IsBoss(),
+		isFriendly = self:IsFriendly(),
+		maxHealth = self:GetMaxHealth(),
 	}
 
 	return unitData
@@ -516,20 +540,32 @@ function UnitAPIHandler:GetUnitTags()
 	return UnitCache[self.unitId].unitTags
 end
 
+function UnitAPIHandler:IsBoss()
+	return UnitCache[self.unitId].isBoss
+end
+
+function UnitAPIHandler:IsFriendly()
+	return UnitCache[self.unitId].isFriendly
+end
+
+function UnitAPIHandler:GetMaxHealth()
+	return UnitCache[self.unitId].maxHealth
+end
+
 local function GetExportUnit(unitId)
 	return UnitExportCache[unitId] or UnitAPIHandler:New(unitId)
 end
 
 -- API
 
-function lib.GetUnitByTag(unitTag)
-	local unitId = libunits.unitIdsByTag[unitTag]
-
-	return GetExportUnit(unitId)
-end
-
 function lib.GetUnitIdByTag(unitTag)
 	return libunits.unitIdsByTag[unitTag]
+end
+
+function lib.GetUnitByTag(unitTag)
+	local unitId = lib.GetUnitIdByTag(unitTag)
+
+	return GetExportUnit(unitId)
 end
 
 function lib.GetUnitsByName(unitName)
@@ -552,7 +588,6 @@ function lib.GetUnitsByRawName(unitName)
 	local unitIds = libunits.unitIdsByRawName[unitName]
 
 	local units = {}
-
 	for i, unitId in ipairs(unitIds) do
 		units[i] = GetExportUnit(unitId)
 	end
@@ -564,24 +599,24 @@ function lib.GetUnitIdsByRawName(unitName)
 	return unpack(libunits.unitIdsByRawName[unitName])
 end
 
+---comment
+---@param unitId integer
+---@return UnitAPIHandler
 function lib.GetUnitById(unitId)
 	return GetExportUnit(unitId)
 end
 
 -- Debug Utilities
-
 local logBase = math.log(5)
 
 local function GetUnitSummary() -- gives a list of all units with names and id and the last seen time:
 	local unitData = {}
-
 	local now      = GetGameTimeSeconds()
 
 	for unitId, unit in pairs(UnitCache) do
 		unitData[unitId] = {
 			["unitName"] = unit.name,
 			["lastSeenRange"] = math.log(now - unit.lastSeen) / logBase,
-
 		}
 	end
 
@@ -641,15 +676,14 @@ local typeStrings = {
 	[COMBAT_UNIT_TYPE_GROUP] = "group",
 	[COMBAT_UNIT_TYPE_OTHER] = "other",
 	[COMBAT_UNIT_TYPE_TARGET_DUMMY] = "dummy",
+	[COMBAT_UNIT_TYPE_PLAYER_COMPANION] = "companion",
 	[COMBAT_UNIT_TYPE_GROUP_COMPANION] = "companion",
 }
 
 local function UpdateDebugPanel()
 	local unitData = GetUnitSummary()
 	local now = GetGameTimeSeconds()
-
 	local stringArray = {}
-
 	local lines = 0
 
 	for unitId, unitData in spairs(unitData, UnitSummaryOrder) do
@@ -700,7 +734,7 @@ end
 -- Init
 
 libint.Events.Units = libint.EventHandler:New(
-	libint.GetAllCallbackTypes(),
+	libint.GetAllCallbackTypes(), 
 	function(self)
 		self:RegisterForEvent(EVENT_COMBAT_EVENT, OnCombatEvent)
 		self:RegisterForEvent(EVENT_EFFECT_CHANGED, OnEffectChanged)
@@ -710,6 +744,9 @@ libint.Events.Units = libint.EventHandler:New(
 		self:RegisterForEvent(EVENT_PLAYER_ACTIVATED, onGroupChange)
 		self:RegisterForEvent(EVENT_BOSSES_CHANGED, onBossesChanged)
 		self:RegisterForEvent(EVENT_PLAYER_ACTIVATED, onBossesChanged)
+
+		self:RegisterEvent(EVENT_EFFECT_CHANGED, onBossesChanged, REGISTER_FILTER_ABILITY_ID, 108045) -- Rescan bosses on certain portal use
+		self:RegisterEvent(EVENT_EFFECT_CHANGED, onBossesChanged, REGISTER_FILTER_ABILITY_ID, 121216) -- Rescan bosses on certain portal use
 
 		EVENT_MANAGER:RegisterForUpdate("LibCombat_PetStatus", 500, onPlayerPetsChanged) --  TODO: find better way to determine if pets changed
 		self:RegisterEvent(EVENT_COMBAT_EVENT, onTrialDummy, REGISTER_FILTER_ABILITY_ID, 120024,
@@ -730,6 +767,8 @@ function lib.InitializeUnits()
 	libunits.playername = ZO_CachedStrFormat(SI_UNIT_NAME, libunits.rawPlayername)
 	libunits.accountname = ZO_CachedStrFormat(SI_UNIT_NAME, GetDisplayName())
 	libunits.inGroup = IsUnitGrouped("player")
+
+	onBossesChanged()
 
 	SLASH_COMMANDS["/lcudebug"] = libunits.toggleDebug
 

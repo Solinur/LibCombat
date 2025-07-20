@@ -20,16 +20,13 @@ function EventHandler:New(...)
 end
 
 function EventHandler:Initialize(callbacktypes,regfunc)
-
 	self.data={}
 	self.callbacktypes=callbacktypes
 	self.active=false
 	self.RegisterEvents = regfunc
-
 end
 
 function EventHandler:RegisterEvent(event, callback, ...) -- convinience function
-
 	local filters = {...}
 
 	libint.totalevents = (libint.totalevents or 0) + 1
@@ -40,9 +37,7 @@ function EventHandler:RegisterEvent(event, callback, ...) -- convinience functio
 	local filtered = false
 
 	if #filters>0 and (#filters)%2==0 then
-
 		filtered = EVENT_MANAGER:AddFilterForEvent(eventId, event, unpack(filters))
-
 	end
 
 	self.data[#self.data+1] = {
@@ -62,24 +57,17 @@ function EventHandler:RegisterEvent(event, callback, ...) -- convinience functio
 end
 
 function EventHandler:UpdateEvents()
-
 	local condition = false
 
 	for k, callbacktype in pairs(self.callbacktypes) do
-
 		if NonContiguousCount(libint.ActiveCallbackTypes[callbacktype])>0 then condition = true break end
-
 	end
 
 	if condition == true and self.active == false then
-
 		self:RegisterEvents()
-
 	elseif condition == false and self.active == true then
-
 		self:UnregisterEvents()
 	end
-
 end
 
 function EventHandler:UnregisterEvents()
@@ -121,5 +109,8 @@ function lib.InitializeEvents()
 	logger = lf.initSublogger("events")
 
     isFileInitialized = true
+
+	EVENT_MANAGER:RegisterForEvent("LibCombatActive", EVENT_PLAYER_ACTIVATED, function() ld.isUIActivated = true end)
+	EVENT_MANAGER:RegisterForEvent("LibCombatActive", EVENT_PLAYER_DEACTIVATED, function() ld.isUIActivated = false end)
 	return true
 end

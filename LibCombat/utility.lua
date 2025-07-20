@@ -3,6 +3,44 @@ local libint = lib.internal
 local lf = libint.functions
 local logger
 
+---@class Queue
+local Queue = ZO_InitializingObject:Subclass()
+
+function Queue:Initialize()
+	self.first = 0
+	self.last = -1
+end
+
+function Queue:Push(value) -- https://www.lua.org/pil/11.4.html
+	local last = self.last + 1
+	self.last = last
+	self[last] = value
+end
+
+function Queue:Pop()
+	if self:IsEmpty() then logger:error("Queue is empty") end
+	local first = self.first
+	local value = self[first]
+	self[first] = nil
+	self.first = first + 1
+	return value
+end
+
+function Queue:Delete(index)
+	if self:IsEmpty() then logger:error("Queue is empty") end
+	if index == self.first then return self:Pop() end
+
+	self.last = self.last - 1
+	return table.remove(self, index) -- TODO: This is a bit hacky. Maybe review
+end
+
+function Queue:IsEmpty()
+	return self.first > self.last
+end
+
+function lf.CreateQueue()
+	return Queue:New()
+end
 -- Cache formatted Ability Names and Icons. Makes sure they stay consistent, since some addons like to meddle with them.
 
 local CustomAbilityName = {
@@ -292,7 +330,7 @@ function lib:GetCombatLogString(fight, logline, fontsize, showIds)
 		else return
 		end
 
-	elseif logtype == LIBCOMBAT_EVENT_PLAYERSTATS then
+	elseif logtype == LIBCOMBAT_LOG_EVENT_STATS then
 		local _, _, statchange, newvalue, statId = unpack(logline)
 
 		local stat = statStrings[statId]

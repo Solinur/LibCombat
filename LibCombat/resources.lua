@@ -285,10 +285,11 @@ local function onBaseResourceChanged(powerType, powerValue, powerValueChange)
 
 	elseif powerType == COMBAT_MECHANIC_FLAGS_HEALTH then
 		abilityId = -1
-
-		if powerValueChange == lf.GetStat(STAT_HEALTH_REGEN_COMBAT) and ld.units.playerId then
+		
+		local playerId = lib.GetPlayerUnitId()
+		if powerValueChange == lf.GetStat(STAT_HEALTH_REGEN_COMBAT) and playerId then
 			abilityId = 0
-			lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_HEAL_SELF]), LIBCOMBAT_EVENT_HEAL_SELF, timems, ACTION_RESULT_HOT_TICK, ld.units.playerId, ld.units.playerId, abilityId, powerValueChange, powerType, 0)
+			lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_HEAL_SELF]), LIBCOMBAT_EVENT_HEAL_SELF, timems, ACTION_RESULT_HOT_TICK, playerId, playerId, abilityId, powerValueChange, powerType, 0)
 			return
 		end
 	end
@@ -307,7 +308,7 @@ local function onBaseResourceChangedDelayed(_,unitTag,_,powerType,newValue,_,_)
 	if oldValue == nil or oldValue == newValue then return end
 
 	local powerValueChange = newValue - oldValue
-	if powerType == COMBAT_MECHANIC_FLAGS_HEALTH and ld.statusEffectBonus and ld.statusEffectBonus.wealdBonus>0 then libint.currentfight:UpdateSingleStat(LIBCOMBAT_STAT_STATUS_EFFECT_CHANCE) end
+	if powerType == COMBAT_MECHANIC_FLAGS_HEALTH and ld.statusEffectBonus and ld.statusEffectBonus.wealdBonus>0 then lf.UpdateSingleStat(LIBCOMBAT_STAT_STATUS_EFFECT_CHANCE) end
 
 	logger:Debug("onBaseResourceChangedDelayed: %s, %d, %d", unitTag, powerType, powerValueChange)
 	zo_callLater(function() onBaseResourceChanged(powerType, newValue, powerValueChange) end, 0)
