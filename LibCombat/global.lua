@@ -151,6 +151,8 @@ function lib.IsMundusBuff(abilityId)
 	return MundusStones[abilityId] == true
 end
 
+lib.internal.abilityIdZen = 126597
+lib.internal.abilityIdForceOfNature = 174250
 
 local isFileInitialized = false
 function lib.InitializeGlobals()

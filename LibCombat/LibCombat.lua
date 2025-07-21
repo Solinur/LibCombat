@@ -75,7 +75,7 @@ function libint.onCombatState(event, inCombat)  -- Detect Combat Stage, local is
 			ld.inCombat = inCombat
 			logger:Debug("Entering combat.")
 			libint.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_LOG_EVENT_COMBATSTATE]), LIBCOMBAT_LOG_EVENT_COMBATSTATE, timems, LIBCOMBAT_MESSAGE_COMBATSTART, 0)
-			libint.currentfight:PrepareFight()
+			libint.currentFight:PrepareFight()
 		else
 			if IsOngoingBossfight() then
 				logger:Debug("Failed: Leaving combat.")
@@ -84,9 +84,9 @@ function libint.onCombatState(event, inCombat)  -- Detect Combat Stage, local is
 
 			ld.inCombat = false
 			logger:Debug("Leaving combat.")
-			libint.currentfight:FinishFight()
+			libint.currentFight:FinishFight()
 
-			if libint.currentfight.charData == nil then return end
+			if libint.currentFight.charData == nil then return end
 			libint.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_LOG_EVENT_COMBATSTATE]), LIBCOMBAT_LOG_EVENT_COMBATSTATE, timems, LIBCOMBAT_MESSAGE_COMBATEND, 0)
 		end
 	end
@@ -97,7 +97,7 @@ local function onPortalWorld( _, changeType)
 end
 
 local function onMageExplode()
-	libint.currentfight:ResetFight()	-- special tracking for The Mage in Aetherian Archives. It will reset the fight when the mage encounter starts.
+	libint.currentFight:ResetFight()	-- special tracking for The Mage in Aetherian Archives. It will reset the fight when the mage encounter starts.
 end
 
 local function onWeaponSwap(_, isHotbarSwap)
@@ -106,12 +106,12 @@ local function onWeaponSwap(_, isHotbarSwap)
 	ld.bar = newbar
 	lf.GetCurrentSkillBars()
 
-	local inCombat = libint.currentfight.prepared
+	local inCombat = libint.currentFight.prepared
 	if inCombat == true then
 		local timems = GetGameTimeMilliseconds()
 		libint.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_LOG_EVENT_COMBATSTATE]), LIBCOMBAT_LOG_EVENT_COMBATSTATE, timems, LIBCOMBAT_MESSAGE_WEAPONSWAP, ld.bar)
 
-		-- libint.currentfight:QueueStatUpdate(timems) -- move to stats
+		-- libint.currentFight:QueueStatUpdate(timems) -- move to stats
 	end
 end
 
@@ -160,6 +160,9 @@ local function InitCallbackIndex()
 	for i=LIBCOMBAT_EVENT_MIN,LIBCOMBAT_EVENT_MAX do
 		ActiveCallbackTypes[i]={}
 	end
+	for i=LIBCOMBAT_LOG_EVENT_MIN,LIBCOMBAT_LOG_EVENT_MAX do
+		ActiveCallbackTypes[i]={}
+	end
 end
 
 function lib:RegisterForLogableCombatEvents(name, callback)
@@ -197,8 +200,8 @@ function lib:UnregisterCallbackType(callbacktype, callback, name)
 end
 
 function lib:GetCurrentFight()
-	if libint.currentfight.dpsstart ~= nil then
-		return ZO_DeepTableCopy(libint.currentfight)
+	if libint.currentFight.dpsstart ~= nil then
+		return ZO_DeepTableCopy(libint.currentFight)
 	end
 end
 
@@ -256,11 +259,6 @@ function lib.InitializeMain()
 	ld.stats = {}
 	ld.advancedStats = {}
 	ld.currentQuickslotIndex = GetCurrentQuickslot()
-
-	--resetfightdata
-	libint.LogProcessingQueue:SetFight(libint.currentfight)
-	
-	lf.ActivateProcessors()
 
 	isFileInitialized = true
 	return true

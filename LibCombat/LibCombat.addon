@@ -32,4 +32,5 @@ effects.lua
 ; performance.lua
 ; deaths.lua
 fighthandler.lua
+api.lua
 LibCombat.lua

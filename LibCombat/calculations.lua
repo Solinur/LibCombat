@@ -29,7 +29,7 @@ function LogProcessingHandler:Initialize(name,  AllowedLogTypes)
 	self.name = name
 	self.idCounter = 1
 	self.RegisteredLogTypes = {}
-	self.currentfight = nil
+	self.currentFight = nil
 	self.idString = {}
 
 	libint.LogProcessors[name] = self
@@ -47,7 +47,7 @@ end
 
 ---@param logType number
 function LogProcessingHandler:RegisterLogType(logType)
-	lf.LogTypeProcessors[logType] = function(...) self:ProcessLogLine(...) end
+	lf.LogTypeProcessors[logType] = self
 	self.RegisteredLogTypes[logType] = false
 end
 
@@ -177,7 +177,7 @@ end
 function lib.InitializeCalculations()
 	if isFileInitialized == true then return false end
 	logger = lf.initSublogger("calc")
-	libint.LogProcessingQueue = LogProcessingQueue:New()
+	libint.LogProcessingQueue = LogProcessingQueue
 
     isFileInitialized = true
 	return true

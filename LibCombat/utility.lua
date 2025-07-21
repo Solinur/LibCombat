@@ -4,6 +4,7 @@ local lf = libint.functions
 local logger
 
 ---@class Queue
+---@field New function
 local Queue = ZO_InitializingObject:Subclass()
 
 function Queue:Initialize()
@@ -210,7 +211,7 @@ local UnitTypeString = {
 }
 
 function lib:GetCombatLogString(fight, logline, fontsize, showIds)
-	if fight == nil then fight = libint.currentfight end
+	if fight == nil then fight = libint.currentFight end
 
 	local logtype = logline[1]
 	local color, text

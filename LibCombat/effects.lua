@@ -8,11 +8,9 @@ local logger
 local EffectKey = libint.callbackKeys[LIBCOMBAT_LOG_EVENT_EFFECT]
 local lf = libint.functions
 local unitData = {}
+local abilityIdZen = libint.abilityIdZen
+local abilityIdForceOfNature = libint.abilityIdForceOfNature
 
-local abilityIdZen = 126597
-libint.abilityIdZen = abilityIdZen
-local abilityIdForceOfNature = 174250
-libint.abilityIdForceOfNature = abilityIdForceOfNature
 
 libint.badAbility = {
 	[51487] = true, -- Shehai Shockwave
@@ -51,7 +49,7 @@ libint.specialDebuffs = {   -- debuffs that the API doesn't show via EVENT_EFFEC
 	148801,  -- Status Effect Bleeding (Hemorrhaging)
 }
 
-libint.statusEffectIds = {
+libint.StatusEffectIds = {
 	[178118] = true, -- Magic (Overcharged)
 	[18084]  = true, -- Fire (Burning)
 	[95136]  = true, -- Frost (Chill)
@@ -277,7 +275,7 @@ local function InitLocalUnitData(unitId)
 		forceOfNature = {},
 	}
 	unitData[unitId] = unit
-	return unitData
+	return unit
 end
 
 
@@ -308,7 +306,7 @@ end
 
 function UpdateForceOfNatureData(_, _, timeMs, unitId, abilityId, changeType, _, _, _, _)
 	local unit = unitData[unitId] or InitLocalUnitData(unitId)
-	if libint.StatusEffectIds[abilityId] == nil or libint.currentfight.CP[1]["slotted"] == nil or libint.currentfight.CP[1]["slotted"][276] ~= true then return end
+	if libint.StatusEffectIds[abilityId] == nil or libint.currentFight.CP[1]["slotted"] == nil or libint.currentFight.CP[1]["slotted"][276] ~= true then return end
 
 	local forceOfNatureChangeType = EFFECT_RESULT_UPDATED
 	local debugChangeType = "o"
@@ -364,14 +362,20 @@ local function BuffEventHandler(isspecial, changeType, effectSlot, _, unitTag, _
 	local stacks = zo_max(1, stackCount)
 	logger:Verbose("%s %s the %s %dx %s (%d, ET: %d, %s, %d)", unitName, changeType, effectType == BUFF_EFFECT_TYPE_BUFF and "buff" or "debuff", stackCount, lib.GetFormattedAbilityName(abilityId), abilityId, abilityType, unitTag, sourceType)
 
-	-- if lib.IsPlayerUnitId(unitId) then libint.currentfight:QueueStatUpdate(timems) end -- TODO: move to stats
+	-- if lib.IsPlayerUnitId(unitId) then libint.currentFight:QueueStatUpdate(timems) end -- TODO: move to stats
 
 	if sourceType == COMBAT_UNIT_TYPE_PLAYER and (abilityId == abilityIdZen or abilityType == ABILITY_TYPE_DAMAGE) then
 		UpdateZenData(timems, unitId, abilityId, changeType, effectType, sourceType, effectSlot)
 	end
 
-	if libint.StatusEffectIds[abilityId] and (sourceType == COMBAT_UNIT_TYPE_PLAYER or (unitName == "" and unitData[unitId] and unitData[unitId].forceOfNature[abilityId] and libint.SpecialDebuffs[abilityId])) then 
-		UpdateForceOfNatureData(EffectKey, LIBCOMBAT_LOG_EVENT_EFFECT, timems, unitId, abilityId, changeType, effectType, stacks, sourceType, effectSlot) 
+	if libint.StatusEffectIds[abilityId] then 
+		logger:Info("unitData", unitData)
+		logger:Info("[unitId]", unitData[unitId])
+		logger:Info(".forceOfNature", unitData[unitId].forceOfNature)
+		logger:Info("libint.SpecialDebuffs[abilityId]", libint.SpecialDebuffs[abilityId])
+		if (sourceType == COMBAT_UNIT_TYPE_PLAYER or (unitName == "" and unitData[unitId] and unitData[unitId].forceOfNature[abilityId] and libint.SpecialDebuffs[abilityId])) then
+			UpdateForceOfNatureData(EffectKey, LIBCOMBAT_LOG_EVENT_EFFECT, timems, unitId, abilityId, changeType, effectType, stacks, sourceType, effectSlot) 
+		end
 	end
 
 	libint.cm:FireCallbacks(EffectKey, LIBCOMBAT_LOG_EVENT_EFFECT, timems, unitId, abilityId, changeType, effectType, stacks, sourceType, effectSlot)
@@ -418,7 +422,7 @@ local function SpecialBuffEventHandler(isdebuff, result, _, _, _, _, _, sourceTy
 
 	local effectType = isdebuff and BUFF_EFFECT_TYPE_DEBUFF or BUFF_EFFECT_TYPE_BUFF
 	local endTime = now + duration/1000
-	local unitTag = libint.currentfight.units and libint.currentfight.units[targetUnitId] and libint.currentfight.units[targetUnitId].unitTag or nil
+	local unitTag = libint.currentFight.units and libint.currentFight.units[targetUnitId] and libint.currentFight.units[targetUnitId].unitTag or nil
 
 	BuffEventHandler(true, changeType, targetUnitId, _, unitTag, _, endTime, stackCount, _, _, effectType, ABILITY_TYPE_BONUS, _, targetName, targetUnitId, abilityId, sourceType)
 end

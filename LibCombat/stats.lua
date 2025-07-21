@@ -314,7 +314,7 @@ local zoDerivedStatIds = {
 }
 
 local function GetSingleStat(statId)
-	if not libint.currentfight.prepared then libint.currentfight:PrepareFight() end
+	if not libint.currentFight.prepared then libint.currentFight:PrepareFight() end
 	return statSourceFunctions[statId](zoDerivedStatIds[statId])
 end
 lf.GetSingleStat = GetSingleStat
@@ -375,14 +375,14 @@ end
 function lf.onTFSChanged(_, changeType, _, _, _, _, _, stackCount, _, _, _, _, _, _, _, _, _)
 	local getBonus = (changeType == EFFECT_RESULT_GAINED or changeType == EFFECT_RESULT_UPDATED) and stackCount > 1
 	TFSBonus = getBonus and (stackCount - 1) * 544 or 0
-	libint.currentfight:QueueStatUpdate()
+	libint.currentFight:QueueStatUpdate()
 end
 
 local function onShadowMundus( _, changeType, effectSlot)
 	if changeType == EFFECT_RESULT_GAINED or changeType == EFFECT_RESULT_UPDATED then lf.GetShadowBonus(effectSlot)
 	elseif changeType == EFFECT_RESULT_FADED then ld.critBonusMundus = 0 end
 
-	if libint.currentfight.prepared == true then libint.currentfight:QueueStatUpdate() end
+	if libint.currentFight.prepared == true then libint.currentFight:QueueStatUpdate() end
 end
 
 libint.Events.Stats = libint.EventHandler:New(

@@ -503,6 +503,7 @@ end
 
 ---@diagnostic disable-next-line: duplicate-set-field
 function UnitAPIHandler:Initialize(unitId)
+	-- TODO: Add safeguard if unit is unkown!
 	self.unitId = unitId
 
 	UnitExportCache[unitId] = self
@@ -511,14 +512,14 @@ end
 
 function UnitAPIHandler:GetFullUnitData()
 	local unitData = {
-		unitId   = self.unitId,
-		name     = self:GetUnitName(),
-		rawName  = self:GetUnitRawName(),
-		unitType = self:GetUnitType(),
-		unitTags = self:GetUnitTags(),
-		isBoss   = self:IsBoss(),
+		unitId     = self.unitId,
+		name       = self:GetUnitName(),
+		rawName    = self:GetUnitRawName(),
+		unitType   = self:GetUnitType(),
+		unitTags   = self:GetUnitTags(),
+		isBoss     = self:IsBoss(),
 		isFriendly = self:IsFriendly(),
-		maxHealth = self:GetMaxHealth(),
+		maxHealth  = self:GetMaxHealth(),
 	}
 
 	return unitData

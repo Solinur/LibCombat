@@ -59,14 +59,8 @@ local function GetCurrentCP()
 end
 
 ---@class Fight
-local FightHandler = ZO_Object:Subclass()
-
----@diagnostic disable-next-line: duplicate-set-field
-function FightHandler:New(...)
-    local object = ZO_Object.New(self)
-    object:Initialize(...)
-    return object
-end
+---@field New function
+local FightHandler = ZO_InitializingObject:Subclass()
 
 function FightHandler:Initialize()
 	self.char = libunits.playername
@@ -85,7 +79,7 @@ function FightHandler:ResetFight()
 	self:FinishFight()
 	self:onUpdate()
 
-	libint.currentfight:PrepareFight()
+	libint.currentFight:PrepareFight()
 	libint.onCombatState(EVENT_PLAYER_COMBAT_STATE, IsUnitInCombat("player"))
 end
 
@@ -219,6 +213,8 @@ function FightHandler:QueueStatUpdate(timems)
 	lf.UpdateStats(timems)
 end
 
+-- Return player and total damage done to a single unit including the durations in seconds during which the damage happend.
+---@param unitId integer
 ---@return number? playerTime
 ---@return integer? playerDamage
 ---@return number? totalTime
@@ -240,12 +236,13 @@ function FightHandler:GetDamageToUnit(unitId)
 	return playerTime, playerDamage, unitTime, unitData.totalDamage
 end
 
----@return number? playerTime
----@return integer? playerDamage
----@return number? totalTime
----@return integer? totalDamage
-function FightHandler:GetDamageToUnits(unitIds)	-- Gets highest Single Target Damage and counts enemy units.
-	if self.damageReceived == nil then return end
+-- Return player and total damage done to specified units including the durations in seconds during which the damage happend.
+---@return number playerTime
+---@return integer playerDamage
+---@return number totalTime
+---@return integer totalDamage
+function FightHandler:GetDamageToUnits(unitIds)
+	if self.damageReceived == nil then return 0, 0, 0, 0 end
 
 	local playerStartTime = math.huge
 	local playerEndTime = 0
@@ -270,8 +267,8 @@ function FightHandler:GetDamageToUnits(unitIds)	-- Gets highest Single Target Da
 		end
 	end
 
-	if endTime == 0 then return end
-	if playerEndTime == 0 then 
+	if endTime == 0 then return 0, 0, 0, 0 end
+	if playerEndTime == 0 then
 		playerStartTime = 0
 	end
 	local unitTime = (endTime - startTime)/1000
@@ -280,13 +277,10 @@ function FightHandler:GetDamageToUnits(unitIds)	-- Gets highest Single Target Da
 	return playerTime, playerDamage, unitTime, totalDamage
 end
 
---- Get biggest unit.
----@return number? playerTime
----@return integer? playerDamage
----@return number? totalTime
----@return integer? totalDamage
+--- Returns the unitId of the biggest unit.
+---@return integer targetUnitId
 function FightHandler:GetMainUnit()
-	if self.damageReceived == nil then return end
+	if self.damageReceived == nil then return 0 end
 	local damageData = self.damageReceived
 
 	local maxHealth = 0
@@ -307,6 +301,7 @@ function FightHandler:GetMainUnit()
 	return targetUnitId
 end
 
+-- Return player and total healing done including the durations in seconds during which the healing happend.
 ---@return number? playerTime
 ---@return integer? playerHealing
 ---@return number? totalTime
@@ -361,7 +356,10 @@ function FightHandler:onUpdate()
 		logger:Debug("resetting...")
 		reset = false
 
-		libint.currentfight = FightHandler:New()
+		local newFight = FightHandler:New()
+		libint.lastFight = libint.currentFight
+		libint.currentFight = newFight
+		libint.LogProcessingQueue:SetFight(newFight)
 	elseif ld.inCombat == true then
 		self:UpdateFightStats()
 	end
@@ -370,7 +368,11 @@ end
 function lib.InitializeFights()
 	if isFileInitialized == true then return false end
 	logger = lf.initSublogger("fights")
-	libint.currentfight = FightHandler:New()
+
+	local newFight = FightHandler:New()
+	libint.currentFight = newFight
+	lf.ActivateProcessors()
+	libint.LogProcessingQueue:SetFight(newFight)
 
     isFileInitialized = true
 	return true

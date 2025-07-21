@@ -20,7 +20,7 @@ function lf.ProcessDeathRecaps()
 
 	for unitId, UnitDeathCache in pairs(UnitDeathsToProcess) do
 		if timems - UnitDeathCache.timems > 200 then
-			logger:Debug("ProcessDeath: %s (%d)", libint.currentfight.units[unitId].name, unitId)
+			logger:Debug("ProcessDeath: %s (%d)", libint.currentFight.units[unitId].name, unitId)
 			UnitDeathCache:ProcessDeath()
 		end
 	end
@@ -56,7 +56,7 @@ function UnitDeathCacheHandler:Initialize(unitId)
 
 	if not libint.debug then return end
 
-	local unitname = libint.currentfight.units[unitId] and libint.currentfight.units[unitId].name or "Unknown"
+	local unitname = libint.currentFight.units[unitId] and libint.currentFight.units[unitId].name or "Unknown"
 
 	logger:Debug("Init unit death cache: %s (%d)", unitname, unitId)
 
@@ -70,7 +70,7 @@ function UnitDeathCacheHandler:OnDeath(timems)
 
 	if not libint.debug then return end
 
-	local unitname = libint.currentfight.units[self.unitId] and libint.currentfight.units[self.unitId].name or "Unknown"
+	local unitname = libint.currentFight.units[self.unitId] and libint.currentFight.units[self.unitId].name or "Unknown"
 
 	logger:Debug("UnitCacheHandler:OnDeath: %s (%d)", unitname, self.unitId)
 
@@ -78,14 +78,14 @@ end
 
 function UnitDeathCacheHandler:ProcessDeath()
 
-	local unit = libint.currentfight.units[self.unitId]
+	local unit = libint.currentFight.units[self.unitId]
 
 	if unit then ZO_ShallowTableCopy(unit:GetUnitInfo(), self) end
 
-	self.bossname = libint.currentfight.bossname
-	self.zoneId = libint.currentfight.zoneId
-	self.fighttime = libint.currentfight.date
-	self.combatstart = libint.currentfight.combatstart
+	self.bossname = libint.currentFight.bossname
+	self.zoneId = libint.currentFight.zoneId
+	self.fighttime = libint.currentFight.date
+	self.combatstart = libint.currentFight.combatstart
 
 	self.log = {}
 	local cache = self.cache
@@ -110,7 +110,7 @@ function UnitDeathCacheHandler:ProcessDeath()
 
 				log[#log + 1] = data
 				local sourceUnitId = data[3]
-				local sourceUnit = sourceUnitId and sourceUnitId>0 and libint.currentfight and libint.currentfight.units and libint.currentfight.units[sourceUnitId] or "nil"
+				local sourceUnit = sourceUnitId and sourceUnitId>0 and libint.currentFight and libint.currentFight.units and libint.currentFight.units[sourceUnitId] or "nil"
 				--sourceUnitId == location ??
 				data[3] = (sourceUnit and sourceUnit.name) or "Unknown"
 
@@ -156,7 +156,7 @@ end
 
 function UnitDeathCacheHandler:InitResources()
 
-	local unit = libint.currentfight.units[self.unitId]
+	local unit = libint.currentFight.units[self.unitId]
 
 	if unit then
 
@@ -211,7 +211,7 @@ local function CheckForWipe()	-- TODO use preassembled group unit tags
 
 	if libunits.inGroup == false then
 
-		libint.currentfight.isWipe = true
+		libint.currentFight.isWipe = true
 
 	elseif libunits.inGroup == true then
 
@@ -231,7 +231,7 @@ local function CheckForWipe()	-- TODO use preassembled group unit tags
 		end
 	end
 
-	libint.currentfight.isWipe = true
+	libint.currentFight.isWipe = true
 
 	logger:Debug("=== This is a wipe ! ===")
 
@@ -248,7 +248,7 @@ local function OnDeathStateChanged(_, unitTag, isDead) 	-- death (for group disp
 		return
 	end
 
-	local unit = libint.currentfight.units[unitId]
+	local unit = libint.currentFight.units[unitId]
 	if unit then unit.isDead = isDead else
 
 		logger:Debug("OnDeathStateChanged: no unit")
@@ -286,7 +286,7 @@ local function OnDeath(_, result, _, abilityName, _, abilityActionSlotType, sour
 	local timems = GetGameTimeMilliseconds()
 	if targetUnitId == nil or targetUnitId == 0 then return end
 
-	local unitdata = libint.currentfight.units[targetUnitId]
+	local unitdata = libint.currentFight.units[targetUnitId]
 	if unitdata == nil or (unitdata.unitType ~= COMBAT_UNIT_TYPE_PLAYER and unitdata.unitType ~= COMBAT_UNIT_TYPE_GROUP) then return end
 	lastdeaths[targetUnitId] = timems
 	GetUnitCache(targetUnitId):OnDeath(timems)
@@ -298,7 +298,7 @@ end
 local function OnResurrect(_, result, _, abilityName, _, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, _, sourceUnitId, targetUnitId, abilityId)
 	local timems = GetGameTimeMilliseconds()
 	if targetUnitId == nil or targetUnitId == 0 or ld.inCombat == false then return end
-	local unitdata = libint.currentfight.units[targetUnitId]
+	local unitdata = libint.currentFight.units[targetUnitId]
 	if unitdata == nil or unitdata.type ~= COMBAT_UNIT_TYPE_GROUP then return end
 	libint.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_LOG_EVENT_DEATH]), LIBCOMBAT_LOG_EVENT_DEATH, timems, LIBCOMBAT_UNIT_STATE_ALIVE, targetUnitId)
 end
@@ -332,7 +332,7 @@ local function GroupCombatEventHandler(isheal, result, _, abilityName, _, _, sou
 
 	local timems = GetGameTimeMilliseconds()
 
-	if libint.currentfight.prepared ~= true then libint.currentfight:PrepareFight() end -- get stats before the damage event
+	if libint.currentFight.prepared ~= true then libint.currentFight:PrepareFight() end -- get stats before the damage event
 
 	damageType = (isheal and powerType) or damageType
 
@@ -351,7 +351,7 @@ local function onCombatEventGrpDmgIn(event, ...)
 
 	local targetUnitId = select(15, ...)
 
-	local unit = libint.currentfight.units[targetUnitId]
+	local unit = libint.currentFight.units[targetUnitId]
 	local targetType = unit and unit.unitType or nil
 
 	if not targetType or (targetType ~= COMBAT_UNIT_TYPE_GROUP and targetType ~= COMBAT_UNIT_TYPE_PLAYER) then return end
@@ -364,7 +364,7 @@ local function onCombatEventGrpHealIn(event, ...)
 
 	local targetUnitId = select(15, ...)
 
-	local unit = libint.currentfight.units[targetUnitId]
+	local unit = libint.currentFight.units[targetUnitId]
 	local targetType = unit and unit.unitType or nil
 
 	if not targetType or (targetType ~= COMBAT_UNIT_TYPE_GROUP and targetType ~= COMBAT_UNIT_TYPE_PLAYER) then return end

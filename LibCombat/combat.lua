@@ -306,6 +306,13 @@ local function CheckForAbsorb(cacheData, timems, sourceUnitId, targetUnitId)
 end
 
 --(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId, overflow)
+local function isGroupInvolved(hitValue, sourceUnitId, targetUnitId)
+	if hitValue == nil or hitValue <= 0 then return false end
+	if sourceUnitId and sourceUnitId >0 and libunits[sourceUnitId] and libunits[sourceUnitId].isFriendly then return true end
+	if targetUnitId and targetUnitId >0 and libunits[targetUnitId] and libunits[targetUnitId].isFriendly then return true end
+	return false
+end
+
 
 local function onCombatEventDamage(_, result, _, _, _, _, _, _, targetName, _, hitValue, _, damageType, _, sourceUnitId, targetUnitId, abilityId, overflow)  -- called by Event
 	local timeMs = GetGameTimeMilliseconds()
@@ -317,7 +324,7 @@ local function onCombatEventDamage(_, result, _, _, _, _, _, _, targetName, _, h
 		return
 	end
 
-	if libint.currentfight.prepared ~= true then libint.currentfight:OnCombatStart() end
+	if libint.currentFight.prepared ~= true and isGroupInvolved() then libint.currentFight:OnCombatStart() end
 	if absorb > 0 then 
 		libint.cm:FireCallbacks((libint.callbackKeys[LIBCOMBAT_LOG_EVENT_DAMAGE]), LIBCOMBAT_LOG_EVENT_DAMAGE, timeMs, ACTION_RESULT_DAMAGE_SHIELDED, sourceUnitId, targetUnitId, abilityId, hitValue, damageType, 0)
 	end

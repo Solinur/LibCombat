@@ -440,7 +440,7 @@ local function onQueueEvent(_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, abil
 
 	if reducedslot == nil then
 
-		logger:Warning("reducedslot missing on queue event: [%.3f s] %s (%d)", (timems - libint.currentfight.combatstart)/1000, GetAbilityName(abilityId), abilityId)
+		logger:Warning("reducedslot missing on queue event: [%.3f s] %s (%d)", (timems - libint.currentFight.combatstart)/1000, GetAbilityName(abilityId), abilityId)
 		return
 
 	end
@@ -457,7 +457,7 @@ local function onProjectileEvent(eventCode, result, isError, abilityName, abilit
 
 	libint.isProjectile[abilityId] = true
 
-	logger:Verbose("[%.3f s] projectile: %s (%d)", (GetGameTimeMilliseconds() - libint.currentfight.combatstart)/1000, GetAbilityName(abilityId), abilityId)
+	logger:Verbose("[%.3f s] projectile: %s (%d)", (GetGameTimeMilliseconds() - libint.currentFight.combatstart)/1000, GetAbilityName(abilityId), abilityId)
 
 	-- if IdToReducedSlot[abilityId] then libint.isProjectile[abilityId] = true end TODO: Check if this should be limited
 
