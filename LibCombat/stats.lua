@@ -336,7 +336,7 @@ function lf.UpdateStats(timems)
 			if newValue == nil then logger:Error("Invalid values encountered: newValue is nil") return end
 			if delta == nil then logger:Error("Invalid values encountered: delta is nil") return end
 			if statId == nil then logger:Error("Invalid values encountered: statId is nil") return end
-			lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_LOG_EVENT_STATS]), LIBCOMBAT_LOG_EVENT_STATS, timems, delta, newValue, statId)
+			libint.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_LOG_EVENT_STATS]), LIBCOMBAT_LOG_EVENT_STATS, timems, delta, newValue, statId)
 			stats[statId] = newValue
 		end
 	end
@@ -365,12 +365,11 @@ function lf.UpdateSingleStat(statId, timems)
 		assert(delta ~= nil)
 		assert(newValue ~= nil)
 		assert(statId ~= nil)
-		lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_LOG_EVENT_STATS]), LIBCOMBAT_LOG_EVENT_STATS, timems, delta, newValue, statId)
+		libint.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_LOG_EVENT_STATS]), LIBCOMBAT_LOG_EVENT_STATS, timems, delta, newValue, statId)
 		stats[statId] = newValue
 	end
 
 end
-
 
 
 function lf.onTFSChanged(_, changeType, _, _, _, _, _, stackCount, _, _, _, _, _, _, _, _, _)
@@ -395,12 +394,12 @@ libint.Events.Stats = libint.EventHandler:New(
 	end
 )
 
-libint.Events.AdvancedStats = libint.EventHandler:New(
-	{LIBCOMBAT_EVENT_PLAYERSTATS_ADVANCED},
-	function (self)
-		self.active = true
-	end
-)
+-- libint.Events.AdvancedStats = libint.EventHandler:New(
+-- 	{LIBCOMBAT_EVENT_PLAYERSTATS_ADVANCED},
+-- 	function (self)
+-- 		self.active = true
+-- 	end
+-- )
 
 local isFileInitialized = false
 function lib.InitializeStats()

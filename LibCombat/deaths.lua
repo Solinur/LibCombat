@@ -134,7 +134,7 @@ function UnitDeathCacheHandler:ProcessDeath()
 	self.nextKey = nil
 	self.maxlength = nil
 
-	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_DEATHRECAP]), LIBCOMBAT_EVENT_DEATHRECAP, self.timems, self)
+	libint.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_DEATHRECAP]), LIBCOMBAT_EVENT_DEATHRECAP, self.timems, self)
 
 	UnitDeathCacheHandler:New(self.unitId)
 	UnitDeathsToProcess[self.unitId] = nil
@@ -266,13 +266,13 @@ local function OnDeathStateChanged(_, unitTag, isDead) 	-- death (for group disp
 		GetUnitCache(unitId):OnDeath(timems)
 
 		logger:Debug("OnDeathStateChanged: fire callback")
-		lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_DEATH]), LIBCOMBAT_EVENT_DEATH, timems, LIBCOMBAT_UNIT_STATE_DEAD, unitId)
+		libint.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_LOG_EVENT_DEATH]), LIBCOMBAT_LOG_EVENT_DEATH, timems, LIBCOMBAT_UNIT_STATE_DEAD, unitId)
 
 		CheckForWipe()
 
 	else
 
-		lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_DEATH]), LIBCOMBAT_EVENT_DEATH, timems, LIBCOMBAT_UNIT_STATE_ALIVE, unitId)
+		libint.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_LOG_EVENT_DEATH]), LIBCOMBAT_LOG_EVENT_DEATH, timems, LIBCOMBAT_UNIT_STATE_ALIVE, unitId)
 
 	end
 end
@@ -291,7 +291,7 @@ local function OnDeath(_, result, _, abilityName, _, abilityActionSlotType, sour
 	lastdeaths[targetUnitId] = timems
 	GetUnitCache(targetUnitId):OnDeath(timems)
 
-	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_DEATH]), LIBCOMBAT_EVENT_DEATH, timems, LIBCOMBAT_UNIT_STATE_DEAD, targetUnitId, abilityId)
+	libint.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_LOG_EVENT_DEATH]), LIBCOMBAT_LOG_EVENT_DEATH, timems, LIBCOMBAT_UNIT_STATE_DEAD, targetUnitId, abilityId)
 	CheckForWipe()
 end
 
@@ -300,7 +300,7 @@ local function OnResurrect(_, result, _, abilityName, _, abilityActionSlotType, 
 	if targetUnitId == nil or targetUnitId == 0 or ld.inCombat == false then return end
 	local unitdata = libint.currentfight.units[targetUnitId]
 	if unitdata == nil or unitdata.type ~= COMBAT_UNIT_TYPE_GROUP then return end
-	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_DEATH]), LIBCOMBAT_EVENT_DEATH, timems, LIBCOMBAT_UNIT_STATE_ALIVE, targetUnitId)
+	libint.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_LOG_EVENT_DEATH]), LIBCOMBAT_LOG_EVENT_DEATH, timems, LIBCOMBAT_UNIT_STATE_ALIVE, targetUnitId)
 end
 
 local function OnResurrectResult(_, targetCharacterName, result, targetDisplayName)
@@ -312,7 +312,7 @@ local function OnResurrectResult(_, targetCharacterName, result, targetDisplayNa
 	if not unitId then return end
 	
 	local timems = GetGameTimeMilliseconds()
-	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_DEATH]), LIBCOMBAT_EVENT_DEATH, timems, LIBCOMBAT_UNIT_STATE_RESURRECTED, unitId, libunits.playerId)
+	libint.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_LOG_EVENT_DEATH]), LIBCOMBAT_LOG_EVENT_DEATH, timems, LIBCOMBAT_UNIT_STATE_RESURRECTED, unitId, libunits.playerId)
 end
 
 local function OnResurrectRequest(_, requesterCharacterName, timeLeftToAccept, requesterDisplayName)
@@ -323,7 +323,7 @@ local function OnResurrectRequest(_, requesterCharacterName, timeLeftToAccept, r
 	if not unitId then return end
 	
 	local timems = GetGameTimeMilliseconds()
-	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_DEATH]), LIBCOMBAT_EVENT_DEATH, timems, LIBCOMBAT_UNIT_STATE_RESURRECTED, libunits.playerId, unitId)
+	libint.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_LOG_EVENT_DEATH]), LIBCOMBAT_LOG_EVENT_DEATH, timems, LIBCOMBAT_UNIT_STATE_RESURRECTED, libunits.playerId, unitId)
 
 end
 local function GroupCombatEventHandler(isheal, result, _, abilityName, _, _, sourceName, sourceType, targetName, _, hitValue, powerType, damageType, _, sourceUnitId, targetUnitId, abilityId, overflow)  -- called by Event
@@ -382,7 +382,7 @@ local function onBaseResourceChangedGroup(event, unitTag, powerIndex, powerType,
 end
 
 libint.Events.Deaths = libint.EventHandler:New(
-	{LIBCOMBAT_EVENT_DEATH, LIBCOMBAT_EVENT_DEATHRECAP},
+	{LIBCOMBAT_LOG_EVENT_DEATH, LIBCOMBAT_EVENT_DEATHRECAP},
 	function (self)
 
 		self:RegisterEvent(EVENT_COMBAT_EVENT, OnDeath, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_KILLING_BLOW)

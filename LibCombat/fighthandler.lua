@@ -201,7 +201,7 @@ end
 
 
 local lastGetNewStatsCall = 0
----@param timems integer
+---@param timems integer?
 function FightHandler:QueueStatUpdate(timems)
 	-- TODO: review when integrating stats module
 	if libint.Events.Stats.active ~= true then return end
@@ -356,7 +356,7 @@ function FightHandler:onUpdate()
 	--reset data
 	if reset == true or (ld.inCombat == false and self.combatend > 0 and (GetGameTimeMilliseconds() > (self.combatend + timeout)) ) then
 		self:UpdateFightStats()
-		lib.cm:FireCallbacks((libint.CallbackKeys[LIBCOMBAT_EVENT_FIGHTSUMMARY]), LIBCOMBAT_EVENT_FIGHTSUMMARY, self)
+		libint.cm:FireCallbacks((libint.CallbackKeys[LIBCOMBAT_EVENT_FIGHTSUMMARY]), LIBCOMBAT_EVENT_FIGHTSUMMARY, self)
 		EVENT_MANAGER:UnregisterForUpdate("LibCombat_update")
 		logger:Debug("resetting...")
 		reset = false

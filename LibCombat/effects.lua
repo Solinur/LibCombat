@@ -9,6 +9,11 @@ local EffectKey = libint.callbackKeys[LIBCOMBAT_LOG_EVENT_EFFECT]
 local lf = libint.functions
 local unitData = {}
 
+local abilityIdZen = 126597
+libint.abilityIdZen = abilityIdZen
+local abilityIdForceOfNature = 174250
+libint.abilityIdForceOfNature = abilityIdForceOfNature
+
 libint.badAbility = {
 	[51487] = true, -- Shehai Shockwave
 	[20546] = true, -- Prioritize Hit
@@ -172,8 +177,6 @@ local function CountSlots(slots)
 	return slotcount, groupSlotCount
 end
 
-local abilityIdZen = libint.abilityIdZen
-
 function LogProcessorEffects:ProcessLogLineEffects(fight, logType, timems, unitId, abilityId, changeType, effectType, stacks, sourceType, slotId)
 	-- if timems < (fight.combatstart - 500) or fight.units[unitId] == nil then return end
 	-- TODO: handle processing before combatstart 
@@ -281,12 +284,12 @@ end
 local function UpdateZenData(timeMs, unitId, abilityId, changeType, effectType, sourceType, effectSlot)
 	local unit = unitData[unitId] or InitLocalUnitData(unitId)
 
-	if abilityId == libint.abilityIdZen then
+	if abilityId == abilityIdZen then
 		local isActive = changeType == EFFECT_RESULT_GAINED -- or (changeType == EFFECT_RESULT_UPDATED)
 		local stacks = isActive and zo_min(unit.stacksOfZen, 5) or 0
 
-		lib.cm:FireCallbacks(EffectKey, LIBCOMBAT_LOG_EVENT_EFFECT, timeMs, unitId, libint.abilityIdZen, changeType, effectType, stacks, sourceType, effectSlot)	-- stack count is 1 to 6, with 1 meaning 0% bonus, and 6 meaning 5% bonus from Z'en
-		logger:Debug("VERBOSE", table.concat({timeMs, unitId, libint.abilityIdZen, changeType, effectType, stacks, sourceType, effectSlot}, ", "))
+		libint.cm:FireCallbacks(EffectKey, LIBCOMBAT_LOG_EVENT_EFFECT, timeMs, unitId, abilityIdZen, changeType, effectType, stacks, sourceType, effectSlot)	-- stack count is 1 to 6, with 1 meaning 0% bonus, and 6 meaning 5% bonus from Z'en
+		logger:Debug("VERBOSE", table.concat({timeMs, unitId, abilityIdZen, changeType, effectType, stacks, sourceType, effectSlot}, ", "))
 		unit.zenEffectSlot = (isActive and effectSlot) or nil
 	else
 		if changeType == EFFECT_RESULT_GAINED then
@@ -298,7 +301,7 @@ local function UpdateZenData(timeMs, unitId, abilityId, changeType, effectType, 
 
 		if unit.zenEffectSlot then
 			local stacks = zo_min(unit.stacksOfZen, 5)
-			lib.cm:FireCallbacks(EffectKey, LIBCOMBAT_LOG_EVENT_EFFECT, timeMs, unitId, libint.abilityIdZen, EFFECT_RESULT_UPDATED, effectType, stacks, sourceType, unit.zenEffectSlot)
+			libint.cm:FireCallbacks(EffectKey, LIBCOMBAT_LOG_EVENT_EFFECT, timeMs, unitId, abilityIdZen, EFFECT_RESULT_UPDATED, effectType, stacks, sourceType, unit.zenEffectSlot)
 		end
 	end
 end
@@ -328,7 +331,7 @@ function UpdateForceOfNatureData(_, _, timeMs, unitId, abilityId, changeType, _,
 	end
 
 	local stacks = zo_min(unit.forceOfNatureStacks, 8)
-	lib.cm:FireCallbacks(EffectKey, LIBCOMBAT_LOG_EVENT_EFFECT, timeMs, unitId, libint.abilityIdForceOfNature, forceOfNatureChangeType, BUFF_EFFECT_TYPE_DEBUFF, stacks, COMBAT_UNIT_TYPE_PLAYER, 0)
+	libint.cm:FireCallbacks(EffectKey, LIBCOMBAT_LOG_EVENT_EFFECT, timeMs, unitId, abilityIdForceOfNature, forceOfNatureChangeType, BUFF_EFFECT_TYPE_DEBUFF, stacks, COMBAT_UNIT_TYPE_PLAYER, 0)
 	logger:Debug("VERBOSE", "Force of Nature: %s (%d) x%d, %s%s", unit.name, unit.unitId, stacks, lib.GetFormattedAbilityName(abilityId), debugChangeType)
 end
 
@@ -361,9 +364,9 @@ local function BuffEventHandler(isspecial, changeType, effectSlot, _, unitTag, _
 	local stacks = zo_max(1, stackCount)
 	logger:Verbose("%s %s the %s %dx %s (%d, ET: %d, %s, %d)", unitName, changeType, effectType == BUFF_EFFECT_TYPE_BUFF and "buff" or "debuff", stackCount, lib.GetFormattedAbilityName(abilityId), abilityId, abilityType, unitTag, sourceType)
 
-	if lib.IsPlayerUnitId(unitId) then libint.currentfight:QueueStatUpdate(timems) end -- TODO: move to stats
+	-- if lib.IsPlayerUnitId(unitId) then libint.currentfight:QueueStatUpdate(timems) end -- TODO: move to stats
 
-	if sourceType == COMBAT_UNIT_TYPE_PLAYER and (abilityId == libint.abilityIdZen or abilityType == ABILITY_TYPE_DAMAGE) then
+	if sourceType == COMBAT_UNIT_TYPE_PLAYER and (abilityId == abilityIdZen or abilityType == ABILITY_TYPE_DAMAGE) then
 		UpdateZenData(timems, unitId, abilityId, changeType, effectType, sourceType, effectSlot)
 	end
 
@@ -371,7 +374,7 @@ local function BuffEventHandler(isspecial, changeType, effectSlot, _, unitTag, _
 		UpdateForceOfNatureData(EffectKey, LIBCOMBAT_LOG_EVENT_EFFECT, timems, unitId, abilityId, changeType, effectType, stacks, sourceType, effectSlot) 
 	end
 
-	lib.cm:FireCallbacks(EffectKey, LIBCOMBAT_LOG_EVENT_EFFECT, timems, unitId, abilityId, changeType, effectType, stacks, sourceType, effectSlot)
+	libint.cm:FireCallbacks(EffectKey, LIBCOMBAT_LOG_EVENT_EFFECT, timems, unitId, abilityId, changeType, effectType, stacks, sourceType, effectSlot)
 end
 
 local function onEffectChanged(_, ...)

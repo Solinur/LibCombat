@@ -330,7 +330,7 @@ function lf.GetCurrentSkillBars()
 		if conversion and conversion[3] then IdToReducedSlot[conversion[3]] = reducedslot end
 		if scribedAbilityId and scribedSkills[id] == nil then
 			scribedSkills[id] = {GetCraftedAbilityActiveScriptIds(scribedAbilityId)}
-			logger:Debug(LOG_LEVEL_INFO, "ScribedSkill: ", scribedAbilityId, unpack(scribedSkills[id]))
+			logger:Debug("ScribedSkill: ", scribedAbilityId, unpack(scribedSkills[id]))
 		end
 	end
 	UpdateSlotSkillEvents()
@@ -389,7 +389,7 @@ local function onAbilityUsed(eventCode, result, isError, abilityName, abilityGra
 
 		local status = channeled and LIBCOMBAT_SKILLSTATUS_BEGIN_CHANNEL or LIBCOMBAT_SKILLSTATUS_BEGIN_DURATION
 
-		lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_SKILL_TIMINGS]), LIBCOMBAT_EVENT_SKILL_TIMINGS, timems, reducedslot, origId, status, skillDelay, hitValue)
+		libint.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_LOG_EVENT_SKILL_CAST]), LIBCOMBAT_LOG_EVENT_SKILL_CAST, timems, reducedslot, origId, status, skillDelay, hitValue)
 
 		local convertedId = libint.abilityConversions[origId] and libint.abilityConversions[origId][3] or abilityId
 
@@ -400,7 +400,7 @@ local function onAbilityUsed(eventCode, result, isError, abilityName, abilityGra
 
 		local status = LIBCOMBAT_SKILLSTATUS_INSTANT
 
-		lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_SKILL_TIMINGS]), LIBCOMBAT_EVENT_SKILL_TIMINGS, timems, reducedslot, origId, status, skillDelay)
+		libint.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_LOG_EVENT_SKILL_CAST]), LIBCOMBAT_LOG_EVENT_SKILL_CAST, timems, reducedslot, origId, status, skillDelay)
 
 	end
 end
@@ -421,7 +421,7 @@ local function onAbilityFinished(eventCode, result, isError, abilityName, abilit
 
 		logger:Verbose("Skill finished: %s (%d, R: %d)", GetAbilityName(origId), origId, result)
 
-		lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_SKILL_TIMINGS]), LIBCOMBAT_EVENT_SKILL_TIMINGS, timems, reducedslot, origId, LIBCOMBAT_SKILLSTATUS_SUCCESS)
+		libint.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_LOG_EVENT_SKILL_CAST]), LIBCOMBAT_LOG_EVENT_SKILL_CAST, timems, reducedslot, origId, LIBCOMBAT_SKILLSTATUS_SUCCESS)
 
 	end
 end
@@ -447,7 +447,7 @@ local function onQueueEvent(_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, abil
 
 	libint.lastQueuedAbilities[abilityId] = timems
 
-	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_SKILL_TIMINGS]), LIBCOMBAT_EVENT_SKILL_TIMINGS, timems, reducedslot, abilityId, LIBCOMBAT_SKILLSTATUS_QUEUE)
+	libint.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_LOG_EVENT_SKILL_CAST]), LIBCOMBAT_LOG_EVENT_SKILL_CAST, timems, reducedslot, abilityId, LIBCOMBAT_SKILLSTATUS_QUEUE)
 
 end
 
@@ -488,7 +488,7 @@ local function onSkillSlotUsed(_, slot)
 
 			local reducedslot = (ld.bar - 1) * 10 + slot
 
-			lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_SKILL_TIMINGS]), LIBCOMBAT_EVENT_SKILL_TIMINGS, timems, reducedslot, abilityId, LIBCOMBAT_SKILLSTATUS_REGISTERED)
+			libint.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_LOG_EVENT_SKILL_CAST]), LIBCOMBAT_LOG_EVENT_SKILL_CAST, timems, reducedslot, abilityId, LIBCOMBAT_SKILLSTATUS_REGISTERED)
 
 		end
 	end
@@ -506,7 +506,7 @@ local function onQuickSlotUsed(_, itemSoundCategory)
 	local itemLink = GetSlotItemLink(ld.currentQuickslotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
 	logger:Info("Used: %s", itemLink)
 	if itemSoundCategory ~= GetSlotItemSound(ld.currentQuickslotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL) then return end
-	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_QUICKSLOT]), LIBCOMBAT_EVENT_QUICKSLOT, timems, itemLink)
+	libint.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_LOG_EVENT_QUICKSLOT]), LIBCOMBAT_LOG_EVENT_QUICKSLOT, timems, itemLink)
 end
 
 
@@ -569,7 +569,7 @@ local function onSlotUpdate(_, slotNum)
 end
 
 libint.Events.Skills = libint.EventHandler:New(
-	{LIBCOMBAT_EVENT_SKILL_TIMINGS},
+	{LIBCOMBAT_LOG_EVENT_SKILL_CAST},
 	function (self)
 
 		self:RegisterEvent(EVENT_COMBAT_EVENT, GetCurrentSkillBarsDelayed, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_GAINED, REGISTER_FILTER_ABILITY_ID, 24785) -- Overload & Morphs
@@ -591,7 +591,7 @@ libint.Events.Skills = libint.EventHandler:New(
 
 
 libint.Events.QuickSlot = libint.EventHandler:New(
-	{LIBCOMBAT_EVENT_QUICKSLOT},
+	{LIBCOMBAT_LOG_EVENT_QUICKSLOT},
 	function (self)
 		self:RegisterEvent(EVENT_INVENTORY_ITEM_USED, onQuickSlotUsed)
 		self:RegisterEvent(EVENT_ACTIVE_QUICKSLOT_CHANGED, onQuickSlotChanged)

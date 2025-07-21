@@ -132,7 +132,7 @@ local function checkLastAbilities(timems, powerType, powerValueChange, powerValu
 
 					logger:Debug("Resource: %s (%d): %d (%d) --> %d", GetFormattedAbilityName(values[2]), values[2], values[3], powerType, powerValue - adjustedPowerValueChange)
 
-					lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_RESOURCES]), LIBCOMBAT_EVENT_RESOURCES, timems, values[2], values[3], powerType, powerValue - adjustedPowerValueChange)
+					libint.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_LOG_EVENT_RESOURCE]), LIBCOMBAT_LOG_EVENT_RESOURCE, timems, values[2], values[3], powerType, powerValue - adjustedPowerValueChange)
 
 					break
 				end
@@ -234,7 +234,7 @@ local function onBaseResourceChanged(powerType, powerValue, powerValueChange)
 
 				logger:Debug("Resource: %s (%d): %d (%d) --> %d", "Regeneration", 0, regenerationTick, powerType, powerValue + regenerationTick)
 
-				lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_RESOURCES]), LIBCOMBAT_EVENT_RESOURCES, timems, 0, regenerationTick, powerType, powerValue + regenerationTick)
+				libint.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_LOG_EVENT_RESOURCE]), LIBCOMBAT_LOG_EVENT_RESOURCE, timems, 0, regenerationTick, powerType, powerValue + regenerationTick)
 				powerValueChange = powerValueChange - regenerationTick
 
 			end
@@ -273,7 +273,7 @@ local function onBaseResourceChanged(powerType, powerValue, powerValueChange)
 				if abilityId ~= -1 then
 					logger:Debug("Resource: %s (%d): %d (%d) --> %d", "Regeneration", 0, regenerationTick, powerType, powerValue + regenerationTick)
 
-					lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_RESOURCES]), LIBCOMBAT_EVENT_RESOURCES, timems, 0, regenerationTick, powerType, powerValue + regenerationTick)
+					libint.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_LOG_EVENT_RESOURCE]), LIBCOMBAT_LOG_EVENT_RESOURCE, timems, 0, regenerationTick, powerType, powerValue + regenerationTick)
 					powerValueChange = powerValueChange - regenerationTick
 
 				end
@@ -289,14 +289,14 @@ local function onBaseResourceChanged(powerType, powerValue, powerValueChange)
 		local playerId = lib.GetPlayerUnitId()
 		if powerValueChange == lf.GetStat(STAT_HEALTH_REGEN_COMBAT) and playerId then
 			abilityId = 0
-			lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_HEAL_SELF]), LIBCOMBAT_EVENT_HEAL_SELF, timems, ACTION_RESULT_HOT_TICK, playerId, playerId, abilityId, powerValueChange, powerType, 0)
+			libint.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_LOG_EVENT_HEAL]), LIBCOMBAT_LOG_EVENT_HEAL, timems, ACTION_RESULT_HOT_TICK, playerId, playerId, abilityId, powerValueChange, powerType, 0)
 			return
 		end
 	end
 
 	logger:Debug("Resource: %s (%d): %d (%d) --> %d", GetFormattedAbilityName(abilityId), abilityId, powerValueChange, powerType, powerValue)
 
-	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_RESOURCES]), LIBCOMBAT_EVENT_RESOURCES, timems, abilityId, powerValueChange, powerType, powerValue)
+	libint.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_LOG_EVENT_RESOURCE]), LIBCOMBAT_LOG_EVENT_RESOURCE, timems, abilityId, powerValueChange, powerType, powerValue)
 end
 
 local function onBaseResourceChangedDelayed(_,unitTag,_,powerType,newValue,_,_)
@@ -330,7 +330,7 @@ local function onResourceChanged (_, result, _, _, _, _, _, _, targetName, _, po
 end
 
 libint.Events.Resources = libint.EventHandler:New(
-	{LIBCOMBAT_EVENT_RESOURCES},
+	{LIBCOMBAT_LOG_EVENT_RESOURCE},
 	function (self)
 		self:RegisterEvent(EVENT_POWER_UPDATE, onBaseResourceChangedDelayed, REGISTER_FILTER_UNIT_TAG, "player")
 		self:RegisterEvent(EVENT_COMBAT_EVENT, onResourceChanged, REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_POWER_ENERGIZE, REGISTER_FILTER_IS_ERROR, false)

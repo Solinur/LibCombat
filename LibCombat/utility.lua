@@ -38,6 +38,8 @@ function Queue:IsEmpty()
 	return self.first > self.last
 end
 
+---comment
+---@return Queue
 function lf.CreateQueue()
 	return Queue:New()
 end
@@ -219,7 +221,7 @@ function lib:GetCombatLogString(fight, logline, fontsize, showIds)
 
 	local units = fight.units
 
-	if logtype == LIBCOMBAT_EVENT_DAMAGE_OUT then
+	if logtype == LIBCOMBAT_LOG_EVENT_DAMAGE then
 		local _, _, result, _, targetUnitId, abilityId, hitValue, damageType, overflow = unpack(logline)
 		overflow = overflow or 0
 
@@ -233,7 +235,7 @@ function lib:GetCombatLogString(fight, logline, fontsize, showIds)
 		color = {1.0,0.6,0.6}
 		text = ZO_CachedStrFormat(logFormat, timeString, crit, targetString, ability, hitValueString)
 
-	elseif logtype == LIBCOMBAT_EVENT_DAMAGE_IN then
+	elseif logtype == LIBCOMBAT_LOG_EVENT_DAMAGE then
 		local _, _, result, sourceUnitId, _, abilityId, hitValue, damageType, overflow = unpack(logline)
 		overflow = overflow or 0
 
@@ -247,7 +249,7 @@ function lib:GetCombatLogString(fight, logline, fontsize, showIds)
 		color = {0.8,0.4,0.4}
 		text = ZO_CachedStrFormat(logFormat, timeString, sourceName, crit, targetString, ability, hitValueString)
 
-	elseif logtype == LIBCOMBAT_EVENT_DAMAGE_SELF then
+	elseif logtype == LIBCOMBAT_LOG_EVENT_DAMAGE then
 		local _, _, result, _, _, abilityId, hitValue, damageType, overflow = unpack(logline)
 		overflow = overflow or 0
 
@@ -260,7 +262,7 @@ function lib:GetCombatLogString(fight, logline, fontsize, showIds)
 		color = {0.8,0.4,0.4}
 		text = ZO_CachedStrFormat(logFormat, timeString, crit, targetString, ability, hitValueString)
 
-	elseif logtype == LIBCOMBAT_EVENT_HEAL_OUT then
+	elseif logtype == LIBCOMBAT_LOG_EVENT_HEAL then
 		local _, _, result, _, targetUnitId, abilityId, hitValue, _, _ = unpack(logline)
 
 		local crit = (result == ACTION_RESULT_CRITICAL_HEAL or result == ACTION_RESULT_HOT_TICK_CRITICAL) and ZO_CachedStrFormat("|cFFCC99<<1>>|r", GetString(SI_LIBCOMBAT_LOG_CRITICAL)) or ""
@@ -270,7 +272,7 @@ function lib:GetCombatLogString(fight, logline, fontsize, showIds)
 		color = {0.6,1.0,0.6}
 		text = ZO_CachedStrFormat(logFormat, timeString, crit, targetname, ability, hitValue)
 
-	elseif logtype == LIBCOMBAT_EVENT_HEAL_IN then
+	elseif logtype == LIBCOMBAT_LOG_EVENT_HEAL then
 		local _, _, result, sourceUnitId, _, abilityId, hitValue, _, _  = unpack(logline)
 
 		local crit = (result == ACTION_RESULT_CRITICAL_HEAL or result == ACTION_RESULT_HOT_TICK_CRITICAL) and ZO_CachedStrFormat("|cFFCC99<<1>>|r", GetString(SI_LIBCOMBAT_LOG_CRITICAL)) or ""
@@ -280,7 +282,7 @@ function lib:GetCombatLogString(fight, logline, fontsize, showIds)
 		color = {0.4,0.8,0.4}
 		text = ZO_CachedStrFormat(logFormat, timeString, sourceName, crit, ability, hitValue)
 
-	elseif logtype == LIBCOMBAT_EVENT_HEAL_SELF then
+	elseif logtype == LIBCOMBAT_LOG_EVENT_HEAL then
 		local _, _, result, _, _, abilityId, hitValue, _, _ = unpack(logline)
 
 		local crit = (result == ACTION_RESULT_CRITICAL_HEAL or result == ACTION_RESULT_HOT_TICK_CRITICAL) and ZO_CachedStrFormat("|cFFCC99<<1>>|r", GetString(SI_LIBCOMBAT_LOG_CRITICAL)) or ""
@@ -289,7 +291,7 @@ function lib:GetCombatLogString(fight, logline, fontsize, showIds)
 		color = {0.8,1.0,0.6}
 		text = result == ACTION_RESULT_DAMAGE_SHIELDED and ZO_CachedStrFormat(GetString(SI_LIBCOMBAT_LOG_FORMAT_HEALABSORB), timeString, ability, hitValue) or ZO_CachedStrFormat(logFormat, timeString, crit, ability, hitValue)
 
-	elseif logtype == LIBCOMBAT_EVENT_EFFECTS_IN or logtype == LIBCOMBAT_EVENT_EFFECTS_OUT or logtype == LIBCOMBAT_EVENT_GROUPEFFECTS_IN or logtype == LIBCOMBAT_EVENT_GROUPEFFECTS_OUT then
+	elseif logtype == LIBCOMBAT_LOG_EVENT_EFFECT then
 		local _, _, unitId, abilityId, changeType, effectType, stacks, sourceType, slot = unpack(logline)
 		if units[unitId] == nil then return end
 
@@ -302,7 +304,7 @@ function lib:GetCombatLogString(fight, logline, fontsize, showIds)
 		color = {0.8,0.8,0.8}
 		text = ZO_CachedStrFormat(logFormat, timeString, unitString, changeTypeString, buff, source)
 
-	elseif logtype == LIBCOMBAT_EVENT_RESOURCES then
+	elseif logtype == LIBCOMBAT_LOG_EVENT_RESOURCE then
 		local _, _, abilityId, powerValueChange, powerType = unpack(logline)
 
 		if powerValueChange ~= nil then
@@ -362,7 +364,7 @@ function lib:GetCombatLogString(fight, logline, fontsize, showIds)
 		color = {0.8,0.8,0.8}
 		text = ZO_CachedStrFormat(logFormat, timeString, stat, changeText, value, changeValueText)
 
-	elseif logtype == LIBCOMBAT_EVENT_MESSAGES then
+	elseif logtype == LIBCOMBAT_LOG_EVENT_COMBATSTATE then
 		local message = logline[3]
 		local bar = logline[4]
 		local messagetext
@@ -380,7 +382,7 @@ function lib:GetCombatLogString(fight, logline, fontsize, showIds)
 
 		text = ZO_CachedStrFormat("<<1>> <<2>>", timeString, messagetext)
 
-	elseif logtype == LIBCOMBAT_EVENT_SKILL_TIMINGS then
+	elseif logtype == LIBCOMBAT_LOG_EVENT_SKILL_CAST then
 		local _, _, reducedslot, abilityId, status, skillDelay = unpack(logline)
 
 		if reducedslot == nil then
@@ -398,17 +400,18 @@ function lib:GetCombatLogString(fight, logline, fontsize, showIds)
 		color = {.9,.8,.7}
 		text = ZO_CachedStrFormat(logFormat, timeString, name, skillDelayString)
 
-	elseif logtype == LIBCOMBAT_EVENT_BOSSHP then
-		local _, _, bossId, currenthp, maxhp = unpack(logline)
+	-- TODO: Rework
+	-- elseif logtype == LIBCOMBAT_EVENT_BOSSHP then
+	-- 	local _, _, bossId, currenthp, maxhp = unpack(logline)
 
-		local unitId = fight.bosses[bossId]
-		local bossName = units[unitId].name
-		local percent = zo_round(currenthp/maxhp * 100)
+	-- 	local unitId = fight.bosses[bossId]
+	-- 	local bossName = units[unitId].name
+	-- 	local percent = zo_round(currenthp/maxhp * 100)
 
-		color = {.9,.7,.5}
-		text = ZO_CachedStrFormat(logFormat, timeString, bossName, percent, currenthp, maxhp)
+	-- 	color = {.9,.7,.5}
+	-- 	text = ZO_CachedStrFormat(logFormat, timeString, bossName, percent, currenthp, maxhp)
 
-	elseif logtype == LIBCOMBAT_EVENT_PERFORMANCE then
+	elseif logtype == LIBCOMBAT_LOG_EVENT_PERFORMANCE then
 		local _, _, fps, min, max, ping = unpack(logline)
 
 		local pingcolor = ping <= 50 and "99ff99" or ping <= 80 and "ccff99" or ping <= 120 and "ffff99" or ping <= 160 and "ffcc99" or "ff9999"
@@ -420,7 +423,7 @@ function lib:GetCombatLogString(fight, logline, fontsize, showIds)
 		color = {.9,.9,.9}
 		text = ZO_CachedStrFormat(logFormat, timeString, fpsString, minString, max, pingString)
 
-	elseif logtype == LIBCOMBAT_EVENT_DEATH then
+	elseif logtype == LIBCOMBAT_LOG_EVENT_DEATH then
 		local _, _, state, unitId, otherId = unpack(logline)
 
 		logFormat = GetString("SI_LIBCOMBAT_LOG_FORMATSTRING_DEATH", state)

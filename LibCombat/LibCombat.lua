@@ -74,7 +74,7 @@ function libint.onCombatState(event, inCombat)  -- Detect Combat Stage, local is
 		if inCombat then
 			ld.inCombat = inCombat
 			logger:Debug("Entering combat.")
-			lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_MESSAGES]), LIBCOMBAT_EVENT_MESSAGES, timems, LIBCOMBAT_MESSAGE_COMBATSTART, 0)
+			libint.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_LOG_EVENT_COMBATSTATE]), LIBCOMBAT_LOG_EVENT_COMBATSTATE, timems, LIBCOMBAT_MESSAGE_COMBATSTART, 0)
 			libint.currentfight:PrepareFight()
 		else
 			if IsOngoingBossfight() then
@@ -87,7 +87,7 @@ function libint.onCombatState(event, inCombat)  -- Detect Combat Stage, local is
 			libint.currentfight:FinishFight()
 
 			if libint.currentfight.charData == nil then return end
-			lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_MESSAGES]), LIBCOMBAT_EVENT_MESSAGES, timems, LIBCOMBAT_MESSAGE_COMBATEND, 0)
+			libint.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_LOG_EVENT_COMBATSTATE]), LIBCOMBAT_LOG_EVENT_COMBATSTATE, timems, LIBCOMBAT_MESSAGE_COMBATEND, 0)
 		end
 	end
 end
@@ -109,9 +109,9 @@ local function onWeaponSwap(_, isHotbarSwap)
 	local inCombat = libint.currentfight.prepared
 	if inCombat == true then
 		local timems = GetGameTimeMilliseconds()
-		lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_MESSAGES]), LIBCOMBAT_EVENT_MESSAGES, timems, LIBCOMBAT_MESSAGE_WEAPONSWAP, ld.bar)
+		libint.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_LOG_EVENT_COMBATSTATE]), LIBCOMBAT_LOG_EVENT_COMBATSTATE, timems, LIBCOMBAT_MESSAGE_WEAPONSWAP, ld.bar)
 
-		libint.currentfight:QueueStatUpdate(timems)
+		-- libint.currentfight:QueueStatUpdate(timems) -- move to stats
 	end
 end
 
@@ -131,7 +131,8 @@ local function onBossHealthChanged(eventid, unitTag, _, powerType, powerValue, p
 
 	local bossId = tagToBossId[unitTag]
 
-	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_BOSSHP]), LIBCOMBAT_EVENT_BOSSHP, timems, bossId, powerValue, powerMax)
+	-- TODO: REwork this into callback type UNIT_HEALTH
+	-- libint.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_BOSSHP]), LIBCOMBAT_EVENT_BOSSHP, timems, bossId, powerValue, powerMax)
 end
 
 -- Calllback Registrations
@@ -169,14 +170,14 @@ end
 
 function lib:RegisterForCombatEvent(name, callbacktype, callback)
 	local isRegistered = UpdateResources(name, callbacktype, callback)
-	if isRegistered then lib.cm:RegisterCallback(CallbackKeys[callbacktype], callback) end
+	if isRegistered then libint.cm:RegisterCallback(CallbackKeys[callbacktype], callback) end
 
 	return isRegistered
 end
 
 function lib:UnregisterForCombatEvent(name, callbacktype)
 	local isUnregistered, callback = UpdateResources(name, callbacktype)
-	lib.cm:UnregisterCallback(CallbackKeys[callbacktype], callback)
+	libint.cm:UnregisterCallback(CallbackKeys[callbacktype], callback)
 
 	return isUnregistered
 end
@@ -219,20 +220,21 @@ Events.General = EventHandler:New(
 )
 
 Events.Messages = EventHandler:New(
-	{LIBCOMBAT_EVENT_MESSAGES, LIBCOMBAT_EVENT_FIGHTSUMMARY, LIBCOMBAT_EVENT_SKILL_TIMINGS},
+	{LIBCOMBAT_LOG_EVENT_COMBATSTATE, LIBCOMBAT_EVENT_FIGHTSUMMARY, LIBCOMBAT_LOG_EVENT_SKILL_CAST},
 	function (self)
 		self:RegisterEvent(EVENT_ACTION_SLOTS_FULL_UPDATE, onWeaponSwap)
 		self.active = true
 	end
 )
 
-Events.BossHP = EventHandler:New(
-	{LIBCOMBAT_EVENT_BOSSHP},
-	function (self)
-		self:RegisterEvent(EVENT_POWER_UPDATE, onBossHealthChanged, REGISTER_FILTER_UNIT_TAG, "boss1", REGISTER_FILTER_POWER_TYPE, COMBAT_MECHANIC_FLAGS_HEALTH)
-		self.active = true
-	end
-)
+-- TODO: Rework into UNIT Health
+-- Events.BossHP = EventHandler:New(
+-- 	{LIBCOMBAT_EVENT_BOSSHP},
+-- 	function (self)
+-- 		self:RegisterEvent(EVENT_POWER_UPDATE, onBossHealthChanged, REGISTER_FILTER_UNIT_TAG, "boss1", REGISTER_FILTER_POWER_TYPE, COMBAT_MECHANIC_FLAGS_HEALTH)
+-- 		self.active = true
+-- 	end
+-- )
 
 local isFileInitialized = false
 

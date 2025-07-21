@@ -47,7 +47,7 @@ local function onFrameUpdate()
 
 		end
 
-		lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_PERFORMANCE]), LIBCOMBAT_EVENT_PERFORMANCE, timems, frameIndex/sum, 1/max, 1/min, GetLatency())
+		libint.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_LOG_EVENT_PERFORMANCE]), LIBCOMBAT_LOG_EVENT_PERFORMANCE, timems, frameIndex/sum, 1/max, 1/min, GetLatency())
 
 		frameIndex = 1
 		currentsecond = now
@@ -77,7 +77,7 @@ local function onPlayerDeactivated()
 end
 
 libint.Events.Performance = libint.EventHandler:New(
-	{LIBCOMBAT_EVENT_PERFORMANCE},
+	{LIBCOMBAT_LOG_EVENT_PERFORMANCE},
 	function (self)
 		self:RegisterEvent(EVENT_PLAYER_DEACTIVATED, onPlayerDeactivated)
 		self:RegisterEvent(EVENT_PLAYER_ACTIVATED, onPlayerActivated2)

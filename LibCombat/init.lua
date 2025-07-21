@@ -3,26 +3,18 @@
 LibCombat = LibCombat or {}
 local lib = LibCombat
 
-LIBCOMBAT_LINE_SIZE = zo_ceil(GuiRoot:GetWidth()/tonumber(GetCVar("WindowedWidth"))*1000)/1000
-
 -- Basic values
 lib.name = "LibCombat"
 lib.version = 85
-lib.cm = ZO_CallbackObject:New()
+
 lib.internal = {}
-
 local libint = lib.internal
+libint.cm = ZO_CallbackObject:New()
 libint.debug = false or GetDisplayName() == "@Solinur"
-
-local lf = {}
-libint.functions = lf
+libint.functions = {}
 libint.data = {}
 libint.logger = {}
-
--- variables
-
-libint.abilityIdZen = 126597
-libint.abilityIdForceOfNature = 174250
+local lf = libint.functions
 
 -- Logger
 
@@ -90,6 +82,7 @@ local function Initialize(eventId, addon)
 	-- assert(lib.InitializePerformance(), "Initialization of performance module failed")
 	-- assert(lib.InitializeDeaths(), "Initialization of deaths module failed")
 	assert(lib.InitializeFights(), "Initialization of fights module failed")
+	assert(lib.InitializeAPI(), "Initialization of api module failed")
 	assert(lib.InitializeMain(), "Initialization of main module failed")
 
 	EVENT_MANAGER:UnregisterForEvent("LibCombat_Initialize", EVENT_ADD_ON_LOADED)
