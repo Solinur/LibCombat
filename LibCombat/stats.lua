@@ -7,7 +7,7 @@ local lf = libint.functions
 local GetSlottedAbilityId = lf.GetSlottedAbilityId
 local ld = libint.data
 local logger
-local CallbackKeys = libint.callbackKeys
+local CallbackKeys = libint.CallbackKeys
 
 local DivineSlots = {EQUIP_SLOT_HEAD, EQUIP_SLOT_SHOULDERS, EQUIP_SLOT_CHEST, EQUIP_SLOT_HAND, EQUIP_SLOT_WAIST, EQUIP_SLOT_LEGS, EQUIP_SLOT_FEET}
 

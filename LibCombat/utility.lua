@@ -216,7 +216,7 @@ function lib:GetCombatLogString(fight, logline, fontsize, showIds)
 	local logtype = logline[1]
 	local color, text
 
-	local timeValue = fight.combatstart < 0 and 0 or (logline[2] - fight.combatstart)/1000
+	local timeValue = fight.combatStart < 0 and 0 or (logline[2] - fight.combatStart)/1000
 	local timeString = string.format("|ccccccc[%.3fs]|r", timeValue)
 	local logFormat = GetString("SI_LIBCOMBAT_LOG_FORMATSTRING", logtype)
 

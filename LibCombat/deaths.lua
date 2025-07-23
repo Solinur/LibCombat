@@ -2,7 +2,7 @@
 
 local lib = LibCombat
 local libint = lib.internal
-local CallbackKeys = libint.callbackKeys
+local CallbackKeys = libint.CallbackKeys
 local lf = libint.functions
 local ld = libint.data
 local libunits = ld.units
@@ -85,7 +85,7 @@ function UnitDeathCacheHandler:ProcessDeath()
 	self.bossname = libint.currentFight.bossname
 	self.zoneId = libint.currentFight.zoneId
 	self.fighttime = libint.currentFight.date
-	self.combatstart = libint.currentFight.combatstart
+	self.combatStart = libint.currentFight.combatStart
 
 	self.log = {}
 	local cache = self.cache

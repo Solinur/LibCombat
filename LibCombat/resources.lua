@@ -1,6 +1,6 @@
 local lib = LibCombat
 local libint = lib.internal
-local CallbackKeys = libint.callbackKeys
+local CallbackKeys = libint.CallbackKeys
 local lf = libint.functions
 local ld = libint.data
 local logger

@@ -35,7 +35,7 @@ function lib.GetCurrentMainTargetDamage()
 	local fight = libint.currentFight
 
 	if fight.bossfight then
-		local unitIds = fight.unitInfo.bosses
+		local unitIds = fight.unitIds.bosses
 		return fight:GetDamageToUnits(unitIds)
 	else
 		local unitId = fight:GetMainUnit()

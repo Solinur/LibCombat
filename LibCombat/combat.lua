@@ -14,11 +14,11 @@ local countResultKeys = {
 	[ACTION_RESULT_DOT_TICK_CRITICAL] = "criticalHits",
 	[ACTION_RESULT_BLOCKED_DAMAGE]    = "blockedHits",
 	[ACTION_RESULT_DAMAGE_SHIELDED]   = "shieldedHits",
-	[ACTION_RESULT_HEAL]              = "normalHeal",
-	[ACTION_RESULT_HOT_TICK]          = "normalHeal",
-	[ACTION_RESULT_CRITICAL_HEAL]     = "criticalHeal",
-	[ACTION_RESULT_HOT_TICK_CRITICAL] = "criticalHeal",
-	[ACTION_RESULT_HEAL_ABSORBED]     = "absorbedHeal",
+	[ACTION_RESULT_HEAL]              = "normalHeals",
+	[ACTION_RESULT_HOT_TICK]          = "normalHeals",
+	[ACTION_RESULT_CRITICAL_HEAL]     = "criticalHeals",
+	[ACTION_RESULT_HOT_TICK_CRITICAL] = "criticalHeals",
+	[ACTION_RESULT_HEAL_ABSORBED]     = "absorbedHeals",
 }
 
 local amountResultKeys = {
@@ -75,9 +75,9 @@ function LogProcessorCombat:onCombatStart() end
 
 ---@param fight Fight
 function LogProcessorCombat:onCombatEnd(fight)
-	for data, targetUnitId in pairs(fight.damageReceived) do
+	for targetUnitId, data in pairs(fight.damageReceived) do
 		local hasData = false
-		for _, sourceUnitId in pairs(data) do
+		for sourceUnitId, _ in pairs(data) do
 			if sourceUnitId > 0 then 
 				hasData = true
 				break
@@ -164,8 +164,8 @@ local function UpdateDamageAbilityData(abilityData, timems, hitValue, overflow, 
 	abilityData[resultkey] = abilityData[resultkey] + fullValue
 	abilityData[hitKey] = abilityData[hitKey] + 1
 
-	abilityData.max = zo_max(abilityData.max, fullValue)
-	abilityData.min = zo_min(abilityData.min, fullValue)
+	abilityData.max = zo_max(abilityData.max or fullValue, fullValue)
+	abilityData.min = zo_min(abilityData.min or fullValue, fullValue)
 	abilityData.endTime = timems
 
 	-- IncrementStatSum(fight, damageType, resultkey, isDamageOut, hitValue, false, unit) TODO: Move to stat module
@@ -234,11 +234,11 @@ local function InitHealAbilityData(timems, powerType)
 		overflowHealing = 0,
 		absorbedHealing = 0,
 		totalHealing    = 0,
-		normalHits      = 0,
-		criticalHits    = 0,
-		overflowHits    = 0,
-		absorbedHits    = 0,
-		totalHits       = 0,
+		normalHeals     = 0,
+		criticalHeals   = 0,
+		overflowHeals  = 0,
+		absorbedHeals   = 0,
+		totalHeals      = 0,
 		powerType       = powerType,
 		startTime       = timems,
 	}
@@ -249,19 +249,20 @@ end
 local function UpdateHealAbilityData(abilityData, timems, hitValue, overflow, result)
 	local resultkey = amountResultKeys[result]
 	local hitKey = countResultKeys[result]
+	local fullValue = hitValue + overflow
 
 	abilityData[resultkey] = abilityData[resultkey] + hitValue
 	abilityData[hitKey] = abilityData[hitKey] + 1	
 	abilityData.totalHealing = abilityData.totalHealing + hitValue
-	abilityData.totalHits = abilityData.totalHits + 1
+	abilityData.totalHeals = abilityData.totalHeals + 1
 
-	abilityData.max = zo_max(abilityData.max, hitValue + overflow)
-	abilityData.min = zo_min(abilityData.min, hitValue + overflow)
+	abilityData.max = zo_max(abilityData.max or fullValue, fullValue)
+	abilityData.min = zo_min(abilityData.min or fullValue, fullValue)
 	abilityData.endTime = timems
 
 	if overflow > 0 then
 		abilityData.overflowHealing = abilityData.overflowHealing + overflow
-		abilityData.overflowHits = abilityData.overflowHits + 1
+		abilityData.overflowHeals = abilityData.overflowHeals + 1
 	end
 
 	-- IncrementStatSum(fight, damageType, resultkey, isDamageOut, hitValue, false, unit) TODO: Move to stat module
@@ -326,9 +327,9 @@ local function onCombatEventDamage(_, result, _, _, _, _, _, _, targetName, _, h
 
 	if libint.currentFight.prepared ~= true and isGroupInvolved() then libint.currentFight:OnCombatStart() end
 	if absorb > 0 then 
-		libint.cm:FireCallbacks((libint.callbackKeys[LIBCOMBAT_LOG_EVENT_DAMAGE]), LIBCOMBAT_LOG_EVENT_DAMAGE, timeMs, ACTION_RESULT_DAMAGE_SHIELDED, sourceUnitId, targetUnitId, abilityId, hitValue, damageType, 0)
+		libint.cm:FireCallbacks((libint.CallbackKeys[LIBCOMBAT_LOG_EVENT_DAMAGE]), LIBCOMBAT_LOG_EVENT_DAMAGE, timeMs, ACTION_RESULT_DAMAGE_SHIELDED, sourceUnitId, targetUnitId, abilityId, hitValue, damageType, 0)
 	end
-	libint.cm:FireCallbacks((libint.callbackKeys[LIBCOMBAT_LOG_EVENT_DAMAGE]), LIBCOMBAT_LOG_EVENT_DAMAGE, timeMs, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType, overflow)
+	libint.cm:FireCallbacks((libint.CallbackKeys[LIBCOMBAT_LOG_EVENT_DAMAGE]), LIBCOMBAT_LOG_EVENT_DAMAGE, timeMs, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType, overflow)
 end
 
 local function onCombatEventHeal(_, result, _, _, _, _, _, _, targetName, _, hitValue, powerType, _, _, sourceUnitId, targetUnitId, abilityId, overflow)  -- called by Event
@@ -340,9 +341,9 @@ local function onCombatEventHeal(_, result, _, _, _, _, _, _, targetName, _, hit
 	end
 
 	if absorb > 0 then 
-		libint.cm:FireCallbacks((libint.callbackKeys[LIBCOMBAT_LOG_EVENT_HEAL]), LIBCOMBAT_LOG_EVENT_HEAL, timeMs, ACTION_RESULT_HEAL_ABSORBED, sourceUnitId, targetUnitId, abilityId, absorb, powerType, 0)
+		libint.cm:FireCallbacks((libint.CallbackKeys[LIBCOMBAT_LOG_EVENT_HEAL]), LIBCOMBAT_LOG_EVENT_HEAL, timeMs, ACTION_RESULT_HEAL_ABSORBED, sourceUnitId, targetUnitId, abilityId, absorb, powerType, 0)
 	end
-	libint.cm:FireCallbacks((libint.callbackKeys[LIBCOMBAT_LOG_EVENT_HEAL]), LIBCOMBAT_LOG_EVENT_HEAL, timeMs, result, sourceUnitId, targetUnitId, abilityId, hitValue, powerType, overflow)
+	libint.cm:FireCallbacks((libint.CallbackKeys[LIBCOMBAT_LOG_EVENT_HEAL]), LIBCOMBAT_LOG_EVENT_HEAL, timeMs, result, sourceUnitId, targetUnitId, abilityId, hitValue, powerType, overflow)
 end
 
 local function onCombatEventDamageAbsorbed(_, result, _, _, _, _, _, _, _, _, hitValue, _, _, _, sourceUnitId, targetUnitId, _, overflow)

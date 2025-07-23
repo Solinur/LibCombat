@@ -67,7 +67,8 @@ function FightHandler:Initialize()
 	self.group = libunits.inGroup
 	self.dataVersion = 3
 	self.units = {}
-	self.unitInfo = {bosses = {}, group = {}, player = libunits.playerId}
+	self.unitIds = {bosses = {}, group = {}, player = libunits.playerId}
+	self.CP = GetCurrentCP()
 end
 
 function FightHandler:ResetFight()
@@ -93,7 +94,7 @@ function FightHandler:GetMetaData(timems)
 		ESOversion = GetESOVersionString(),
 		APIversion = GetAPIVersion(),
 		account = libunits.accountname,
-		combatstart = timems
+		combatStart = timems
 	}
 
 	local charData = {}
@@ -121,6 +122,7 @@ function FightHandler:PrepareFight()
 
 	if self.prepared ~= true then
 		logger:Debug("PrepareFight")
+		libint.LogProcessingQueue:SetCombatState(true)
 
 		FightHandler:GetMetaData(timems)
 
@@ -164,16 +166,17 @@ function FightHandler:FinishFight()
 
 	if charData == nil then return end
 
-	charData.skillBars = ZO_DeepTableCopy(ld.skillBars)
-	charData.scribedSkills = ZO_DeepTableCopy(ld.scribedSkills)
+	-- charData.skillBars = ZO_DeepTableCopy(ld.skillBars)    -- TODO: Move to skills processor 
+	-- charData.scribedSkills = ZO_DeepTableCopy(ld.scribedSkills)    -- TODO: Move to skills processor 
 	charData.equip = GetEquip()
 
-	self.info.combatend = GetGameTimeMilliseconds()
+	self.info.combatEnd = GetGameTimeMilliseconds()
 
 	-- libint.lastAbilityActivations = {}   -- TODO: Move to skills processor 
 	-- libint.isProjectile = {}  -- TODO: Move to skills processor 
 
 	logger:Debug("FinishFight")
+	libint.LogProcessingQueue:SetCombatState(false)
 	-- ld.lastabilities = {}  -- TODO: Move to resource processor 
 end
 
@@ -182,12 +185,15 @@ function FightHandler:CheckUnit(unitId)
 	if self.units[unitId] == nil then 
 		local unit = lib.GetUnitById(unitId):GetFullUnitData()
 		self.units[unitId] = unit
+		if unit.unitType == COMBAT_UNIT_TYPE_PLAYER then 
+			self.unitIds.player = unitId
+		end
 		if unit.isBoss then 
 			self.bossfight = true 
-			self.unitInfo.bosses[unitId] = true
+			self.unitIds.bosses[unitId] = true
 		end
 		if unit.unitType == COMBAT_UNIT_TYPE_GROUP or unit.unitType == libint.COMBAT_UNIT_TYPE_GROUP_COMPANION then
-			self.unitInfo.group[unitId] = true
+			self.unitIds.group[unitId] = true
 		end
 		-- TODO: Check if additional info is needed 
 	end
@@ -225,7 +231,7 @@ function FightHandler:GetDamageToUnit(unitId)
 	local unitData = self.damageReceived[unitId]
 	local unitTime = (unitData.endTime - unitData.startTime)/1000
 	
-	local playerUnitData = unitData[self.unitInfo.playerId]
+	local playerUnitData = unitData[self.unitIds.player]
 	local playerDamage = 0
 	local playerTime = 0
 	if playerUnitData then
@@ -258,7 +264,7 @@ function FightHandler:GetDamageToUnits(unitIds)
 			endTime = zo_max(endTime, unitData.endTime)
 			totalDamage = totalDamage + unitData.totalDamage
 
-			local playerUnitData = unitData[self.unitInfo.playerId]
+			local playerUnitData = unitData[self.unitIds.player]
 			if playerUnitData then
 				playerStartTime = zo_min(playerStartTime, unitData.playerStartTime)
 				playerEndTime = zo_max(playerEndTime, unitData.playerEndTime)
@@ -317,7 +323,7 @@ function FightHandler:GetHealing()
 	local endTime = 0
 	local totalHealing = 0
 
-	local groupUnitIds = self.unitInfo.groupt
+	local groupUnitIds = self.unitIds.groupt
 	
 	for i, unitId in ipairs(groupUnitIds) do
 		local unitData = self.healingReceived[unitId]
@@ -326,7 +332,7 @@ function FightHandler:GetHealing()
 			endTime = zo_max(endTime, unitData.endTime)
 			totalHealing = totalHealing + unitData.totalHealing
 
-			local playerUnitData = unitData[self.unitInfo.playerId]
+			local playerUnitData = unitData[self.unitIds.player]
 			if playerUnitData then
 				playerStartTime = zo_min(playerStartTime, unitData.playerStartTime)
 				playerEndTime = zo_max(playerEndTime, unitData.playerEndTime)
@@ -349,8 +355,7 @@ function FightHandler:onUpdate()
 	libint.onCombatState(EVENT_PLAYER_COMBAT_STATE, IsUnitInCombat("player"))
 
 	--reset data
-	if reset == true or (ld.inCombat == false and self.combatend > 0 and (GetGameTimeMilliseconds() > (self.combatend + timeout)) ) then
-		self:UpdateFightStats()
+	if reset == true or (ld.inCombat == false and self.info.combatEnd ~= nil and (GetGameTimeMilliseconds() > (self.info.combatEnd + timeout)) ) then
 		libint.cm:FireCallbacks((libint.CallbackKeys[LIBCOMBAT_EVENT_FIGHTSUMMARY]), LIBCOMBAT_EVENT_FIGHTSUMMARY, self)
 		EVENT_MANAGER:UnregisterForUpdate("LibCombat_update")
 		logger:Debug("resetting...")
@@ -360,8 +365,6 @@ function FightHandler:onUpdate()
 		libint.lastFight = libint.currentFight
 		libint.currentFight = newFight
 		libint.LogProcessingQueue:SetFight(newFight)
-	elseif ld.inCombat == true then
-		self:UpdateFightStats()
 	end
 end
 

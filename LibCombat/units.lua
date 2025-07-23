@@ -36,7 +36,6 @@ libunits.debugPanel       = { init = false }
 -- localized to optimze performace due to frequent calls by OnCombatEvent
 local UnitCache = libunits.unitData
 local EffectCache = libunits.effectCache
-local EffectSlotCache = libunits.effectSlotCache
 
 -- localized for convinience
 local UnitExportCache = libunits.UnitExportCache
@@ -263,7 +262,7 @@ local function OnTargetChange()
 		if unit and unit.effectTimeData[buffSlot] == endTime then
 			logger:Info("ReticleOverUnit found: %s (%d)", unit.name, unitId)
 			unit:UpdateUnitTag("reticleover")
-			break
+			return
 		end
 	end
 
@@ -395,7 +394,7 @@ function UnitHandler:UpdateUnitTagData(unitTag)
 	-- General
 	UnitHandler:ValidateUnitTagUpdate("gender", GetUnitGender(unitTag))
 	UnitHandler:ValidateUnitTagUpdate("maxHealth", GetUnitPower(unitTag, COMBAT_MECHANIC_FLAGS_HEALTH))
-	
+
 	-- Player characters	TODO: check classification
 	UnitHandler:ValidateUnitTagUpdate("displayName", GetUnitDisplayName(unitTag))
 	UnitHandler:ValidateUnitTagUpdate("class", GetUnitClass(unitTag))
@@ -403,12 +402,12 @@ function UnitHandler:UpdateUnitTagData(unitTag)
 	UnitHandler:ValidateUnitTagUpdate("CP", GetUnitChampionPoints(unitTag))
 	UnitHandler:ValidateUnitTagUpdate("effectiveCP", GetUnitEffectiveChampionPoints(unitTag))
 	UnitHandler:ValidateUnitTagUpdate("effectiveLevel", GetUnitEffectiveLevel(unitTag))
-	
+
 	-- Status
 	UnitHandler:ValidateUnitTagUpdate("isDead", IsUnitDead(unitTag))
 	UnitHandler:ValidateUnitTagUpdate("isReincarnating", IsUnitReincarnating(unitTag))
 	UnitHandler:ValidateUnitTagUpdate("isAlive", not IsUnitDeadOrReincarnating(unitTag))
-	
+
 	-- TODO: check limitations and only update necessary values
 	-- TODO: check not to overwrite data
 	-- TODO: Add more data from unitTag if possible
@@ -503,6 +502,8 @@ end
 
 ---@diagnostic disable-next-line: duplicate-set-field
 function UnitAPIHandler:Initialize(unitId)
+	if unitId == nil then logger:Error("No unit Id!") return end
+	if UnitCache[unitId] == nil then logger:Info("Unit %d is not known!", unitId) end
 	-- TODO: Add safeguard if unit is unkown!
 	self.unitId = unitId
 
@@ -735,16 +736,16 @@ end
 -- Init
 
 libint.Events.Units = libint.EventHandler:New(
-	libint.GetAllCallbackTypes(), 
+	libint.GetAllCallbackTypes(),
 	function(self)
-		self:RegisterForEvent(EVENT_COMBAT_EVENT, OnCombatEvent)
-		self:RegisterForEvent(EVENT_EFFECT_CHANGED, OnEffectChanged)
-		self:RegisterForEvent(EVENT_RETICLE_TARGET_CHANGED, OnTargetChange)
+		self:RegisterEvent(EVENT_COMBAT_EVENT, OnCombatEvent)
+		self:RegisterEvent(EVENT_EFFECT_CHANGED, OnEffectChanged)
+		self:RegisterEvent(EVENT_RETICLE_TARGET_CHANGED, OnTargetChange)
 
-		self:RegisterForEvent(EVENT_GROUP_UPDATE, onGroupChange)
-		self:RegisterForEvent(EVENT_PLAYER_ACTIVATED, onGroupChange)
-		self:RegisterForEvent(EVENT_BOSSES_CHANGED, onBossesChanged)
-		self:RegisterForEvent(EVENT_PLAYER_ACTIVATED, onBossesChanged)
+		self:RegisterEvent(EVENT_GROUP_UPDATE, onGroupChange)
+		self:RegisterEvent(EVENT_PLAYER_ACTIVATED, onGroupChange)
+		self:RegisterEvent(EVENT_BOSSES_CHANGED, onBossesChanged)
+		self:RegisterEvent(EVENT_PLAYER_ACTIVATED, onBossesChanged)
 
 		self:RegisterEvent(EVENT_EFFECT_CHANGED, onBossesChanged, REGISTER_FILTER_ABILITY_ID, 108045) -- Rescan bosses on certain portal use
 		self:RegisterEvent(EVENT_EFFECT_CHANGED, onBossesChanged, REGISTER_FILTER_ABILITY_ID, 121216) -- Rescan bosses on certain portal use

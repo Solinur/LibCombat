@@ -99,6 +99,10 @@ function libint.GetAllCallbackTypes()
 		t[i]=i
 	end
 
+	for i=LIBCOMBAT_LOG_EVENT_MIN,LIBCOMBAT_LOG_EVENT_MAX do
+		t[i]=i
+	end
+
 	return t
 end
 

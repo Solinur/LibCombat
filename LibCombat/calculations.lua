@@ -3,11 +3,13 @@
 
 local lib = LibCombat
 local libint = lib.internal
-local CallbackKeys = libint.callbackKeys
+local CallbackKeys = libint.CallbackKeys
 local lf = libint.functions
 local ld = libint.data
 local logger
 local isFileInitialized = false
+local GetGameTimeSeconds = GetGameTimeSeconds
+local GetFrameTimeSeconds = GetFrameTimeSeconds
 
 ---@type table<string, LogProcessingHandler>
 libint.LogProcessors = {}
@@ -79,11 +81,22 @@ end
 
 local LOG_LINE_TERMINATE_STRING = ":end;"
 local LOG_LINE_SET_FIGHT_STRING = ":fight;"
+local LOG_LINE_COMBAT_START = ":+combat;"
+local LOG_LINE_COMBAT_END = ":-combat;"
 
 function LogProcessingQueue:SetFight(fight)
 	self:Push(LOG_LINE_SET_FIGHT_STRING)
 	self:Push(fight)
 	self:Push(LOG_LINE_TERMINATE_STRING)
+end
+
+function LogProcessingQueue:SetCombatState(inCombat)
+	assert(type(inCombat) == "boolean", "Wrong type on argument of LogProcessingQueue:SetCombatState")
+	if inCombat == true then 
+		self:Push(LOG_LINE_COMBAT_START)
+	else
+		self:Push(LOG_LINE_COMBAT_END)
+	end
 end
 
 local line = {}
@@ -99,8 +112,14 @@ function LogProcessingQueue:ProcessLine()
 		end
 	end
 
-	if self.fight == nil then
-		logger:Error("No fight is set for processing!")
+	if self.fight == nil then logger:Error("No fight is set for processing!") end
+
+	if item == LOG_LINE_COMBAT_START then
+		return lf.ProcessorsOnCombatStart(self.fight)
+	end
+
+	if item == LOG_LINE_COMBAT_END then
+		return lf.ProcessorsOnCombatEnd(self.fight)
 	end
 	
 	local processor = lf.LogTypeProcessors[item]
@@ -111,8 +130,8 @@ function LogProcessingQueue:ProcessLine()
 		item = self:Pop()
 	end
 
-	processor:ProcessLogLine(self.fight, unpack(line, 1, i))
-	logger:Info("Process Line: ", processor.name, unpack(line, 1, i))
+	logger:Info("Process Line: ", processor and processor.name or "nil", unpack(line, 1, i-1))
+	processor:ProcessLogLine(self.fight, unpack(line, 1, i-1))
 	ZO_ClearTable(line)
 end
 
@@ -125,6 +144,11 @@ local function DeactivateProcessing()
 	libint.LogProcessingQueue.active = not success
 end
 
+local function GetFrameTimeSpent()
+	return GetGameTimeSeconds() - GetFrameTimeSeconds()
+	
+end
+
 local function ProcessChunk()
 	if isFileInitialized == false or libint.LogProcessingQueue == nil then return end
 	local queue = libint.LogProcessingQueue
@@ -133,17 +157,19 @@ local function ProcessChunk()
 		return 
 	end
 
-	while GetFrameDeltaTimeSeconds() < desiredFrameTime do
+	lastRun = GetGameTimeSeconds()
+
+	while GetFrameTimeSpent() < desiredFrameTime do
 		libint.LogProcessingQueue:ProcessLine()
-		if queue:IsEmpty() then break end
+		if queue:IsEmpty() then return end
 	end
 
-	lastRun = GetGameTimeSeconds()
+	logger:Info("Stopped processing with %d entries left", libint.LogProcessingQueue:NumQueuedItems())
 end
 
 local function ActivateProcessing()
 	if isFileInitialized == false or libint.LogProcessingQueue == nil or libint.LogProcessingQueue.active == true then return end
-	desiredFrameTime = tonumber(GetCVar("MinFrameTime.2") / 2)
+	desiredFrameTime = tonumber(GetCVar("MinFrameTime.2") * 0.8)
 	libint.LogProcessingQueue.active = EVENT_MANAGER:RegisterForUpdate("LibCombatProcessing", 0, ProcessChunk)
 end
 
@@ -171,6 +197,17 @@ end
 function lf.DeactivateProcessors() 
 	for _, processor in pairs(libint.LogProcessors) do
 		processor:Dectivate()
+	end
+end
+
+function lf.ProcessorsOnCombatStart(fight) 
+	for _, processor in pairs(libint.LogProcessors) do
+		processor:onCombatStart(fight)
+	end
+end
+function lf.ProcessorsOnCombatEnd(fight) 
+	for _, processor in pairs(libint.LogProcessors) do
+		processor:onCombatEnd(fight)
 	end
 end
 

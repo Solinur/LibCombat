@@ -5,7 +5,7 @@ local libint = lib.internal
 local ld = libint.data
 local libunits = ld.units
 local logger
-local EffectKey = libint.callbackKeys[LIBCOMBAT_LOG_EVENT_EFFECT]
+local EffectKey = libint.CallbackKeys[LIBCOMBAT_LOG_EVENT_EFFECT]
 local lf = libint.functions
 local unitData = {}
 local abilityIdZen = libint.abilityIdZen
@@ -21,7 +21,7 @@ libint.badAbility = {
 	[63601] = true, -- ESO Plus
 }
 
-libint.specialBuffs = {	-- buffs that the API doesn't show via EVENT_EFFECT_CHANGED and need to be specially tracked via EVENT_COMBAT_EVENT
+libint.SpecialBuffs = {	-- buffs that the API doesn't show via EVENT_EFFECT_CHANGED and need to be specially tracked via EVENT_COMBAT_EVENT
 	21230,	-- Weapon/spell power enchant (Berserker)
 	21578,	-- Damage shield enchant (Hardening)
 	71067,	-- Trial By Fire: Shock
@@ -39,7 +39,7 @@ libint.specialBuffs = {	-- buffs that the API doesn't show via EVENT_EFFECT_CHAN
 }
 
 
-libint.specialDebuffs = {   -- debuffs that the API doesn't show via EVENT_EFFECT_CHANGED and need to be specially tracked via EVENT_COMBAT_EVENT
+libint.SpecialDebuffs = {   -- debuffs that the API doesn't show via EVENT_EFFECT_CHANGED and need to be specially tracked via EVENT_COMBAT_EVENT
 	95136,   -- Chilled (used for tracking Warden crit damage buff)
 	178118,  -- Status Effect Magic (Overcharged)
 	95136,   -- Status Effect Frost (Chill, used for tracking Warden crit damage buff)
@@ -124,31 +124,32 @@ function LogProcessorEffects:onInitilizeFight(fight)
 	if self.active ~= true then return end
 
 	fight.effects = {}
-
 	--TODO: Import handover effects, refresh group member buffs using unitTag?
-	local timems = GetGameTimeMilliseconds()
-	self:GetPlayerBuffs(timems, fight)
+	self:GetPlayerBuffs(fight)
 end
 
-function LogProcessorEffects:GetPlayerBuffs(timems, fight)
+function LogProcessorEffects:GetPlayerBuffs(fight)
 	if libint.Events.Effects.active == false then return end
-	
-	local playerId = fight.units.player
-	local effects = fight.effects
+	local timems = GetGameTimeMilliseconds()
+	logger:Info(fight)
+	logger:Info(fight.unitIds)
+	logger:Info(fight.unitIds.player )
+	local playerId = fight.unitIds.player or libunits.playerId
+	if playerId == nil then return end
 
 	for i=1,GetNumBuffs("player") do
 		-- buffName, timeStarted, timeEnding, effectSlot, stackCount, iconFilename, buffType, effectType, abilityType, statusEffectType, abilityId, canClickOff, castByPlayer
-		local _, _, endTime, effectSlot, stackCount, _, _, effectType, abilityType, _, abilityId, _, castByPlayer = GetUnitBuffInfo("player",i)
-		logger:Verbose("player has the %s %d x %s (%d, ET: %d, self: %s)", effectType == BUFF_EFFECT_TYPE_BUFF and "buff" or "debuff", stackCount, lib.GetFormattedAbilityName(abilityId), abilityId, abilityType, tostring(castByPlayer))
-
-		local effectData = GetEffectData(effects, playerId, abilityId, effectType)
+		local _, timeStarted, endTime, effectSlot, stackCount, _, _, effectType, abilityType, _, abilityId, _, castByPlayer = GetUnitBuffInfo("player",i)
+		
+		local effectData = GetEffectData(fight, playerId, abilityId, effectType)
 		if effectData.slots[effectSlot] then return end
-
+		
 		local sourceType = castByPlayer and COMBAT_UNIT_TYPE_PLAYER or COMBAT_UNIT_TYPE_NONE
 		local stacks = zo_max(stackCount, 1)
+		logger:Info("player has the %s %d x %s (%d, ET: %d, self: %s)", effectType == BUFF_EFFECT_TYPE_BUFF and "buff" or "debuff", stackCount, lib.GetFormattedAbilityName(abilityId), abilityId, abilityType, tostring(castByPlayer))
 
 		if (not libint.badAbility[abilityId]) then
-			self:ProcessLogLineEffects(fight, LIBCOMBAT_LOG_EVENT_EFFECT, timems, playerId, abilityId, EFFECT_RESULT_GAINED, effectType, stacks, sourceType, effectSlot)
+			self:ProcessLogLine(fight, LIBCOMBAT_LOG_EVENT_EFFECT, timems, playerId, abilityId, EFFECT_RESULT_GAINED, effectType, stacks, sourceType, effectSlot)
 		end
 
 		if abilityId ==	13984 then lf.GetShadowBonus(effectSlot) end
@@ -156,7 +157,8 @@ function LogProcessorEffects:GetPlayerBuffs(timems, fight)
 	end
 end
 
-function LogProcessorEffects:onCombatStart()
+function LogProcessorEffects:onCombatStart(fight)
+	self:GetPlayerBuffs(fight)
 end
 
 function LogProcessorEffects:onCombatEnd()
@@ -175,9 +177,10 @@ local function CountSlots(slots)
 	return slotcount, groupSlotCount
 end
 
-function LogProcessorEffects:ProcessLogLineEffects(fight, logType, timems, unitId, abilityId, changeType, effectType, stacks, sourceType, slotId)
-	-- if timems < (fight.combatstart - 500) or fight.units[unitId] == nil then return end
-	-- TODO: handle processing before combatstart 
+
+function LogProcessorEffects:ProcessLogLine(fight, logType, timems, unitId, abilityId, changeType, effectType, stacks, sourceType, slotId)
+	-- if timems < (fight.combatStart - 500) or fight.units[unitId] == nil then return end
+	-- TODO: handle processing before combatStart 
 	
 	local currentstacks = stacks or 0
 	local effectData = GetEffectData(fight, unitId, abilityId, effectType)
@@ -189,8 +192,8 @@ function LogProcessorEffects:ProcessLogLineEffects(fight, logType, timems, unitI
 	local slotcount, groupSlotCount = CountSlots(slots)
 	local slotdata = slots[slotId]
 
-	if (changeType == EFFECT_RESULT_GAINED or changeType == EFFECT_RESULT_UPDATED) and timems < fight.endtime then
-		local starttime = zo_max(timems, fight.starttime)
+	if (changeType == EFFECT_RESULT_GAINED or changeType == EFFECT_RESULT_UPDATED) and fight.info.combatEnd and timems < fight.info.combatEnd then
+		local starttime = zo_max(timems, fight.info.combatStart)
 
 		if slotcount == 0 and isPlayerSource then effectData.firstStartTime = starttime end
 		if groupSlotCount == 0 then effectData.firstGroupStartTime = starttime end
@@ -204,14 +207,13 @@ function LogProcessorEffects:ProcessLogLineEffects(fight, logType, timems, unitI
 		for stacks = minStacks, currentstacks do
 			if slotdata[stacks] == nil then
 				slotdata[stacks] = starttime
-				effectData:CheckInstance(abilityId, stacks)
 			end
 		end
 
 		for stacks, starttime in pairs(slotdata) do
 			if type(stacks) == "number" and stacks > currentstacks then
 				local stackData = effectData[stacks] or InitStackData(effectData, stacks)
-				local duration = zo_min(timems, fight.endtime) - starttime
+				local duration = zo_min(timems, fight.info.combatEnd) - starttime
 
 				if isPlayerSource then
 					stackData.uptime = stackData.uptime + duration
@@ -227,7 +229,7 @@ function LogProcessorEffects:ProcessLogLineEffects(fight, logType, timems, unitI
 	elseif changeType == EFFECT_RESULT_FADED then
 		slots[slotId] = nil
 
-		if slotdata and timems > fight.starttime then
+		if slotdata and timems > fight.info.combatStart then
 			if slotdata.isPlayerSource then slotcount = slotcount - 1 end
 			groupSlotCount = groupSlotCount - 1
 
@@ -236,7 +238,7 @@ function LogProcessorEffects:ProcessLogLineEffects(fight, logType, timems, unitI
 
 			for stacks, starttime in pairs(slotdata) do
 				local stackData = effectData[stacks] or InitStackData(effectData, stacks)
-				local duration = zo_min(timems, fight.endtime) - starttime
+				local duration = zo_min(timems, fight.info.combatEnd) - starttime
 
 				if isPlayerSource then
 					stackData.uptime = stackData.uptime + duration
@@ -248,14 +250,14 @@ function LogProcessorEffects:ProcessLogLineEffects(fight, logType, timems, unitI
 			end
 
 			if slotcount == 0 and effectData.firstStartTime then
-				local duration = zo_min(timems, fight.endtime) - effectData.firstStartTime
+				local duration = zo_min(timems, fight.info.combatEnd) - effectData.firstStartTime
 				effectData.uptime = effectData.uptime + duration
 				effectData.count = effectData.count + 1
 				effectData.firstStartTime = nil
 			end
 
 			if groupSlotCount == 0 and effectData.firstGroupStartTime then
-				local duration = zo_min(timems,fight.endtime) - effectData.firstGroupStartTime
+				local duration = zo_min(timems,fight.info.combatEnd) - effectData.firstGroupStartTime
 				effectData.groupUptime = effectData.groupUptime + duration
 				effectData.groupCount = effectData.groupCount + 1
 				effectData.firstGroupStartTime = nil
@@ -306,7 +308,8 @@ end
 
 function UpdateForceOfNatureData(_, _, timeMs, unitId, abilityId, changeType, _, _, _, _)
 	local unit = unitData[unitId] or InitLocalUnitData(unitId)
-	if libint.StatusEffectIds[abilityId] == nil or libint.currentFight.CP[1]["slotted"] == nil or libint.currentFight.CP[1]["slotted"][276] ~= true then return end
+	local fight = libint.currentFight
+	if libint.StatusEffectIds[abilityId] == nil or fight.CP[1]["slotted"] == nil or fight.CP[1]["slotted"][276] ~= true then return end
 
 	local forceOfNatureChangeType = EFFECT_RESULT_UPDATED
 	local debugChangeType = "o"
@@ -369,10 +372,6 @@ local function BuffEventHandler(isspecial, changeType, effectSlot, _, unitTag, _
 	end
 
 	if libint.StatusEffectIds[abilityId] then 
-		logger:Info("unitData", unitData)
-		logger:Info("[unitId]", unitData[unitId])
-		logger:Info(".forceOfNature", unitData[unitId].forceOfNature)
-		logger:Info("libint.SpecialDebuffs[abilityId]", libint.SpecialDebuffs[abilityId])
 		if (sourceType == COMBAT_UNIT_TYPE_PLAYER or (unitName == "" and unitData[unitId] and unitData[unitId].forceOfNature[abilityId] and libint.SpecialDebuffs[abilityId])) then
 			UpdateForceOfNatureData(EffectKey, LIBCOMBAT_LOG_EVENT_EFFECT, timems, unitId, abilityId, changeType, effectType, stacks, sourceType, effectSlot) 
 		end
@@ -442,14 +441,14 @@ libint.Events.Effects = libint.EventHandler:New(
 	function (self)
 		self:RegisterEvent(EVENT_EFFECT_CHANGED, onEffectChanged, REGISTER_FILTER_IS_ERROR, false)
 
-		for i=1,#libint.specialBuffs do
-			self:RegisterEvent(EVENT_COMBAT_EVENT, onSpecialBuffEvent, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_GAINED_DURATION, REGISTER_FILTER_ABILITY_ID, libint.specialBuffs[i], REGISTER_FILTER_IS_ERROR, false)
-			self:RegisterEvent(EVENT_COMBAT_EVENT, onSpecialBuffEvent, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_FADED, REGISTER_FILTER_ABILITY_ID, libint.specialBuffs[i], REGISTER_FILTER_IS_ERROR, false)
+		for i=1,#libint.SpecialBuffs do
+			self:RegisterEvent(EVENT_COMBAT_EVENT, onSpecialBuffEvent, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_GAINED_DURATION, REGISTER_FILTER_ABILITY_ID, libint.SpecialBuffs[i], REGISTER_FILTER_IS_ERROR, false)
+			self:RegisterEvent(EVENT_COMBAT_EVENT, onSpecialBuffEvent, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_FADED, REGISTER_FILTER_ABILITY_ID, libint.SpecialBuffs[i], REGISTER_FILTER_IS_ERROR, false)
 		end
 
-		for i=1,#libint.specialDebuffs do
-			self:RegisterEvent(EVENT_COMBAT_EVENT, onSpecialDebuffEvent, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_GAINED_DURATION, REGISTER_FILTER_ABILITY_ID, libint.specialDebuffs[i], REGISTER_FILTER_IS_ERROR, false)
-			self:RegisterEvent(EVENT_COMBAT_EVENT, onSpecialDebuffEvent, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_FADED, REGISTER_FILTER_ABILITY_ID, libint.specialDebuffs[i], REGISTER_FILTER_IS_ERROR, false)
+		for i=1,#libint.SpecialDebuffs do
+			self:RegisterEvent(EVENT_COMBAT_EVENT, onSpecialDebuffEvent, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_GAINED_DURATION, REGISTER_FILTER_ABILITY_ID, libint.SpecialDebuffs[i], REGISTER_FILTER_IS_ERROR, false)
+			self:RegisterEvent(EVENT_COMBAT_EVENT, onSpecialDebuffEvent, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_FADED, REGISTER_FILTER_ABILITY_ID, libint.SpecialDebuffs[i], REGISTER_FILTER_IS_ERROR, false)
 		end
 		
 		self.active = true

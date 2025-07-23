@@ -2,7 +2,7 @@
 
 local lib = LibCombat
 local CallbackKeys = {}
-lib.internal.callbackKeys = CallbackKeys
+lib.internal.CallbackKeys = CallbackKeys
 
 
 LIBCOMBAT_EVENT_MIN = 50
@@ -34,8 +34,6 @@ LIBCOMBAT_LOG_EVENT_MAX = 11
 for i = LIBCOMBAT_LOG_EVENT_MIN, LIBCOMBAT_LOG_EVENT_MAX do
 	CallbackKeys[i] = "LibCombat" .. i
 end
-
-lib.internal.callbackKeys = CallbackKeys
 
 -- state
 

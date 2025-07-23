@@ -25,12 +25,12 @@ calculations.lua
 events.lua
 units.lua
 combat.lua
-effects.lua
+; effects.lua
 ; stats.lua
 ; skillcasting.lua
 ; resources.lua
 ; performance.lua
 ; deaths.lua
+LibCombat.lua
 fighthandler.lua
 api.lua
-LibCombat.lua

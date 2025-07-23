@@ -24,7 +24,7 @@ local Events = libint.Events
 
 local _
 local logger
-local CallbackKeys = libint.callbackKeys
+local CallbackKeys = libint.CallbackKeys
 
 local ActiveCallbackTypes = {}
 libint.ActiveCallbackTypes = ActiveCallbackTypes
@@ -36,7 +36,7 @@ local lastBossHealthValue = 2
 function lf.onPlayerActivated()
 	logger:Debug("onPlayerActivated")
 
-	zo_callLater(lf.GetCurrentSkillBars, 100)
+	-- zo_callLater(lf.GetCurrentSkillBars, 100) -- TODO: Reactivate ?
 	libint.isInPortalWorld = false
 end
 
@@ -212,7 +212,7 @@ Events.General = EventHandler:New(
 	function (self)
 		self:RegisterEvent(EVENT_PLAYER_COMBAT_STATE, libint.onCombatState)
 
-		self:RegisterEvent(EVENT_HOTBAR_SLOT_CHANGE_REQUESTED, lf.GetCurrentSkillBars)
+		-- self:RegisterEvent(EVENT_HOTBAR_SLOT_CHANGE_REQUESTED, lf.GetCurrentSkillBars)  -- TODO: Reactivate ?
 		self:RegisterEvent(EVENT_PLAYER_ACTIVATED, lf.onPlayerActivated)
 		self:RegisterEvent(EVENT_EFFECT_CHANGED, onMageExplode, REGISTER_FILTER_ABILITY_ID, 50184)
 		self:RegisterEvent(EVENT_EFFECT_CHANGED, onPortalWorld, REGISTER_FILTER_ABILITY_ID, 108045)
