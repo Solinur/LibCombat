@@ -137,29 +137,25 @@ end
 
 
 local desiredFrameTime
-local lastRun
+local lastStart
 
 local function DeactivateProcessing()
 	local success = EVENT_MANAGER:UnregisterForUpdate("LibCombatProcessing")
 	libint.LogProcessingQueue.active = not success
 end
 
-local function GetFrameTimeSpent()
-	return GetGameTimeSeconds() - GetFrameTimeSeconds()
-	
-end
 
 local function ProcessChunk()
 	if isFileInitialized == false or libint.LogProcessingQueue == nil then return end
 	local queue = libint.LogProcessingQueue
 	if queue:IsEmpty() then 
-		if GetGameTimeSeconds() - lastRun > 0.5 then DeactivateProcessing() end
+		if GetGameTimeSeconds() - lastStart > 0.5 then DeactivateProcessing() end
 		return 
 	end
 
-	lastRun = GetGameTimeSeconds()
+	lastStart = GetGameTimeSeconds()
 
-	while GetFrameTimeSpent() < desiredFrameTime do
+	while GetGameTimeSeconds() - lastStart < desiredFrameTime do -- TODO: Consider using LibAsync
 		libint.LogProcessingQueue:ProcessLine()
 		if queue:IsEmpty() then return end
 	end
@@ -169,7 +165,7 @@ end
 
 local function ActivateProcessing()
 	if isFileInitialized == false or libint.LogProcessingQueue == nil or libint.LogProcessingQueue.active == true then return end
-	desiredFrameTime = tonumber(GetCVar("MinFrameTime.2") * 0.8)
+	desiredFrameTime = tonumber(GetCVar("MinFrameTime.2") * 0.5)
 	libint.LogProcessingQueue.active = EVENT_MANAGER:RegisterForUpdate("LibCombatProcessing", 0, ProcessChunk)
 end
 
@@ -211,7 +207,7 @@ function lf.ProcessorsOnCombatEnd(fight)
 	end
 end
 
-function lib.InitializeCalculations()
+function libint.InitializeCalculations()
 	if isFileInitialized == true then return false end
 	logger = lf.initSublogger("calc")
 	libint.LogProcessingQueue = LogProcessingQueue

@@ -54,7 +54,7 @@ function lib.GetCurrentTotalDamage()
 	local fight = libint.currentFight
 
 	local unitIds = {}
-	for unitId, unit in fight.units do
+	for unitId, unit in pairs(fight.units) do
 		if unit.isFriendly == false then unitIds[#unitIds+1] = unitId end
 	end
 
@@ -62,7 +62,7 @@ function lib.GetCurrentTotalDamage()
 end
 
 
-function lib.InitializeAPI()
+function libint.InitializeAPI()
 	if isFileInitialized == true then return false end
 	logger = lf.initSublogger("api")
 

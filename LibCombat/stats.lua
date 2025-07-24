@@ -402,7 +402,7 @@ libint.Events.Stats = libint.EventHandler:New(
 -- )
 
 local isFileInitialized = false
-function lib.InitializeStats()
+function libint.InitializeStats()
 	if isFileInitialized == true then return false end
 	logger = lf.initSublogger("stats")
 

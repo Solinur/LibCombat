@@ -87,7 +87,7 @@ libint.Events.Performance = libint.EventHandler:New(
 
 local isFileInitialized = false
 
-function lib.InitializePerformance()
+function libint.InitializePerformance()
 	if isFileInitialized == true then return false end
 	logger = lf.initSublogger("performance")
 

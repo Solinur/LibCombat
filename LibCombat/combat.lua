@@ -13,7 +13,7 @@ local countResultKeys = {
 	[ACTION_RESULT_CRITICAL_DAMAGE]   = "criticalHits",
 	[ACTION_RESULT_DOT_TICK_CRITICAL] = "criticalHits",
 	[ACTION_RESULT_BLOCKED_DAMAGE]    = "blockedHits",
-	[ACTION_RESULT_DAMAGE_SHIELDED]   = "shieldedHits",
+	[ACTION_RESULT_DAMAGE_SHIELDED]   = "absorbedHits",
 	[ACTION_RESULT_HEAL]              = "normalHeals",
 	[ACTION_RESULT_HOT_TICK]          = "normalHeals",
 	[ACTION_RESULT_CRITICAL_HEAL]     = "criticalHeals",
@@ -27,7 +27,7 @@ local amountResultKeys = {
 	[ACTION_RESULT_CRITICAL_DAMAGE]   = "criticalDamage",
 	[ACTION_RESULT_DOT_TICK_CRITICAL] = "criticalDamage",
 	[ACTION_RESULT_BLOCKED_DAMAGE]    = "blockedDamage",
-	[ACTION_RESULT_DAMAGE_SHIELDED]   = "shieldedDamage",
+	[ACTION_RESULT_DAMAGE_SHIELDED]   = "absorbedDamage",
 	[ACTION_RESULT_HOT_TICK]          = "normalHealing",
 	[ACTION_RESULT_HEAL]              = "normalHealing",
 	[ACTION_RESULT_CRITICAL_HEAL]     = "criticalHealing",
@@ -78,7 +78,7 @@ function LogProcessorCombat:onCombatEnd(fight)
 	for targetUnitId, data in pairs(fight.damageReceived) do
 		local hasData = false
 		for sourceUnitId, _ in pairs(data) do
-			if sourceUnitId > 0 then 
+			if type(sourceUnitId) == "number" and sourceUnitId > 0 then 
 				hasData = true
 				break
 			end
@@ -116,7 +116,7 @@ end
 
 local function GetUnitDamageData(fight, sourceUnitId, targetUnitId, timems)
 	local targetData = fight.damageReceived[targetUnitId] or InitUnitDamageData(fight, fight.damageReceived, targetUnitId, timems)
-	local unitData = targetData[sourceUnitId or 0] or InitUnitDamageData(fight, targetData, targetUnitId)
+	local unitData = targetData[sourceUnitId or 0] or InitUnitDamageData(fight, targetData, sourceUnitId, timems)
 
 	local sourceDataDone
 	if sourceUnitId and sourceUnitId > 0 then 
@@ -216,7 +216,7 @@ end
 
 local function GetUnitHealingData(fight, sourceUnitId, targetUnitId, timems)
 	local targetData = fight.healingReceived[targetUnitId] or InitUnitHealingData(fight, fight.healingReceived, targetUnitId, timems)
-	local unitData = targetData[sourceUnitId or 0] or InitUnitHealingData(fight, targetData, targetUnitId)
+	local unitData = targetData[sourceUnitId or 0] or InitUnitHealingData(fight, targetData, sourceUnitId, timems)
 
 	local sourceDataDone
 	if sourceUnitId and sourceUnitId > 0 then 
@@ -407,7 +407,7 @@ libint.Events.Healing = libint.EventHandler:New(
 
 local isFileInitialized = false
 
-function lib.InitializeCombat()
+function libint.InitializeCombat()
 	if isFileInitialized == true then return false end
 	logger = lf.initSublogger("combat")
 

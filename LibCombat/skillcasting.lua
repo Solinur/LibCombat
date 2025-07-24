@@ -610,7 +610,7 @@ libint.Events.QuickSlot = libint.EventHandler:New(
 
 local isFileInitialized = false
 
-function lib.InitializeSkillcasting()
+function libint.InitializeSkillcasting()
 	if isFileInitialized == true then return false end
 	logger = lf.initSublogger("skillcasting")
 

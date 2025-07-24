@@ -108,7 +108,7 @@ end
 
 local isFileInitialized = false
 
-function lib.InitializeEvents()
+function libint.InitializeEvents()
 	if isFileInitialized == true then return false end
 	logger = lf.initSublogger("events")
 

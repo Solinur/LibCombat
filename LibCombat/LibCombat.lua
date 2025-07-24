@@ -241,7 +241,7 @@ Events.Messages = EventHandler:New(
 
 local isFileInitialized = false
 
-function lib.InitializeMain()
+function libint.InitializeMain()
 	if isFileInitialized == true then return false end
 	logger = libint.logger.main
 	logger:Debug("Initialize")

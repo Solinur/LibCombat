@@ -450,7 +450,7 @@ end
 
 local isFileInitialized = false
 
-function lib.InitializeUtility()
+function libint.InitializeUtility()
 	if isFileInitialized == true then return false end
 	logger = lf.initSublogger("util")
 

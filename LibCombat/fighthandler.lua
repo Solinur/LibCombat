@@ -66,6 +66,7 @@ function FightHandler:Initialize()
 	self.char = libunits.playername
 	self.group = libunits.inGroup
 	self.dataVersion = 3
+	---@type table<integer, UnitData>
 	self.units = {}
 	self.unitIds = {bosses = {}, group = {}, player = libunits.playerId}
 	self.CP = GetCurrentCP()
@@ -183,7 +184,9 @@ end
 ---@param unitId integer
 function FightHandler:CheckUnit(unitId)
 	if self.units[unitId] == nil then 
+		---@type UnitData
 		local unit = lib.GetUnitById(unitId):GetFullUnitData()
+		if unit == nil then return end
 		self.units[unitId] = unit
 		if unit.unitType == COMBAT_UNIT_TYPE_PLAYER then 
 			self.unitIds.player = unitId
@@ -227,7 +230,7 @@ end
 ---@return integer? totalDamage
 function FightHandler:GetDamageToUnit(unitId)
 	if self.damageReceived == nil or self.damageReceived[unitId] == nil then return end
-
+	
 	local unitData = self.damageReceived[unitId]
 	local unitTime = (unitData.endTime - unitData.startTime)/1000
 	
@@ -266,9 +269,9 @@ function FightHandler:GetDamageToUnits(unitIds)
 
 			local playerUnitData = unitData[self.unitIds.player]
 			if playerUnitData then
-				playerStartTime = zo_min(playerStartTime, unitData.playerStartTime)
-				playerEndTime = zo_max(playerEndTime, unitData.playerEndTime)
-				playerDamage = playerDamage + unitData.playerDamage
+				playerStartTime = zo_min(playerStartTime, playerUnitData.startTime)
+				playerEndTime = zo_max(playerEndTime, playerUnitData.endTime)
+				playerDamage = playerDamage + playerUnitData.totalDamage
 			end
 		end
 	end
@@ -351,6 +354,20 @@ function FightHandler:GetHealing()
 	return playerTime, playerHealing, unitTime, totalHealing
 end
 
+local function PrintCombatStats()
+	local playerTime, playerDamage, unitTime, totalDamage = lib.GetCurrentMainTargetDamage()
+	local playerDPS =  playerTime > 0 and playerDamage/playerTime or 0
+	local groupDPS =  unitTime > 0 and totalDamage/unitTime or 0
+	logger:Info("%.0f, %.3fs / %.0f, %.3fs", playerDPS, playerTime, groupDPS, unitTime)
+
+	local playerMultiTime, playerMultiDamage, unitMultiTime, totalMultiDamage = lib.GetCurrentTotalDamage()
+
+
+	local playerMultiDPS =  playerMultiTime > 0 and playerMultiDamage/playerMultiTime or 0
+	local groupMultiDPS =  unitMultiTime > 0 and totalMultiDamage/unitMultiTime or 0
+	logger:Info("%.0f, %.3fs / %.0f, %.3fs", playerMultiDPS, playerMultiTime, groupMultiDPS, unitMultiTime)
+end
+
 function FightHandler:onUpdate()
 	libint.onCombatState(EVENT_PLAYER_COMBAT_STATE, IsUnitInCombat("player"))
 
@@ -361,14 +378,16 @@ function FightHandler:onUpdate()
 		logger:Debug("resetting...")
 		reset = false
 
-		local newFight = FightHandler:New()
+		PrintCombatStats()
+
 		libint.lastFight = libint.currentFight
+		local newFight = FightHandler:New()
 		libint.currentFight = newFight
 		libint.LogProcessingQueue:SetFight(newFight)
 	end
 end
 
-function lib.InitializeFights()
+function libint.InitializeFights()
 	if isFileInitialized == true then return false end
 	logger = lf.initSublogger("fights")
 

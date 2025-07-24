@@ -458,7 +458,7 @@ libint.Events.Effects = libint.EventHandler:New(
 
 local isFileInitialized = false
 
-function lib.InitializeEffects()
+function libint.InitializeEffects()
 	if isFileInitialized == true then return false end
 	logger = lf.initSublogger("effects")
 

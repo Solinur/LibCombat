@@ -12,11 +12,6 @@ local spairs              = lf.spairs
 local em                  = EventCallbackManager and EventCallbackManager:New("LCU_EventManager") or GetEventManager()
 local wm                  = GetWindowManager()
 
----@class UnitHandler 
-local UnitHandler         = ZO_InitializingObject:Subclass() -- internal object to store everything about a unit
-
----@class UnitAPIHandler 
-local UnitAPIHandler      = ZO_InitializingObject:Subclass() -- object to expose data about units
 
 -- internal objects
 libunits.debug            = false or GetDisplayName() == "@Solinur"
@@ -39,6 +34,8 @@ local EffectCache = libunits.effectCache
 
 -- localized for convinience
 local UnitExportCache = libunits.UnitExportCache
+---@class UnitHandler 
+local UnitHandler
 
 ---@diagnostic disable-next-line: undefined-global
 local COMBAT_UNIT_TYPE_GROUP_COMPANION = COMBAT_UNIT_TYPE_GROUP_COMPANION or (COMBAT_UNIT_TYPE_GROUP + 100)
@@ -301,6 +298,8 @@ local function onTrialDummy(_, _, _, _, _, _, _, _, _, _, _, _, _, _, sourceUnit
 end
 
 -- UnitHandler
+---@class UnitHandler 
+UnitHandler = ZO_InitializingObject:Subclass() -- internal object to store everything about a unit
 
 ---@diagnostic disable-next-line: duplicate-set-field
 function UnitHandler:Initialize(rawName, unitId, unitType, unitTag)
@@ -500,18 +499,24 @@ end
 
 -- Unit object for exporting info
 
+---@class UnitAPIHandler 
+local UnitAPIHandler = ZO_InitializingObject:Subclass() -- object to expose data about units
+
 ---@diagnostic disable-next-line: duplicate-set-field
 function UnitAPIHandler:Initialize(unitId)
 	if unitId == nil then logger:Error("No unit Id!") return end
-	if UnitCache[unitId] == nil then logger:Info("Unit %d is not known!", unitId) end
+	if UnitCache[unitId] == nil then logger:Info("Unit %d is not known!", unitId) return end
 	-- TODO: Add safeguard if unit is unkown!
 	self.unitId = unitId
 
 	UnitExportCache[unitId] = self
 end
 
-
+---@return UnitData?
 function UnitAPIHandler:GetFullUnitData()
+	if self.unitId == nil then return end
+
+	---@class UnitData
 	local unitData = {
 		unitId     = self.unitId,
 		name       = self:GetUnitName(),
@@ -761,7 +766,7 @@ libint.Events.Units = libint.EventHandler:New(
 
 local isFileInitialized = false
 
-function lib.InitializeUnits()
+function libint.InitializeUnits()
 	if isFileInitialized == true then return false end
 	logger = lf.initSublogger("units")
 

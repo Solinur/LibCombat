@@ -342,7 +342,7 @@ libint.Events.Resources = libint.EventHandler:New(
 
 local isFileInitialized = false
 
-function lib.InitializeResources()
+function libint.InitializeResources()
 	if isFileInitialized == true then return false end
 	logger = lf.initSublogger("resource")
 

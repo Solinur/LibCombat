@@ -153,7 +153,7 @@ lib.internal.abilityIdZen = 126597
 lib.internal.abilityIdForceOfNature = 174250
 
 local isFileInitialized = false
-function lib.InitializeGlobals()
+function lib.internal.InitializeGlobals()
 	if isFileInitialized == true then return false end
 
     isFileInitialized = true
