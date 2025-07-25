@@ -24,6 +24,13 @@ function lib.IsPlayerUnitId(unitId)
 	return unitId == libunits.playerid
 end
 
+---Returns if the current fight is a boss fight
+---@return boolean isBossFight
+function lib.IsCurrentFightBossFight()
+	local fight = libint.currentFight
+	return fight.bossfight
+end
+
 ---Returns player and total damage done to the main target(s) as well as the durations during which the damage occured.
 ---
 ---In a bossfight the main target refers to the boss(es), in other fights to the unit with the most health or damage taken.
