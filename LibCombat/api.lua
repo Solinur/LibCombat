@@ -8,20 +8,22 @@ local lf = libint.functions
 local logger
 local isFileInitialized = false
 
-
+--- Ends the current fight and immediately starts a new one.
 function lib.ResetFight()
 	libint.currentFight:ResetFight()
 end
 
+---Returns if the unitId is the one from the player
+---@return integer unitId
 function lib.GetPlayerUnitId()
-	return libunits.playerid
+	return libunits.playerId
 end
 
----comment
+---Returns if the unitId is the one from the player
 ---@param unitId any
 ---@return boolean
 function lib.IsPlayerUnitId(unitId)
-	return unitId == libunits.playerid
+	return unitId == libunits.playerId
 end
 
 ---Returns if the current fight is a boss fight
