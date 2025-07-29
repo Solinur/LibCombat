@@ -30,7 +30,14 @@ end
 ---@return boolean isBossFight
 function lib.IsCurrentFightBossFight()
 	local fight = libint.currentFight
-	return fight.bossfight
+	return fight.bossFight
+end
+
+---Returns the time since the player went into combat in seconds
+---@return number combatDuration 
+function lib.GetCurrentFightDuration()
+	local fight = libint.currentFight
+	return (GetGameTimeMilliseconds() - fight.info.combatStart)/1000
 end
 
 ---Returns player and total damage done to the main target(s) as well as the durations during which the damage occured.
@@ -43,7 +50,7 @@ end
 function lib.GetCurrentMainTargetDamage()
 	local fight = libint.currentFight
 
-	if fight.bossfight then
+	if fight.bossFight then
 		local unitIds = fight.unitIds.bosses
 		return fight:GetDamageToUnits(unitIds)
 	else

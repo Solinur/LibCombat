@@ -192,7 +192,7 @@ function FightHandler:CheckUnit(unitId)
 			self.unitIds.player = unitId
 		end
 		if unit.isBoss then 
-			self.bossfight = true 
+			self.bossFight = true 
 			self.unitIds.bosses[unitId] = true
 		end
 		if unit.unitType == COMBAT_UNIT_TYPE_GROUP or unit.unitType == libint.COMBAT_UNIT_TYPE_GROUP_COMPANION then
