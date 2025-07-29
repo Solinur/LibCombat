@@ -25,7 +25,7 @@ calculations.lua
 events.lua
 units.lua
 combat.lua
-; effects.lua
+effects.lua
 ; stats.lua
 ; skillcasting.lua
 ; resources.lua
