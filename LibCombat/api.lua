@@ -77,6 +77,78 @@ function lib.GetCurrentTotalDamage()
 	return fight:GetDamageToUnits(unitIds)
 end
 
+--- Callbacks
+
+---Register all events that return log info
+---@param name string
+---@param callback function
+function lib.RegisterForLogableCombatEvents(name, callback)
+	for i = LIBCOMBAT_LOG_EVENT_MIN, LIBCOMBAT_LOG_EVENT_MAX do
+		local isRegistered = lib.RegisterForCombatEvent(name, i, callback)
+		if not isRegistered then logger:Warn("Could not register event type %d for %s", i, name) end
+	end
+end
+
+---Unregister all events that return log info
+---@param name string
+function lib.UnregisterForLogableCombatEvents(name)
+	for i = LIBCOMBAT_LOG_EVENT_MIN, LIBCOMBAT_LOG_EVENT_MAX do
+		local isUnregistered = lib.UnregisterForCombatEvent(name, i)
+		if not isUnregistered then logger:Warn("Could not unregister event type %d for %s", i, name) end
+	end
+end
+
+---Register a single events
+---@param name string
+---@param callbacktype CallbackKey
+---@param callback function
+function lib.RegisterForCombatEvent(name, callbacktype, callback)
+	local isRegistered = lf.UpdateResources(name, callbacktype, callback)
+	if isRegistered then libint.cm:RegisterCallback(libint.CallbackKeys[callbacktype], callback) end
+
+	return isRegistered
+end
+
+---Unregister a single event
+---@param name string
+---@param callbacktype CallbackKey
+function lib.UnregisterForCombatEvent(name, callbacktype)
+	local isUnregistered, callback = lf.UpdateResources(name, callbacktype)
+	libint.cm:UnregisterCallback(libint.CallbackKeys[callbacktype], callback)
+
+	return isUnregistered
+end
+
+--- Legacy
+
+---Register all events that return log info
+---@param callback function
+---@param name string
+function lib:RegisterAllLogCallbacks(callback, name)
+	lib.RegisterForLogableCombatEvents(name, callback)
+end
+
+---@param callbacktype CallbackKey
+---@param callback function
+---@param name string
+function lib:RegisterCallbackType(callbacktype, callback, name)
+	lib.RegisterForCombatEvent(name, callbacktype, callback)
+end
+
+---@param callbacktype CallbackKey
+---@param callback function
+---@param name string
+function lib:UnregisterCallbackType(callbacktype, callback, name)
+	lib.UnregisterForCombatEvent(name, callbacktype)
+end
+
+
+-- function lib:GetCurrentFight()
+-- 	if libint.currentFight.dpsstart ~= nil then
+-- 		return ZO_DeepTableCopy(libint.currentFight)
+-- 	end
+-- end
+
 
 function libint.InitializeAPI()
 	if isFileInitialized == true then return false end

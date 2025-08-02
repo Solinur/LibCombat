@@ -406,6 +406,15 @@ function libint.InitializeStats()
 	if isFileInitialized == true then return false end
 	logger = lf.initSublogger("stats")
 
+	ld.stats = {}
+	-- ld.advancedStats = {} -- TODO: Remove? 
+
+	ld.backstabber = 0
+	ld.critBonusMundus = 0
+	ld.lastabilities = {}
+
+	ld.currentQuickslotIndex = GetCurrentQuickslot()
+
     isFileInitialized = true
 	return true
 end

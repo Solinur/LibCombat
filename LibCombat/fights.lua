@@ -387,6 +387,92 @@ function FightHandler:onUpdate()
 	end
 end
 
+
+function lf.onPlayerActivated()
+	logger:Debug("onPlayerActivated")
+
+	-- zo_callLater(lf.GetCurrentSkillBars, 100) -- TODO: Reactivate ?
+	libint.isInPortalWorld = false
+end
+
+local function getCurrentBossHP()
+	if BOSS_BAR.control:IsHidden() then return 0 end
+
+	local totalHealth = 0
+    local totalMaxHealth = 0
+
+    for unitTag, bossEntry in pairs(BOSS_BAR.bossHealthValues) do
+        totalHealth = totalHealth + bossEntry.health
+        totalMaxHealth = totalMaxHealth + bossEntry.maxHealth
+	end
+
+	return totalHealth/totalMaxHealth
+end
+
+local function IsOngoingBossfight()
+	if libint.isInPortalWorld then -- prevent fight reset in bossfights when using a portal.
+		logger:Debug("Prevented combat reset because player is in Portal!")
+		return true
+	elseif getCurrentBossHP() > 0 and getCurrentBossHP() < 1 then
+		logger:Info("Prevented combat reset because boss is still in fight!")
+		return true
+	end
+	return false
+end
+
+
+-- Event Functions
+function libint.onCombatState(event, inCombat)  -- Detect Combat Stage, local is defined above - Don't Change !!!
+	if inCombat ~= ld.inCombat then     -- Check if player state changed
+		local timems = GetGameTimeMilliseconds()
+
+		if inCombat then
+			ld.inCombat = inCombat
+			logger:Debug("Entering combat.")
+			libint.cm:FireCallbacks((libint.CallbackKeys[LIBCOMBAT_LOG_EVENT_COMBATSTATE]), LIBCOMBAT_LOG_EVENT_COMBATSTATE, timems, LIBCOMBAT_MESSAGE_COMBATSTART, 0)
+			libint.currentFight:PrepareFight()
+		else
+			if IsOngoingBossfight() then
+				logger:Debug("Failed: Leaving combat.")
+				return
+			end
+
+			ld.inCombat = false
+			logger:Debug("Leaving combat.")
+			libint.currentFight:FinishFight()
+
+			if libint.currentFight.charData == nil then return end
+			libint.cm:FireCallbacks((libint.CallbackKeys[LIBCOMBAT_LOG_EVENT_COMBATSTATE]), LIBCOMBAT_LOG_EVENT_COMBATSTATE, timems, LIBCOMBAT_MESSAGE_COMBATEND, 0)
+		end
+	end
+end
+
+local function onPortalWorld( _, changeType)
+	libint.isInPortalWorld = changeType == EFFECT_RESULT_GAINED
+end
+
+local function onMageExplode()
+	libint.currentFight:ResetFight()	-- special tracking for The Mage in Aetherian Archives. It will reset the fight when the mage encounter starts.
+end
+
+-- Events
+
+libint.Events.General = libint.EventHandler:New(
+	lf.GetAllCallbackTypes(),
+	function (self)
+		self:RegisterEvent(EVENT_PLAYER_COMBAT_STATE, libint.onCombatState)
+
+		-- self:RegisterEvent(EVENT_HOTBAR_SLOT_CHANGE_REQUESTED, lf.GetCurrentSkillBars)  -- TODO: Reactivate ?
+		self:RegisterEvent(EVENT_PLAYER_ACTIVATED, lf.onPlayerActivated)
+		self:RegisterEvent(EVENT_EFFECT_CHANGED, onMageExplode, REGISTER_FILTER_ABILITY_ID, 50184)
+		self:RegisterEvent(EVENT_EFFECT_CHANGED, onPortalWorld, REGISTER_FILTER_ABILITY_ID, 108045)
+		self:RegisterEvent(EVENT_EFFECT_CHANGED, onPortalWorld, REGISTER_FILTER_ABILITY_ID, 121216)
+
+		self.active = true
+	end
+)
+
+
 function libint.InitializeFights()
 	if isFileInitialized == true then return false end
 	logger = lf.initSublogger("fights")
@@ -395,6 +481,10 @@ function libint.InitializeFights()
 	libint.currentFight = newFight
 	lf.ActivateProcessors()
 	libint.LogProcessingQueue:SetFight(newFight)
+	
+	libint.onCombatState(EVENT_PLAYER_COMBAT_STATE, IsUnitInCombat("player"))
+
+	ld.inCombat = false
 
     isFileInitialized = true
 	return true

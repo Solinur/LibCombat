@@ -5,6 +5,9 @@ local libint = lib.internal
 local ld = libint.data
 local lf = libint.functions
 local logger
+local ActiveCallbackTypes = {}
+libint.ActiveCallbackTypes = ActiveCallbackTypes
+local CallbackKeys = libint.CallbackKeys
 
 local Events = {}
 libint.Events = Events
@@ -92,7 +95,7 @@ end
 
 --  lib.UnregisterAllEvents = UnregisterAllEvents 	-- debug exposure
 
-function libint.GetAllCallbackTypes()
+function lf.GetAllCallbackTypes()
 	local t={}
 
 	for i=LIBCOMBAT_EVENT_MIN,LIBCOMBAT_EVENT_MAX do
@@ -106,15 +109,49 @@ function libint.GetAllCallbackTypes()
 	return t
 end
 
+
+-- Calllback Registrations
+
+local function InitCallbackIndex()
+	for i=LIBCOMBAT_EVENT_MIN,LIBCOMBAT_EVENT_MAX do
+		ActiveCallbackTypes[i]={}
+	end
+	for i=LIBCOMBAT_LOG_EVENT_MIN,LIBCOMBAT_LOG_EVENT_MAX do
+		ActiveCallbackTypes[i]={}
+	end
+end
+
+local function UpdateEventRegistrations()
+	for _,Eventgroup in pairs(Events) do
+		Eventgroup:UpdateEvents()
+	end
+end
+
+function lf.UpdateResources(name, callbacktype, callback)
+	local oldCallback = ActiveCallbackTypes[callbacktype][name]
+
+	if callback and oldCallback then 
+		return false
+	else
+		ActiveCallbackTypes[callbacktype][name] = callback
+		zo_callLater(UpdateEventRegistrations, 0)	-- delay a frame to avoid an issue if functions get registered and deregistered within the same frame
+	end
+
+	return true, oldCallback
+end
+
+
 local isFileInitialized = false
 
 function libint.InitializeEvents()
 	if isFileInitialized == true then return false end
 	logger = lf.initSublogger("events")
 
-    isFileInitialized = true
-
+	InitCallbackIndex()
+	
 	EVENT_MANAGER:RegisterForEvent("LibCombatActive", EVENT_PLAYER_ACTIVATED, function() ld.isUIActivated = true end)
 	EVENT_MANAGER:RegisterForEvent("LibCombatActive", EVENT_PLAYER_DEACTIVATED, function() ld.isUIActivated = false end)
+
+    isFileInitialized = true
 	return true
 end

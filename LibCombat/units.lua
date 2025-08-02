@@ -741,7 +741,7 @@ end
 -- Init
 
 libint.Events.Units = libint.EventHandler:New(
-	libint.GetAllCallbackTypes(),
+	lf.GetAllCallbackTypes(),
 	function(self)
 		self:RegisterEvent(EVENT_COMBAT_EVENT, OnCombatEvent)
 		self:RegisterEvent(EVENT_EFFECT_CHANGED, OnEffectChanged)

@@ -15,6 +15,9 @@ local logger
 libint.ABILITY_RESOURCE_CACHE_SIZE = 20
 local maxSkillDelay = 2000
 
+libint.isProjectile = {}
+libint.isInPortalWorld = false	-- used to prevent fight reset in Cloudrest/Sunspire when using a portal.
+
 local SlotSkills = {}
 local IdToReducedSlot = {}
 libint.lastAbilityActivations = {}
@@ -568,6 +571,21 @@ local function onSlotUpdate(_, slotNum)
 
 end
 
+local function onWeaponSwap(_, isHotbarSwap)
+	local newbar = GetActiveHotbarCategory() + 1
+	if ld.bar == newbar then return end
+	ld.bar = newbar
+	lf.GetCurrentSkillBars()
+
+	local inCombat = libint.currentFight.prepared
+	if inCombat == true then
+		local timems = GetGameTimeMilliseconds()
+		libint.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_LOG_EVENT_COMBATSTATE]), LIBCOMBAT_LOG_EVENT_COMBATSTATE, timems, LIBCOMBAT_MESSAGE_WEAPONSWAP, ld.bar)
+
+		-- libint.currentFight:QueueStatUpdate(timems) -- move to stats
+	end
+end
+
 libint.Events.Skills = libint.EventHandler:New(
 	{LIBCOMBAT_LOG_EVENT_SKILL_CAST},
 	function (self)
@@ -579,6 +597,11 @@ libint.Events.Skills = libint.EventHandler:New(
 		self:RegisterEvent(EVENT_COMBAT_EVENT, onQueueEvent, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_QUEUED, REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER)
 		self:RegisterEvent(EVENT_COMBAT_EVENT, onProjectileEvent, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_GAINED, REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER)
 		self:RegisterEvent(EVENT_ACTION_SLOT_ABILITY_USED, onSkillSlotUsed)
+		self:RegisterEvent(EVENT_ACTION_SLOTS_FULL_UPDATE, onWeaponSwap)
+
+		-- TODO: Add synergy tracking
+		-- self:RegisterEvent(EVENT_SYNERGY_ABILITY_CHANGED, onSynergyAvailable)
+		-- self:RegisterEvent(EVENT_COMBAT_EVENT, onSynergyTaken)
 
 		self.Update = UpdateSkillEvents
 		self:Update()
@@ -599,20 +622,14 @@ libint.Events.QuickSlot = libint.EventHandler:New(
 	end
 )
 
--- Events.Synergy = EventHandler:New(
--- 	{LIBCOMBAT_EVENT_SYNERGY},
--- 	function (self)
--- 		-- self:RegisterEvent(EVENT_PLAYER_DEACTIVATED, onSynergyAvailable)
--- 		-- self:RegisterEvent(EVENT_PLAYER_DEACTIVATED, onSynergyTaken)
--- 		self.active = true
--- 	end
--- )
-
 local isFileInitialized = false
 
-function libint.InitializeSkillcasting()
+function libint.InitializeActions()
 	if isFileInitialized == true then return false end
 	logger = lf.initSublogger("skillcasting")
+
+	
+	ld.bar = GetActiveWeaponPairInfo()
 
 	ld.skillBars= {}
 	ld.scribedSkills= {}
