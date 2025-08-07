@@ -47,7 +47,7 @@ end
 ---@return integer playerDamage
 ---@return number totalTime
 ---@return integer totalDamage
-function lib.GetCurrentMainTargetDamage()
+function lib.GetCurrentMainTargetDamageDone()
 	local fight = libint.currentFight
 
 	if fight.bossFight then
@@ -59,19 +59,35 @@ function lib.GetCurrentMainTargetDamage()
 	end
 end
 
----Returns player and total damage done to the main target(s) as well as the durations during which the damage occured.
+---Returns player and total damage done to the all non-friendly targets as well as the durations during which the damage occured.
 ---
----In a bossfight the main target refers to the boss(es), in other fights to the unit with the most health or damage taken.
 ---@return number playerTime
 ---@return integer playerDamage
 ---@return number totalTime
 ---@return integer totalDamage
-function lib.GetCurrentTotalDamage()
+function lib.GetCurrentTotalDamageDone()
 	local fight = libint.currentFight
 
 	local unitIds = {}
 	for unitId, unit in pairs(fight.units) do
 		if unit.isFriendly == false then unitIds[#unitIds+1] = unitId end
+	end
+
+	return fight:GetDamageToUnits(unitIds)
+end
+
+---Returns player and group damage received as well as the durations during which the damage occured.
+---
+---@return number playerTime
+---@return integer playerDamage
+---@return number totalTime
+---@return integer totalDamage
+function lib.GetCurrentTotalDamageReceived()
+	local fight = libint.currentFight
+
+	local unitIds = {}
+	for unitId, unit in pairs(fight.units) do
+		if unit.isFriendly == true then unitIds[#unitIds+1] = unitId end
 	end
 
 	return fight:GetDamageToUnits(unitIds)

@@ -111,7 +111,7 @@ function FightHandler:GetMetaData(timems)
 	self.CP = GetCurrentCP()
 end
 
-local function InitUnitPower()
+local function InitUnitPower() -- TODO: Move to resources
 	ld.resources[COMBAT_MECHANIC_FLAGS_HEALTH] = GetUnitPower("player", COMBAT_MECHANIC_FLAGS_HEALTH)
 	ld.resources[COMBAT_MECHANIC_FLAGS_MAGICKA] = GetUnitPower("player", COMBAT_MECHANIC_FLAGS_MAGICKA)
 	ld.resources[COMBAT_MECHANIC_FLAGS_STAMINA] = GetUnitPower("player", COMBAT_MECHANIC_FLAGS_STAMINA)
@@ -311,58 +311,79 @@ function FightHandler:GetMainUnit()
 end
 
 -- Return player and total healing done including the durations in seconds during which the healing happend.
----@return number? playerTime
----@return integer? playerHealing
----@return number? totalTime
----@return integer? totalHealing
-function FightHandler:GetHealing()
+---@return number playerTime
+---@return integer playerHealing
+---@return integer playerOverflowHealing
+---@return number totalTime
+---@return integer totalHealing
+---@return integer totalOverflowHealing
+function FightHandler:GetHealingDone()
 	local healingData = self.healingReceived
-	if healingData == nil then return end
+	if healingData == nil then return 0, 0, 0, 0 end
 
 	local playerStartTime = math.huge
 	local playerEndTime = 0
 	local playerHealing = 0
+	local playerOverflowHealing = 0
 	local startTime = math.huge
 	local endTime = 0
 	local totalHealing = 0
+	local totalOverflowHealing = 0
 
-	local groupUnitIds = self.unitIds.groupt
+	local groupUnitIds = self.unitIds.group
 	
 	for i, unitId in ipairs(groupUnitIds) do
-		local unitData = self.healingReceived[unitId]
+		local unitData = healingData[unitId]
 		if unitData then
 			startTime = zo_min(startTime, unitData.startTime)
 			endTime = zo_max(endTime, unitData.endTime)
 			totalHealing = totalHealing + unitData.totalHealing
-
-			local playerUnitData = unitData[self.unitIds.player]
-			if playerUnitData then
-				playerStartTime = zo_min(playerStartTime, unitData.playerStartTime)
-				playerEndTime = zo_max(playerEndTime, unitData.playerEndTime)
-				playerHealing = playerHealing + unitData.playerHealing
-			end
+			totalOverflowHealing = totalOverflowHealing + unitData.totalOverflowHealing
 		end
 	end
 
-	if endTime == 0 then return end
+	local playerUnitData = self.healingDone and self.healingDone[self.unitIds.player] or nil
+	if playerUnitData then
+		playerStartTime = playerUnitData.startTime
+		playerEndTime = playerUnitData.endTime
+		playerHealing = playerUnitData.totalHealing
+		playerOverflowHealing = playerUnitData.overflowHealing
+	end
+
+	if endTime == 0 then return 0, 0, 0, 0 end
 	if playerEndTime == 0 then 
 		playerStartTime = 0
 	end
 	local unitTime = (endTime - startTime)/1000
 	local playerTime = (playerEndTime - playerStartTime)/1000
 
-	return playerTime, playerHealing, unitTime, totalHealing
+	return playerTime, playerHealing, playerOverflowHealing, unitTime, totalHealing, totalOverflowHealing
+end
+
+-- Return player healing received including the durations in seconds during which the healing happend.
+---@return number time
+---@return integer playerHealingReceived
+function FightHandler:GetPlayerHealingReceived()
+	local playerUnitData = self.healingReceived and self.healingDone[self.unitIds.player] or nil
+	if playerUnitData == nil then return 0, 0 end
+
+	local playerStartTime = playerUnitData.startTime
+	local playerEndTime = playerUnitData.endTime
+	local healing = playerUnitData.totalHealing
+
+	if playerEndTime == 0 then return 0, 0 end
+	local time = (playerEndTime - playerStartTime)/1000
+
+	return time, healing
 end
 
 local function PrintCombatStats()
-	local playerTime, playerDamage, unitTime, totalDamage = lib.GetCurrentMainTargetDamage()
+	local playerTime, playerDamage, unitTime, totalDamage = lib.GetCurrentMainTargetDamageDone()
 	local playerDPS =  playerTime > 0 and playerDamage/playerTime or 0
 	local groupDPS =  unitTime > 0 and totalDamage/unitTime or 0
 	logger:Info("%.0f, %.3fs / %.0f, %.3fs", playerDPS, playerTime, groupDPS, unitTime)
 
-	local playerMultiTime, playerMultiDamage, unitMultiTime, totalMultiDamage = lib.GetCurrentTotalDamage()
-
-
+	local playerMultiTime, playerMultiDamage, unitMultiTime, totalMultiDamage = lib.GetCurrentTotalDamageDone()
 	local playerMultiDPS =  playerMultiTime > 0 and playerMultiDamage/playerMultiTime or 0
 	local groupMultiDPS =  unitMultiTime > 0 and totalMultiDamage/unitMultiTime or 0
 	logger:Info("%.0f, %.3fs / %.0f, %.3fs", playerMultiDPS, playerMultiTime, groupMultiDPS, unitMultiTime)
@@ -455,6 +476,78 @@ local function onMageExplode()
 	libint.currentFight:ResetFight()	-- special tracking for The Mage in Aetherian Archives. It will reset the fight when the mage encounter starts.
 end
 
+
+local lastUpdateStats
+local function UpdateStats()
+	local fight = libint.currentFight
+
+	if (fight.dpsend == nil and fight.hpsend == nil) or (fight.dpsstart == nil and fight.hpsstart == nil) then return end
+	
+	local playerBossTime, playerBossDamage, groupBossTime, groupBossDamage = lib.GetCurrentMainTargetDamageDone()
+	local bossDPSOut = zo_floor(playerBossDamage / playerBossTime + 0.5)
+	local bossDPSOutGroup = zo_floor(groupBossDamage / groupBossTime + 0.5)
+
+	local playerDPSTime, playerDamageOut, groupDPSTime, groupDamageOut = lib.GetCurrentTotalDamageDone()
+	local playerDPSOut = zo_floor(playerDamageOut / playerDPSTime + 0.5)
+	local groupDPSOut = zo_floor(groupDamageOut / groupDPSTime + 0.5)
+
+	local playerHPSTime, playerHealingOut, playerHealingOutOverflow, groupHPSTime, groupHealingOut, groupHealingOutOverflow = fight:GetHealingDone()
+	local playerHPSOut = zo_floor(playerHealingOut / playerHPSTime + 0.5)
+	local playerOHPSOut = zo_floor(playerHealingOutOverflow / playerHPSTime + 0.5)
+	local groupHPSOut = zo_floor(groupHealingOut / groupHPSTime + 0.5)
+	local groupOHPSOut = zo_floor(groupHealingOutOverflow / groupHPSTime + 0.5)
+
+	local playerDPSInTime, playerDamageIn, groupDPSInTime, groupDamageIn = lib.GetCurrentTotalDamageDone()
+	local playerDPSIn = zo_floor(playerDamageIn / playerDPSInTime + 0.5)
+	local groupDPSIn = zo_floor(groupDamageIn / groupDPSInTime + 0.5)
+
+	local healingReceivedTime, healingReceived = fight:GetPlayerHealingReceived()
+	local HPSIn = zo_floor(healingReceived / healingReceivedTime + 0.5)
+
+	local data = {
+		["bossfight"] = fight.bossfight,
+		["group"] = fight.group,
+
+		["bossDamageTotal"] = playerBossDamage,
+		["bossTime"] = playerBossTime,
+		["bossDPSOut"] = bossDPSOut,
+		["bossDamageTotalGroup"] = groupBossDamage,
+		["bossGroupTime"] = groupBossTime,
+		["bossDPSOutGroup"] = bossDPSOutGroup,
+
+		["damageOutTotal"] = playerDamageOut,
+		["dpstime"] = playerDPSTime,
+		["DPSOut"] = playerDPSOut,
+		["dpsGroupTime"] = groupDPSTime,
+		["damageOutTotalGroup"] = groupDamageOut,
+		["groupDPSOut"] = playerDPSOut,
+
+		["healingOutTotal"] = playerHealingOut,
+		["overHealingOutTotal"] = playerHealingOutOverflow,
+		["hpstime"] = playerHPSTime,
+		["HPSOut"] = playerHPSOut,
+		["HPSAOut"] = playerOHPSOut,
+		["OHPSOut"] = playerOHPSOut,
+
+		["groupHPSOut"] = groupHPSOut,
+		["groupOHPSOut"] = groupOHPSOut,
+
+		["DPSIn"] = playerDPSIn,
+		["groupDPSIn"] = groupDPSIn,
+		["HPSIn"] = HPSIn,
+	}
+
+	for key, value in pairs(data) do
+		if lastUpdateStats[key] ~= value then 
+			lib.cm:FireCallbacks((libint.CallbackKeys[LIBCOMBAT_EVENT_UNITS]), LIBCOMBAT_EVENT_UNITS, fight.units)
+			lib.cm:FireCallbacks((libint.CallbackKeys[LIBCOMBAT_EVENT_FIGHTRECAP]), LIBCOMBAT_EVENT_FIGHTRECAP, data)
+			break
+		end
+	end
+	lastUpdateStats = data
+end
+
+
 -- Events
 
 libint.Events.General = libint.EventHandler:New(
@@ -483,6 +576,7 @@ function libint.InitializeFights()
 	libint.LogProcessingQueue:SetFight(newFight)
 	
 	libint.onCombatState(EVENT_PLAYER_COMBAT_STATE, IsUnitInCombat("player"))
+	EVENT_MANAGER:RegisterForUpdate("LibCombatUpdateCombatStats", 500, UpdateStats)
 
 	ld.inCombat = false
 
