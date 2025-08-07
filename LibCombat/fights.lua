@@ -484,8 +484,8 @@ local function UpdateStats()
 	if (fight.dpsend == nil and fight.hpsend == nil) or (fight.dpsstart == nil and fight.hpsstart == nil) then return end
 	
 	local playerBossTime, playerBossDamage, groupBossTime, groupBossDamage = lib.GetCurrentMainTargetDamageDone()
-	local bossDPSOut = zo_floor(playerBossDamage / playerBossTime + 0.5)
-	local bossDPSOutGroup = zo_floor(groupBossDamage / groupBossTime + 0.5)
+	local playerBossDPSOut = zo_floor(playerBossDamage / playerBossTime + 0.5)
+	local groupBossDPSOut = zo_floor(groupBossDamage / groupBossTime + 0.5)
 
 	local playerDPSTime, playerDamageOut, groupDPSTime, groupDamageOut = lib.GetCurrentTotalDamageDone()
 	local playerDPSOut = zo_floor(playerDamageOut / playerDPSTime + 0.5)
@@ -510,17 +510,17 @@ local function UpdateStats()
 
 		["bossDamageTotal"] = playerBossDamage,
 		["bossTime"] = playerBossTime,
-		["bossDPSOut"] = bossDPSOut,
+		["bossDPSOut"] = playerBossDPSOut,
 		["bossDamageTotalGroup"] = groupBossDamage,
 		["bossGroupTime"] = groupBossTime,
-		["bossDPSOutGroup"] = bossDPSOutGroup,
+		["bossDPSOutGroup"] = groupBossDPSOut,
 
 		["damageOutTotal"] = playerDamageOut,
 		["dpstime"] = playerDPSTime,
 		["DPSOut"] = playerDPSOut,
 		["dpsGroupTime"] = groupDPSTime,
 		["damageOutTotalGroup"] = groupDamageOut,
-		["groupDPSOut"] = playerDPSOut,
+		["groupDPSOut"] = groupDPSOut,
 
 		["healingOutTotal"] = playerHealingOut,
 		["overHealingOutTotal"] = playerHealingOutOverflow,
