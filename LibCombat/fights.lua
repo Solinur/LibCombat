@@ -83,7 +83,7 @@ local function UpdateStats()
 	local groupHPSOut = get_per_second_value(groupHealingOut, groupHPSTime)
 	local groupOHPSOut = get_per_second_value(groupHealingOutOverflow, groupHPSTime)
 
-	local playerDPSInTime, playerDamageIn, groupDPSInTime, groupDamageIn = lib.GetCurrentTotalDamageDone()
+	local playerDPSInTime, playerDamageIn, groupDPSInTime, groupDamageIn = lib.GetCurrentTotalDamageReceived()
 	local playerDPSIn = get_per_second_value(playerDamageIn, playerDPSInTime)
 	local groupDPSIn = get_per_second_value(groupDamageIn, groupDPSInTime)
 
@@ -408,7 +408,7 @@ function FightHandler:GetHealingDone()
 	local totalHealing = 0
 	local totalOverflowHealing = 0
 
-	local groupUnitIds = self.unitIds.group
+	local groupUnitIds = self.unitIds.group  -- TODO: consider which targets to take into account for this stat (group vs. all freindly, pets? companions?)
 	
 	for i, unitId in ipairs(groupUnitIds) do
 		local unitData = healingData[unitId]
@@ -428,12 +428,8 @@ function FightHandler:GetHealingDone()
 		playerOverflowHealing = playerUnitData.overflowHealing
 	end
 
-	if endTime == 0 then return 0, 0, 0, 0 end
-	if playerEndTime == 0 then 
-		playerStartTime = 0
-	end
-	local unitTime = (endTime - startTime)/1000
-	local playerTime = (playerEndTime - playerStartTime)/1000
+	local unitTime = endTime == 0 and 0 or (endTime - startTime)/1000
+	local playerTime = playerEndTime == 0 and 0 or (playerEndTime - playerStartTime)/1000
 
 	return playerTime, playerHealing, playerOverflowHealing, unitTime, totalHealing, totalOverflowHealing
 end
