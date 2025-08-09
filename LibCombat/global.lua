@@ -18,7 +18,7 @@ LIBCOMBAT_EVENT_UNITS = 50					-- LIBCOMBAT_EVENT_UNITS, {units}
 LIBCOMBAT_EVENT_FIGHTRECAP = 51				-- LIBCOMBAT_EVENT_FIGHTRECAP, {data}
 LIBCOMBAT_EVENT_FIGHTSUMMARY = 52			-- LIBCOMBAT_EVENT_FIGHTSUMMARY, {fight}
 LIBCOMBAT_EVENT_GROUPRECAP = 53				-- LIBCOMBAT_EVENT_GROUPRECAP, groupDPSOut, groupDPSIn, groupHPS, dpstime, hpstime
-LIBCOMBAT_EVENT_DEATHRECAP = 54				-- LIBCOMBAT_EVENT_DEATHRECAP, timems, {data}
+LIBCOMBAT_EVENT_DEATHRECAP = 54				-- LIBCOMBAT_EVENT_DEATHRECAP, timeMs, {data}
 LIBCOMBAT_EVENT_MAX = 54
 
 for i = LIBCOMBAT_EVENT_MIN, LIBCOMBAT_EVENT_MAX do
@@ -43,16 +43,16 @@ end
 ---@alias CallbackKey CallbackLogKey | CallbackEventKey
 
 LIBCOMBAT_LOG_EVENT_MIN = 1
-LIBCOMBAT_LOG_EVENT_COMBATSTATE = 1				-- LIBCOMBAT_LOG_EVENT_COMBATSTATE, timems, combatMessage, value
-LIBCOMBAT_LOG_EVENT_DAMAGE = 2					-- LIBCOMBAT_LOG_EVENT_DAMAGE, timems, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType, overflow
-LIBCOMBAT_LOG_EVENT_HEAL = 3					-- LIBCOMBAT_LOG_EVENT_HEAL, timems, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType, overflow
-LIBCOMBAT_LOG_EVENT_EFFECT = 4					-- LIBCOMBAT_LOG_EVENT_EFFECT, timems, unitId, abilityId, changeType, effectType, stacks, sourceType, effectSlot
-LIBCOMBAT_LOG_EVENT_STATS = 5					-- LIBCOMBAT_LOG_EVENT_STATS, timems, statchange, newvalue, statId
-LIBCOMBAT_LOG_EVENT_RESOURCE = 6				-- LIBCOMBAT_LOG_EVENT_RESOURCE, timems, abilityId, powerValueChange, powerType, powerValue
-LIBCOMBAT_LOG_EVENT_DEATH = 7					-- LIBCOMBAT_LOG_EVENT_DEATH, timems, state, unitId, abilityId/unitId
-LIBCOMBAT_LOG_EVENT_SKILL_CAST = 8				-- LIBCOMBAT_LOG_EVENT_SKILL_CAST, timems, reducedslot, abilityId, skillStatus, skillDelay, skillDuration
-LIBCOMBAT_LOG_EVENT_PERFORMANCE = 9				-- LIBCOMBAT_LOG_EVENT_PERFORMANCE, timems, avg, min, max, ping
-LIBCOMBAT_LOG_EVENT_QUICKSLOT = 10				-- LIBCOMBAT_LOG_EVENT_QUICKSLOT, timems, itemLink
+LIBCOMBAT_LOG_EVENT_COMBATSTATE = 1				-- LIBCOMBAT_LOG_EVENT_COMBATSTATE, timeMs, combatMessage, value
+LIBCOMBAT_LOG_EVENT_DAMAGE = 2					-- LIBCOMBAT_LOG_EVENT_DAMAGE, timeMs, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType, overflow
+LIBCOMBAT_LOG_EVENT_HEAL = 3					-- LIBCOMBAT_LOG_EVENT_HEAL, timeMs, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType, overflow
+LIBCOMBAT_LOG_EVENT_EFFECT = 4					-- LIBCOMBAT_LOG_EVENT_EFFECT, timeMs, unitId, abilityId, changeType, effectType, stacks, sourceType, effectSlot
+LIBCOMBAT_LOG_EVENT_STATS = 5					-- LIBCOMBAT_LOG_EVENT_STATS, timeMs, statchange, newvalue, statId
+LIBCOMBAT_LOG_EVENT_RESOURCE = 6				-- LIBCOMBAT_LOG_EVENT_RESOURCE, timeMs, abilityId, powerValueChange, powerType, powerValue
+LIBCOMBAT_LOG_EVENT_DEATH = 7					-- LIBCOMBAT_LOG_EVENT_DEATH, timeMs, state, unitId, abilityId/unitId
+LIBCOMBAT_LOG_EVENT_SKILL_CAST = 8				-- LIBCOMBAT_LOG_EVENT_SKILL_CAST, timeMs, reducedslot, abilityId, skillStatus, skillDelay, skillDuration
+LIBCOMBAT_LOG_EVENT_PERFORMANCE = 9				-- LIBCOMBAT_LOG_EVENT_PERFORMANCE, timeMs, avg, min, max, ping
+LIBCOMBAT_LOG_EVENT_QUICKSLOT = 10				-- LIBCOMBAT_LOG_EVENT_QUICKSLOT, timeMs, itemLink
 LIBCOMBAT_LOG_EVENT_MAX = 10
 
 for i = LIBCOMBAT_LOG_EVENT_MIN, LIBCOMBAT_LOG_EVENT_MAX do

@@ -1,7 +1,6 @@
 local lib = LibCombat
 local libint = lib.internal
 local lf = libint.functions
-local CallbackKeys = libint.CallbackKeys
 local logger
 
 local playerActivatedTime = 10000
@@ -30,7 +29,7 @@ local function onFrameUpdate()
 
 	else
 
-		local timems = GetGameTimeMilliseconds()
+		local timeMs = GetGameTimeMilliseconds()
 
 		local sum = 0
 		local min = 100
@@ -47,7 +46,7 @@ local function onFrameUpdate()
 
 		end
 
-		libint.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_LOG_EVENT_PERFORMANCE]), LIBCOMBAT_LOG_EVENT_PERFORMANCE, timems, frameIndex/sum, 1/max, 1/min, GetLatency())
+		lf.FireCallback(LIBCOMBAT_LOG_EVENT_PERFORMANCE, timeMs, frameIndex/sum, 1/max, 1/min, GetLatency())
 
 		frameIndex = 1
 		currentsecond = now

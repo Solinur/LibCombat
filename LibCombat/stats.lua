@@ -7,7 +7,6 @@ local lf = libint.functions
 local GetSlottedAbilityId = lf.GetSlottedAbilityId
 local ld = libint.data
 local logger
-local CallbackKeys = libint.CallbackKeys
 
 local DivineSlots = {EQUIP_SLOT_HEAD, EQUIP_SLOT_SHOULDERS, EQUIP_SLOT_CHEST, EQUIP_SLOT_HAND, EQUIP_SLOT_WAIST, EQUIP_SLOT_LEGS, EQUIP_SLOT_FEET}
 
@@ -326,7 +325,7 @@ local function GetStats()
 	return statData
 end
 
-function lf.UpdateStats(timems)
+function lf.UpdateStats(timeMs)
 	local stats = ld.stats
 
 	for statId, newValue in pairs(GetStats()) do
@@ -336,7 +335,7 @@ function lf.UpdateStats(timems)
 			if newValue == nil then logger:Error("Invalid values encountered: newValue is nil") return end
 			if delta == nil then logger:Error("Invalid values encountered: delta is nil") return end
 			if statId == nil then logger:Error("Invalid values encountered: statId is nil") return end
-			libint.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_LOG_EVENT_STATS]), LIBCOMBAT_LOG_EVENT_STATS, timems, delta, newValue, statId)
+			lf.FireCallback(LIBCOMBAT_LOG_EVENT_STATS, timeMs, delta, newValue, statId)
 			stats[statId] = newValue
 		end
 	end
@@ -344,19 +343,19 @@ end
 
 local lastUpdateSingleStatsCall = 0
 
-function lf.UpdateSingleStat(statId, timems)
+function lf.UpdateSingleStat(statId, timeMs)
 	if libint.Events.Stats.active ~= true then return end
 	EVENT_MANAGER:UnregisterForUpdate("LibCombat_Stats_Single")
 
-	timems = timems or GetGameTimeMilliseconds()
-	local lastcalldelta = timems - lastUpdateSingleStatsCall
+	timeMs = timeMs or GetGameTimeMilliseconds()
+	local lastcalldelta = timeMs - lastUpdateSingleStatsCall
 
 	if lastcalldelta < 100 then
 		EVENT_MANAGER:RegisterForUpdate("LibCombat_Stats_Single", (100 - lastcalldelta), function() lf.UpdateSingleStat(statId, nil) end)
 		return
 	end
 
-	lastUpdateSingleStatsCall = timems
+	lastUpdateSingleStatsCall = timeMs
 	local stats = ld.stats
 	local oldValue = stats[statId]
 	local newValue = lf.GetSingleStat(statId)
@@ -365,7 +364,7 @@ function lf.UpdateSingleStat(statId, timems)
 		assert(delta ~= nil)
 		assert(newValue ~= nil)
 		assert(statId ~= nil)
-		libint.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_LOG_EVENT_STATS]), LIBCOMBAT_LOG_EVENT_STATS, timems, delta, newValue, statId)
+		lf.FireCallback(LIBCOMBAT_LOG_EVENT_STATS, timeMs, delta, newValue, statId)
 		stats[statId] = newValue
 	end
 

@@ -3,7 +3,6 @@
 
 local lib = LibCombat
 local libint = lib.internal
-local CallbackKeys = libint.CallbackKeys
 local lf = libint.functions
 local ld = libint.data
 local logger
@@ -58,7 +57,7 @@ function LogProcessingHandler:Activate()
 
 	for logType, _ in pairs(self.RegisteredLogTypes) do
 		local idString = string.format("LibCombat_%s%d", self.name, logType)
-		local success = lib:RegisterForCombatEvent(idString, logType, lf.AddLogLine)
+		local success = lib.RegisterForCombatEvent(idString, logType, lf.AddLogLine)
 		if success then self.idString[logType] = idString else logger:warn("Error during callback registration. Name: %s, Type: %d, idString: %s", self.name, logType, idString) end
 	end
 end
@@ -67,7 +66,7 @@ function LogProcessingHandler:Deactivate()
 	self.active = false
 
 	for logType, _ in pairs(self.RegisteredLogTypes) do
-		lib:UnregisterForCombatEvent(logType, self.idString[logType])
+		lib.UnregisterForCombatEvent(logType, self.idString[logType])
 		self.idString[logType] = nil
 	end
 end
@@ -130,7 +129,7 @@ function LogProcessingQueue:ProcessLine()
 		item = self:Pop()
 	end
 
-	logger:Info("Process Line: ", processor and processor.name or "nil", unpack(line, 1, i-1))
+	logger:Debug("Process Line: ", processor and processor.name or "nil", unpack(line, 1, i-1))
 	processor:ProcessLogLine(self.fight, unpack(line, 1, i-1))
 	ZO_ClearTable(line)
 end

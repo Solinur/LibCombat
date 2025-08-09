@@ -9,7 +9,6 @@ lib.version = 85
 
 lib.internal = {}
 local libint = lib.internal
-libint.cm = ZO_CallbackObject:New()
 libint.debug = false or GetDisplayName() == "@Solinur"
 libint.functions = {}
 libint.data = {}

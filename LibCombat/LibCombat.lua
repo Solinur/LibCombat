@@ -30,7 +30,7 @@ local logger
 
 -- EVENT_POWER_UPDATE (*string* _unitTag_, *luaindex* _powerIndex_, *[CombatMechanicType|#CombatMechanicType]* _powerType_, *integer* _powerValue_, *integer* _powerMax_, *integer* _powerEffectiveMax_)
 -- local function onBossHealthChanged(eventid, unitTag, _, powerType, powerValue, powerMax, powerEffectiveMax)
--- local timems = GetGameTimeMilliseconds()
+-- local timeMs = GetGameTimeMilliseconds()
 -- local BossHealthValue = zo_round(powerValue / powerMax * 100)
 
 -- if BossHealthValue == lastBossHealthValue then return end
@@ -39,7 +39,7 @@ local logger
 -- local bossId = tagToBossId[unitTag]
 
 -- TODO: Rework this into callback type UNIT_HEALTH
--- libint.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_BOSSHP]), LIBCOMBAT_EVENT_BOSSHP, timems, bossId, powerValue, powerMax)
+-- lf.FireCallback(LIBCOMBAT_EVENT_BOSSHP, timeMs, bossId, powerValue, powerMax)
 -- end
 
 -- TODO: Rework into UNIT Health

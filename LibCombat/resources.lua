@@ -1,6 +1,5 @@
 local lib = LibCombat
 local libint = lib.internal
-local CallbackKeys = libint.CallbackKeys
 local lf = libint.functions
 local ld = libint.data
 local logger
@@ -41,7 +40,7 @@ local function onSlotUsed(_, slot)
 
 	if ld.inCombat == false or slot > 8 then return end
 
-	local timems = GetGameTimeMilliseconds()
+	local timeMs = GetGameTimeMilliseconds()
 	local abilityId = lf.GetSlottedAbilityId(slot)
 
 	-- Print("events", LOG_LEVEL_DEBUG, "Ability Used: %s (%d)", GetFormattedAbilityName(abilityId), abilityId)
@@ -53,7 +52,7 @@ local function onSlotUsed(_, slot)
 
 		for powerType, cost in pairs(powerTypes) do
 
-			table.insert(lastabilities,{timems, abilityId, -cost, powerType})
+			table.insert(lastabilities,{timeMs, abilityId, -cost, powerType})
 
 		end
 
@@ -84,7 +83,7 @@ local function GetPlayerSprintState()
 
 end
 
-local function checkLastAbilities(timems, powerType, powerValueChange, powerValue)
+local function checkLastAbilities(timeMs, powerType, powerValueChange, powerValue)
 
 	local lastabilities = ld.lastabilities
 
@@ -132,14 +131,14 @@ local function checkLastAbilities(timems, powerType, powerValueChange, powerValu
 
 					logger:Debug("Resource: %s (%d): %d (%d) --> %d", GetFormattedAbilityName(values[2]), values[2], values[3], powerType, powerValue - adjustedPowerValueChange)
 
-					libint.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_LOG_EVENT_RESOURCE]), LIBCOMBAT_LOG_EVENT_RESOURCE, timems, values[2], values[3], powerType, powerValue - adjustedPowerValueChange)
+					lf.FireCallback(LIBCOMBAT_LOG_EVENT_RESOURCE, timeMs, values[2], values[3], powerType, powerValue - adjustedPowerValueChange)
 
 					break
 				end
 			end
 		end
 
-		if (values[1] - timems) > 1000 then break end
+		if (values[1] - timeMs) > 1000 then break end
 	end
 
 	logger:Debug("Ability Result: %s (%d), %d", GetFormattedAbilityName(abilityId), abilityId, tostring(adjustedPowerValueChange))
@@ -205,7 +204,7 @@ end
 
 local function onBaseResourceChanged(powerType, powerValue, powerValueChange)
 
-	local timems = GetGameTimeMilliseconds()
+	local timeMs = GetGameTimeMilliseconds()
 	local abilityId, adjustedPowerValueChange
 
  	if powerType == COMBAT_MECHANIC_FLAGS_MAGICKA then
@@ -216,7 +215,7 @@ local function onBaseResourceChanged(powerType, powerValue, powerValueChange)
 
 		-- Check for recently used skills
 
-		abilityId = checkLastAbilities(timems, powerType, powerValueChange, powerValue)
+		abilityId = checkLastAbilities(timeMs, powerType, powerValueChange, powerValue)
 
 		-- Check for regeneration tick
 
@@ -228,13 +227,13 @@ local function onBaseResourceChanged(powerType, powerValue, powerValueChange)
 
 		elseif abilityId == -1 then	-- Check for combination of skill and regeneration tick
 
-			abilityId = checkLastAbilities(timems, powerType, powerValueChange + regenerationTick, powerValue)
+			abilityId = checkLastAbilities(timeMs, powerType, powerValueChange + regenerationTick, powerValue)
 
 			if abilityId ~= -1 then
 
 				logger:Debug("Resource: %s (%d): %d (%d) --> %d", "Regeneration", 0, regenerationTick, powerType, powerValue + regenerationTick)
 
-				libint.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_LOG_EVENT_RESOURCE]), LIBCOMBAT_LOG_EVENT_RESOURCE, timems, 0, regenerationTick, powerType, powerValue + regenerationTick)
+				lf.FireCallback(LIBCOMBAT_LOG_EVENT_RESOURCE, timeMs, 0, regenerationTick, powerType, powerValue + regenerationTick)
 				powerValueChange = powerValueChange - regenerationTick
 
 			end
@@ -248,7 +247,7 @@ local function onBaseResourceChanged(powerType, powerValue, powerValueChange)
 
 		-- Check for recently used skills
 
-		abilityId, adjustedPowerValueChange = checkLastAbilities(timems, powerType, powerValueChange, powerValue)
+		abilityId, adjustedPowerValueChange = checkLastAbilities(timeMs, powerType, powerValueChange, powerValue)
 
 		if adjustedPowerValueChange then powerValueChange = adjustedPowerValueChange end
 
@@ -266,14 +265,14 @@ local function onBaseResourceChanged(powerType, powerValue, powerValueChange)
 
 			if abilityId == -1 then	-- Check for combination of skill and regeneration tick
 
-				abilityId, adjustedPowerValueChange = checkLastAbilities(timems, powerType, powerValueChange + regenerationTick, powerValue)
+				abilityId, adjustedPowerValueChange = checkLastAbilities(timeMs, powerType, powerValueChange + regenerationTick, powerValue)
 
 				if adjustedPowerValueChange then powerValueChange = adjustedPowerValueChange end
 
 				if abilityId ~= -1 then
 					logger:Debug("Resource: %s (%d): %d (%d) --> %d", "Regeneration", 0, regenerationTick, powerType, powerValue + regenerationTick)
 
-					libint.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_LOG_EVENT_RESOURCE]), LIBCOMBAT_LOG_EVENT_RESOURCE, timems, 0, regenerationTick, powerType, powerValue + regenerationTick)
+					lf.FireCallback(LIBCOMBAT_LOG_EVENT_RESOURCE, timeMs, 0, regenerationTick, powerType, powerValue + regenerationTick)
 					powerValueChange = powerValueChange - regenerationTick
 
 				end
@@ -289,14 +288,14 @@ local function onBaseResourceChanged(powerType, powerValue, powerValueChange)
 		local playerId = lib.GetPlayerUnitId()
 		if powerValueChange == lf.GetStat(STAT_HEALTH_REGEN_COMBAT) and playerId then
 			abilityId = 0
-			libint.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_LOG_EVENT_HEAL]), LIBCOMBAT_LOG_EVENT_HEAL, timems, ACTION_RESULT_HOT_TICK, playerId, playerId, abilityId, powerValueChange, powerType, 0)
+			lf.FireCallback(LIBCOMBAT_LOG_EVENT_HEAL, timeMs, ACTION_RESULT_HOT_TICK, playerId, playerId, abilityId, powerValueChange, powerType, 0)
 			return
 		end
 	end
 
 	logger:Debug("Resource: %s (%d): %d (%d) --> %d", GetFormattedAbilityName(abilityId), abilityId, powerValueChange, powerType, powerValue)
 
-	libint.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_LOG_EVENT_RESOURCE]), LIBCOMBAT_LOG_EVENT_RESOURCE, timems, abilityId, powerValueChange, powerType, powerValue)
+	lf.FireCallback(LIBCOMBAT_LOG_EVENT_RESOURCE, timeMs, abilityId, powerValueChange, powerType, powerValue)
 end
 
 local function onBaseResourceChangedDelayed(_,unitTag,_,powerType,newValue,_,_)
@@ -319,12 +318,12 @@ local function onResourceChanged (_, result, _, _, _, _, _, _, targetName, _, po
 
 	if (powerType ~= COMBAT_MECHANIC_FLAGS_MAGICKA and powerType ~= COMBAT_MECHANIC_FLAGS_STAMINA) or ld.inCombat == false or powerValueChange < 1 then return end
 
-	local timems = GetGameTimeMilliseconds()
+	local timeMs = GetGameTimeMilliseconds()
 	local lastabilities = ld.lastabilities
 
 	if result == ACTION_RESULT_POWER_DRAIN then powerValueChange = -powerValueChange end
 
-	table.insert(lastabilities,{timems, abilityId, powerValueChange, powerType})
+	table.insert(lastabilities,{timeMs, abilityId, powerValueChange, powerType})
 
 	if #lastabilities > libint.ABILITY_RESOURCE_CACHE_SIZE then table.remove(lastabilities, 1) end
 end

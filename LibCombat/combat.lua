@@ -60,14 +60,14 @@ function LogProcessorCombat:onInitilizeFight(fight)
 	fight.healingDone = {}			-- levels: [sourceUnitId][targetUnitId][abilityId]
 	fight.healingReceived = {}		-- levels: [targetUnitId][sourceUnitId][abilityId]
 
-	local timems = GetGameTimeMilliseconds()
+	local timeMs = GetGameTimeMilliseconds()
 
 	for i = DamageShields.first, DamageShields.last do
-		if timems - DamageShields[i][1] > 100 then DamageShields:Pop() end
+		if timeMs - DamageShields[i][1] > 100 then DamageShields:Pop() end
 	end
 
 	for i = HealAbsorbs.first, HealAbsorbs.last do
-		if timems - HealAbsorbs[i][1] > 100 then HealAbsorbs:Pop() end
+		if timeMs - HealAbsorbs[i][1] > 100 then HealAbsorbs:Pop() end
 	end
 end
 
@@ -92,35 +92,36 @@ end
 ---@param logType integer
 function LogProcessorCombat:ProcessLogLine(fight, logType, ...)
 	if logType == LIBCOMBAT_LOG_EVENT_DAMAGE then
-		self:ProcessLogLineDamage(fight, logType, ...)
+		self:ProcessLogLineDamage(fight, ...)
 		return
 	end
 	if logType == LIBCOMBAT_LOG_EVENT_HEAL then
-		self:ProcessLogLineHeal(fight, logType, ...)
+		self:ProcessLogLineHeal(fight, ...)
 		return
 	end
 	logger:Error("Unsupported logtype %s for processor %s", logType, self.name)
 end
 
-local function InitUnitDamageData(fight, t, unitId, startTime)
+local function InitUnitDamageData(fight, t, unitId, timeMs)
 	fight:CheckUnit(unitId)
 
 	local unitData = {
 		totalDamage = 0,
-		startTime = startTime,
+		startTime = timeMs,
+		endTime = timeMs,
 	}
 	t[unitId] = unitData
 
 	return unitData
 end
 
-local function GetUnitDamageData(fight, sourceUnitId, targetUnitId, timems)
-	local targetData = fight.damageReceived[targetUnitId] or InitUnitDamageData(fight, fight.damageReceived, targetUnitId, timems)
-	local unitData = targetData[sourceUnitId or 0] or InitUnitDamageData(fight, targetData, sourceUnitId, timems)
+local function GetUnitDamageData(fight, sourceUnitId, targetUnitId, timeMs)
+	local targetData = fight.damageReceived[targetUnitId] or InitUnitDamageData(fight, fight.damageReceived, targetUnitId, timeMs)
+	local unitData = targetData[sourceUnitId or 0] or InitUnitDamageData(fight, targetData, sourceUnitId, timeMs)
 
 	local sourceDataDone
 	if sourceUnitId and sourceUnitId > 0 then 
-		sourceDataDone = fight.damageDone[sourceUnitId] or InitUnitDamageData(fight, fight.damageDone, sourceUnitId, timems)
+		sourceDataDone = fight.damageDone[sourceUnitId] or InitUnitDamageData(fight, fight.damageDone, sourceUnitId, timeMs)
 		if sourceDataDone[targetUnitId] == nil then sourceDataDone[targetUnitId] = unitData end
 	end
 
@@ -128,7 +129,7 @@ local function GetUnitDamageData(fight, sourceUnitId, targetUnitId, timems)
 end
 
 
-local function InitDamageAbilityData(timems, damageType)
+local function InitDamageAbilityData(timeMs, damageType)
 	local abilityData = {
 		normalDamage   = 0,
 		criticalDamage = 0,
@@ -141,20 +142,20 @@ local function InitDamageAbilityData(timems, damageType)
 		absorbedHits   = 0,
 		totalHits      = 0,
 		damageType     = damageType,
-		startTime = timems,
-		endTime = timems,
+		startTime = timeMs,
+		endTime = timeMs,
 	}
 
 	return abilityData
 end
 
-local function UpdateUnitDamageData(unitData, damage, timems)	
+local function UpdateUnitDamageData(unitData, damage, timeMs)	
 	unitData.totalDamage = unitData.totalDamage + damage
-	unitData.endTime = timems
+	unitData.endTime = timeMs
 end
 
-local function UpdateDamageAbilityData(abilityData, timems, hitValue, overflow, result)
-	local fullValue = hitValue + overflow
+local function UpdateDamageAbilityData(abilityData, timeMs, damage, overflow, result)
+	local fullValue = damage + overflow
 
 	local resultkey = amountResultKeys[result]
 	local hitKey = countResultKeys[result]
@@ -166,14 +167,13 @@ local function UpdateDamageAbilityData(abilityData, timems, hitValue, overflow, 
 
 	abilityData.max = zo_max(abilityData.max or fullValue, fullValue)
 	abilityData.min = zo_min(abilityData.min or fullValue, fullValue)
-	abilityData.endTime = timems
+	abilityData.endTime = timeMs
 
 	-- IncrementStatSum(fight, damageType, resultkey, isDamageOut, hitValue, false, unit) TODO: Move to stat module
 end
 
 ---@param fight Fight
----@param logType integer
----@param timems integer
+---@param timeMs integer
 ---@param result ActionResult
 ---@param sourceUnitId integer
 ---@param targetUnitId integer
@@ -181,53 +181,54 @@ end
 ---@param hitValue integer
 ---@param damageType DamageType
 ---@param overflow integer
-function LogProcessorCombat:ProcessLogLineDamage(fight, logType, timems, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType, overflow)
+function LogProcessorCombat:ProcessLogLineDamage(fight, timeMs, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType, overflow)
 	if targetUnitId == nil or targetUnitId <= 0 then return end
 	
-	local targetData, unitData, sourceDataDone = GetUnitDamageData(fight, sourceUnitId, targetUnitId, timems)
+	local targetData, unitData, sourceDataDone = GetUnitDamageData(fight, sourceUnitId, targetUnitId, timeMs)
 	local fullValue = hitValue + overflow
-	UpdateUnitDamageData(targetData, fullValue, timems)
-	UpdateUnitDamageData(unitData, fullValue, timems)
-	if sourceDataDone then UpdateUnitDamageData(sourceDataDone, fullValue, timems) end
+	UpdateUnitDamageData(targetData, fullValue, timeMs)
+	UpdateUnitDamageData(unitData, fullValue, timeMs)
+	if sourceDataDone then UpdateUnitDamageData(sourceDataDone, fullValue, timeMs) end
 
-	if unitData[abilityId] == nil then unitData[abilityId] = InitDamageAbilityData(timems, damageType) end
-	UpdateDamageAbilityData(unitData[abilityId], timems, hitValue, overflow, result)
+	if unitData[abilityId] == nil then unitData[abilityId] = InitDamageAbilityData(timeMs, damageType) end
+	UpdateDamageAbilityData(unitData[abilityId], timeMs, hitValue, overflow, result)
 end
 
 
-local function InitUnitHealingData(fight, t, unitId, startTime)
+local function InitUnitHealingData(fight, t, unitId, timeMs)
 	fight:CheckUnit(unitId)
 
 	local unitData = {
 		totalHealing = 0,
 		overflowHealing = 0,
-		startTime = startTime,
+		startTime = timeMs,
+		endTime = timeMs,
 	}
 	t[unitId] = unitData
 
 	return unitData
 end
 
-local function UpdateUnitHealingData(unitData, healing, overflow, timems)	
+local function UpdateUnitHealingData(unitData, healing, overflow, timeMs)	
 	unitData.totalHealing = unitData.totalHealing + healing
 	unitData.overflowHealing = unitData.overflowHealing + overflow
-	unitData.endTime = timems
+	unitData.endTime = timeMs
 end
 
-local function GetUnitHealingData(fight, sourceUnitId, targetUnitId, timems)
-	local targetData = fight.healingReceived[targetUnitId] or InitUnitHealingData(fight, fight.healingReceived, targetUnitId, timems)
-	local unitData = targetData[sourceUnitId or 0] or InitUnitHealingData(fight, targetData, sourceUnitId, timems)
+local function GetUnitHealingData(fight, sourceUnitId, targetUnitId, timeMs)
+	local targetData = fight.healingReceived[targetUnitId] or InitUnitHealingData(fight, fight.healingReceived, targetUnitId, timeMs)
+	local unitData = targetData[sourceUnitId or 0] or InitUnitHealingData(fight, targetData, sourceUnitId, timeMs)
 
 	local sourceDataDone
 	if sourceUnitId and sourceUnitId > 0 then 
-		sourceDataDone = fight.healingDone[sourceUnitId] or InitUnitHealingData(fight, fight.healingDone, sourceUnitId, timems)
+		sourceDataDone = fight.healingDone[sourceUnitId] or InitUnitHealingData(fight, fight.healingDone, sourceUnitId, timeMs)
 		if sourceDataDone[targetUnitId] == nil then sourceDataDone[targetUnitId] = unitData end
 	end
 
 	return targetData, unitData, sourceDataDone
 end
 
-local function InitHealAbilityData(timems, powerType)
+local function InitHealAbilityData(timeMs, powerType)
 	local abilityData = {
 		normalHealing   = 0,
 		criticalHealing = 0,
@@ -236,29 +237,30 @@ local function InitHealAbilityData(timems, powerType)
 		totalHealing    = 0,
 		normalHeals     = 0,
 		criticalHeals   = 0,
-		overflowHeals  = 0,
+		overflowHeals   = 0,
 		absorbedHeals   = 0,
 		totalHeals      = 0,
 		powerType       = powerType,
-		startTime       = timems,
+		startTime       = timeMs,
+		endTime         = timeMs,
 	}
 
 	return abilityData
 end
 
-local function UpdateHealAbilityData(abilityData, timems, hitValue, overflow, result)
+local function UpdateHealAbilityData(abilityData, timeMs, healing, overflow, result)
 	local resultkey = amountResultKeys[result]
 	local hitKey = countResultKeys[result]
-	local fullValue = hitValue + overflow
+	local fullValue = healing + overflow
 
-	abilityData[resultkey] = abilityData[resultkey] + hitValue
+	abilityData[resultkey] = abilityData[resultkey] + healing
 	abilityData[hitKey] = abilityData[hitKey] + 1	
-	abilityData.totalHealing = abilityData.totalHealing + hitValue
+	abilityData.totalHealing = abilityData.totalHealing + healing
 	abilityData.totalHeals = abilityData.totalHeals + 1
 
 	abilityData.max = zo_max(abilityData.max or fullValue, fullValue)
 	abilityData.min = zo_min(abilityData.min or fullValue, fullValue)
-	abilityData.endTime = timems
+	abilityData.endTime = timeMs
 
 	if overflow > 0 then
 		abilityData.overflowHealing = abilityData.overflowHealing + overflow
@@ -269,8 +271,7 @@ local function UpdateHealAbilityData(abilityData, timems, hitValue, overflow, re
 end
 
 ---@param fight Fight
----@param logType integer
----@param timems integer
+---@param timeMs integer
 ---@param result ActionResult
 ---@param sourceUnitId integer
 ---@param targetUnitId integer
@@ -278,28 +279,28 @@ end
 ---@param hitValue integer
 ---@param powerType CombatMechanicFlags
 ---@param overflow integer
-function LogProcessorCombat:ProcessLogLineHeal(fight, logType, timems, result, sourceUnitId, targetUnitId, abilityId, hitValue, powerType, overflow)
+function LogProcessorCombat:ProcessLogLineHeal(fight, timeMs, result, sourceUnitId, targetUnitId, abilityId, hitValue, powerType, overflow)
 	if targetUnitId == nil or targetUnitId <= 0 then return end
 
 	local fullValue = hitValue + overflow
 
-	local targetData, unitData, sourceDataDone = GetUnitHealingData(fight, sourceUnitId, targetUnitId, timems)
-	UpdateUnitHealingData(targetData, fullValue, timems)
-	UpdateUnitHealingData(unitData, fullValue, timems)
-	if sourceDataDone then UpdateUnitHealingData(sourceDataDone, fullValue, timems) end
+	local targetData, unitData, sourceDataDone = GetUnitHealingData(fight, sourceUnitId, targetUnitId, timeMs)
+	UpdateUnitHealingData(targetData, hitValue, overflow, timeMs)
+	UpdateUnitHealingData(unitData, hitValue, overflow, timeMs)
+	if sourceDataDone then UpdateUnitHealingData(sourceDataDone, hitValue, overflow, timeMs) end
 
-	if unitData[abilityId] == nil then unitData[abilityId] = InitHealAbilityData(timems, powerType) end
-	UpdateHealAbilityData(unitData[abilityId], timems, hitValue, overflow, result)
+	if unitData[abilityId] == nil then unitData[abilityId] = InitHealAbilityData(timeMs, powerType) end
+	UpdateHealAbilityData(unitData[abilityId], timeMs, hitValue, overflow, result)
 end
 
 -- Shield Buffers --
 
-local function CheckForAbsorb(cacheData, timems, sourceUnitId, targetUnitId)
+local function CheckForAbsorb(cacheData, timeMs, sourceUnitId, targetUnitId)
 	for i = cacheData.last, cacheData.first, -1 do
-		local shieldTimems, shieldSourceUnitId, shieldTargetUnitId, shieldHitValue = unpack(cacheData[i])
+		local shieldtimeMs, shieldSourceUnitId, shieldTargetUnitId, shieldHitValue = unpack(cacheData[i])
 
-		logger:Verbose("Eval Shield Index %d: Source: %s, Target: %s, Time: %d", i, tostring(shieldSourceUnitId == sourceUnitId), tostring(shieldTargetUnitId == targetUnitId), timems - shieldTimems)
-		if shieldSourceUnitId == sourceUnitId and shieldTargetUnitId == targetUnitId and timems - shieldTimems < 100 then
+		logger:Verbose("Eval Shield Index %d: Source: %s, Target: %s, Time: %d", i, tostring(shieldSourceUnitId == sourceUnitId), tostring(shieldTargetUnitId == targetUnitId), timeMs - shieldtimeMs)
+		if shieldSourceUnitId == sourceUnitId and shieldTargetUnitId == targetUnitId and timeMs - shieldtimeMs < 100 then
 			cacheData:Delete(i)
 			return shieldHitValue
 		end
@@ -327,9 +328,9 @@ local function onCombatEventDamage(_, result, _, _, _, _, _, _, targetName, _, h
 
 	if libint.currentFight.prepared ~= true and isGroupInvolved() then libint.currentFight:OnCombatStart() end
 	if absorb > 0 then 
-		libint.cm:FireCallbacks((libint.CallbackKeys[LIBCOMBAT_LOG_EVENT_DAMAGE]), LIBCOMBAT_LOG_EVENT_DAMAGE, timeMs, ACTION_RESULT_DAMAGE_SHIELDED, sourceUnitId, targetUnitId, abilityId, hitValue, damageType, 0)
+		lf.FireCallback(LIBCOMBAT_LOG_EVENT_DAMAGE, timeMs, ACTION_RESULT_DAMAGE_SHIELDED, sourceUnitId, targetUnitId, abilityId, hitValue, damageType, 0)
 	end
-	libint.cm:FireCallbacks((libint.CallbackKeys[LIBCOMBAT_LOG_EVENT_DAMAGE]), LIBCOMBAT_LOG_EVENT_DAMAGE, timeMs, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType, overflow)
+	lf.FireCallback(LIBCOMBAT_LOG_EVENT_DAMAGE, timeMs, result, sourceUnitId, targetUnitId, abilityId, hitValue, damageType, overflow)
 end
 
 local function onCombatEventHeal(_, result, _, _, _, _, _, _, targetName, _, hitValue, powerType, _, _, sourceUnitId, targetUnitId, abilityId, overflow)  -- called by Event
@@ -341,9 +342,9 @@ local function onCombatEventHeal(_, result, _, _, _, _, _, _, targetName, _, hit
 	end
 
 	if absorb > 0 then 
-		libint.cm:FireCallbacks((libint.CallbackKeys[LIBCOMBAT_LOG_EVENT_HEAL]), LIBCOMBAT_LOG_EVENT_HEAL, timeMs, ACTION_RESULT_HEAL_ABSORBED, sourceUnitId, targetUnitId, abilityId, absorb, powerType, 0)
+		lf.FireCallback(LIBCOMBAT_LOG_EVENT_HEAL, timeMs, ACTION_RESULT_HEAL_ABSORBED, sourceUnitId, targetUnitId, abilityId, absorb, powerType, 0)
 	end
-	libint.cm:FireCallbacks((libint.CallbackKeys[LIBCOMBAT_LOG_EVENT_HEAL]), LIBCOMBAT_LOG_EVENT_HEAL, timeMs, result, sourceUnitId, targetUnitId, abilityId, hitValue, powerType, overflow)
+	lf.FireCallback(LIBCOMBAT_LOG_EVENT_HEAL, timeMs, result, sourceUnitId, targetUnitId, abilityId, hitValue, powerType, overflow)
 end
 
 local function onCombatEventDamageAbsorbed(_, result, _, _, _, _, _, _, _, _, hitValue, _, _, _, sourceUnitId, targetUnitId, _, overflow)

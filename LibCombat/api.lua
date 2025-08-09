@@ -116,21 +116,21 @@ end
 
 ---Register a single events
 ---@param name string
----@param callbacktype CallbackKey
+---@param callbackKey CallbackKey
 ---@param callback function
-function lib.RegisterForCombatEvent(name, callbacktype, callback)
-	local isRegistered = lf.UpdateResources(name, callbacktype, callback)
-	if isRegistered then libint.cm:RegisterCallback(libint.CallbackKeys[callbacktype], callback) end
+function lib.RegisterForCombatEvent(name, callbackKey, callback)
+	local isRegistered = lf.UpdateResources(name, callbackKey, callback)
+	if isRegistered then lf.RegisterCallback(callbackKey, callback) end
 
 	return isRegistered
 end
 
 ---Unregister a single event
 ---@param name string
----@param callbacktype CallbackKey
-function lib.UnregisterForCombatEvent(name, callbacktype)
-	local isUnregistered, callback = lf.UpdateResources(name, callbacktype)
-	libint.cm:UnregisterCallback(libint.CallbackKeys[callbacktype], callback)
+---@param callbackKey CallbackKey
+function lib.UnregisterForCombatEvent(name, callbackKey)
+	local isUnregistered, callback = lf.UpdateResources(name, callbackKey)
+	lf.UnregisterCallback(callbackKey, callback)
 
 	return isUnregistered
 end

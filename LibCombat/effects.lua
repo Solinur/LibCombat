@@ -5,7 +5,6 @@ local libint = lib.internal
 local ld = libint.data
 local libunits = ld.units
 local logger
-local EffectKey = libint.CallbackKeys[LIBCOMBAT_LOG_EVENT_EFFECT]
 local lf = libint.functions
 local unitData = {}
 local abilityIdZen = libint.abilityIdZen
@@ -130,7 +129,7 @@ end
 
 function LogProcessorEffects:GetPlayerBuffs(fight)
 	if libint.Events.Effects.active == false then return end
-	local timems = GetGameTimeMilliseconds()
+	local timeMs = GetGameTimeMilliseconds()
 	local playerId = fight.unitIds.player or libunits.playerId
 	if playerId == nil then return end
 
@@ -146,7 +145,7 @@ function LogProcessorEffects:GetPlayerBuffs(fight)
 		logger:Debug("player has the %s %d x %s (%d, ET: %d, self: %s)", effectType == BUFF_EFFECT_TYPE_BUFF and "buff" or "debuff", stackCount, lib.GetFormattedAbilityName(abilityId), abilityId, abilityType, tostring(castByPlayer))
 
 		if (not libint.badAbility[abilityId]) then
-			self:ProcessLogLine(fight, LIBCOMBAT_LOG_EVENT_EFFECT, timems, playerId, abilityId, EFFECT_RESULT_GAINED, effectType, stacks, sourceType, effectSlot)
+			self:ProcessLogLine(fight, LIBCOMBAT_LOG_EVENT_EFFECT, timeMs, playerId, abilityId, EFFECT_RESULT_GAINED, effectType, stacks, sourceType, effectSlot)
 		end
 
 		if abilityId ==	13984 then lf.GetShadowBonus(effectSlot) end
@@ -175,7 +174,7 @@ local function CountSlots(slots)
 end
 
 
-function LogProcessorEffects:ProcessLogLine(fight, logType, timems, unitId, abilityId, changeType, effectType, stacks, sourceType, slotId)
+function LogProcessorEffects:ProcessLogLine(fight, logType, timeMs, unitId, abilityId, changeType, effectType, stacks, sourceType, slotId)
 	-- TODO: handle processing before combatStart 
 
 	local currentstacks = stacks or 0
@@ -188,11 +187,11 @@ function LogProcessorEffects:ProcessLogLine(fight, logType, timems, unitId, abil
 	local slotcount, groupSlotCount = CountSlots(slots)
 	local slotdata = slots[slotId]
 
-	local combatEnd = fight.info and fight.info.combatEnd or timems
-	local combatStart = fight.info and fight.info.combatStart or timems
+	local combatEnd = fight.info and fight.info.combatEnd or timeMs
+	local combatStart = fight.info and fight.info.combatStart or timeMs
 
-	if (changeType == EFFECT_RESULT_GAINED or changeType == EFFECT_RESULT_UPDATED) and timems < combatEnd then
-		local starttime = zo_max(timems, combatStart)
+	if (changeType == EFFECT_RESULT_GAINED or changeType == EFFECT_RESULT_UPDATED) and timeMs < combatEnd then
+		local starttime = zo_max(timeMs, combatStart)
 
 		if slotcount == 0 and isPlayerSource then effectData.firstStartTime = starttime end
 		if groupSlotCount == 0 then effectData.firstGroupStartTime = starttime end
@@ -212,7 +211,7 @@ function LogProcessorEffects:ProcessLogLine(fight, logType, timems, unitId, abil
 		for stacks, starttime in pairs(slotdata) do
 			if type(stacks) == "number" and stacks > currentstacks then
 				local stackData = effectData[stacks] or InitStackData(effectData, stacks)
-				local duration = timems - starttime
+				local duration = timeMs - starttime
 
 				if isPlayerSource then
 					stackData.uptime = stackData.uptime + duration
@@ -228,14 +227,14 @@ function LogProcessorEffects:ProcessLogLine(fight, logType, timems, unitId, abil
 	elseif changeType == EFFECT_RESULT_FADED then
 		slots[slotId] = nil
 
-		if slotdata and timems > combatStart then
+		if slotdata and timeMs > combatStart then
 			if slotdata.isPlayerSource then slotcount = slotcount - 1 end
 			groupSlotCount = groupSlotCount - 1
 
 			slotdata.isPlayerSource = nil	-- remove, so the loop gets only stackData
 			slotdata.abilityId = nil
 
-			local endTime = zo_min(timems, combatEnd)
+			local endTime = zo_min(timeMs, combatEnd)
 
 			for stacks, starttime in pairs(slotdata) do
 				local stackData = effectData[stacks] or InitStackData(effectData, stacks)
@@ -289,7 +288,7 @@ local function UpdateZenData(timeMs, unitId, abilityId, changeType, effectType, 
 		local isActive = changeType == EFFECT_RESULT_GAINED -- or (changeType == EFFECT_RESULT_UPDATED)
 		local stacks = isActive and zo_min(unit.stacksOfZen, 5) or 0
 
-		libint.cm:FireCallbacks(EffectKey, LIBCOMBAT_LOG_EVENT_EFFECT, timeMs, unitId, abilityIdZen, changeType, effectType, stacks, sourceType, effectSlot)	-- stack count is 1 to 6, with 1 meaning 0% bonus, and 6 meaning 5% bonus from Z'en
+		lf.FireCallback(LIBCOMBAT_LOG_EVENT_EFFECT, timeMs, unitId, abilityIdZen, changeType, effectType, stacks, sourceType, effectSlot)	-- stack count is 1 to 6, with 1 meaning 0% bonus, and 6 meaning 5% bonus from Z'en
 		logger:Debug("VERBOSE", table.concat({timeMs, unitId, abilityIdZen, changeType, effectType, stacks, sourceType, effectSlot}, ", "))
 		unit.zenEffectSlot = (isActive and effectSlot) or nil
 	else
@@ -302,12 +301,12 @@ local function UpdateZenData(timeMs, unitId, abilityId, changeType, effectType, 
 
 		if unit.zenEffectSlot then
 			local stacks = zo_min(unit.stacksOfZen, 5)
-			libint.cm:FireCallbacks(EffectKey, LIBCOMBAT_LOG_EVENT_EFFECT, timeMs, unitId, abilityIdZen, EFFECT_RESULT_UPDATED, effectType, stacks, sourceType, unit.zenEffectSlot)
+			lf.FireCallback(LIBCOMBAT_LOG_EVENT_EFFECT, timeMs, unitId, abilityIdZen, EFFECT_RESULT_UPDATED, effectType, stacks, sourceType, unit.zenEffectSlot)
 		end
 	end
 end
 
-function UpdateForceOfNatureData(_, _, timeMs, unitId, abilityId, changeType, _, _, _, _)
+function UpdateForceOfNatureData(timeMs, unitId, abilityId, changeType, _, _, _, _)
 	local unit = unitData[unitId] or InitLocalUnitData(unitId)
 	local fight = libint.currentFight
 	if libint.StatusEffectIds[abilityId] == nil or fight.CP[1]["slotted"] == nil or fight.CP[1]["slotted"][276] ~= true then return end
@@ -333,7 +332,7 @@ function UpdateForceOfNatureData(_, _, timeMs, unitId, abilityId, changeType, _,
 	end
 
 	local stacks = zo_min(unit.forceOfNatureStacks, 8)
-	libint.cm:FireCallbacks(EffectKey, LIBCOMBAT_LOG_EVENT_EFFECT, timeMs, unitId, abilityIdForceOfNature, forceOfNatureChangeType, BUFF_EFFECT_TYPE_DEBUFF, stacks, COMBAT_UNIT_TYPE_PLAYER, 0)
+	lf.FireCallback(LIBCOMBAT_LOG_EVENT_EFFECT, timeMs, unitId, abilityIdForceOfNature, forceOfNatureChangeType, BUFF_EFFECT_TYPE_DEBUFF, stacks, COMBAT_UNIT_TYPE_PLAYER, 0)
 	logger:Debug("VERBOSE", "Force of Nature: %s (%d) x%d, %s%s", unit.name, unit.unitId, stacks, lib.GetFormattedAbilityName(abilityId), debugChangeType)
 end
 
@@ -362,23 +361,23 @@ local function BuffEventHandler(isspecial, changeType, effectSlot, _, unitTag, _
 	if isDuplicateUnit(unitTag) then return end
 	if libint.sourceBuggedBuffs[abilityId] then sourceType = COMBAT_UNIT_TYPE_GROUP end
 
-	local timems = GetGameTimeMilliseconds()
+	local timeMs = GetGameTimeMilliseconds()
 	local stacks = zo_max(1, stackCount)
 	logger:Verbose("%s %s the %s %dx %s (%d, ET: %d, %s, %d)", unitName, changeType, effectType == BUFF_EFFECT_TYPE_BUFF and "buff" or "debuff", stackCount, lib.GetFormattedAbilityName(abilityId), abilityId, abilityType, unitTag, sourceType)
 
-	-- if lib.IsPlayerUnitId(unitId) then libint.currentFight:QueueStatUpdate(timems) end -- TODO: move to stats
+	-- if lib.IsPlayerUnitId(unitId) then libint.currentFight:QueueStatUpdate(timeMs) end -- TODO: move to stats
 
 	if sourceType == COMBAT_UNIT_TYPE_PLAYER and (abilityId == abilityIdZen or abilityType == ABILITY_TYPE_DAMAGE) then
-		UpdateZenData(timems, unitId, abilityId, changeType, effectType, sourceType, effectSlot)
+		UpdateZenData(timeMs, unitId, abilityId, changeType, effectType, sourceType, effectSlot)
 	end
 
 	if libint.StatusEffectIds[abilityId] then
 		if (sourceType == COMBAT_UNIT_TYPE_PLAYER or (unitName == "" and unitData[unitId] and unitData[unitId].forceOfNature[abilityId] and libint.SpecialDebuffs[abilityId])) then
-			UpdateForceOfNatureData(EffectKey, LIBCOMBAT_LOG_EVENT_EFFECT, timems, unitId, abilityId, changeType, effectType, stacks, sourceType, effectSlot)
+			UpdateForceOfNatureData(timeMs, unitId, abilityId, changeType, effectType, stacks, sourceType, effectSlot)
 		end
 	end
 
-	libint.cm:FireCallbacks(EffectKey, LIBCOMBAT_LOG_EVENT_EFFECT, timems, unitId, abilityId, changeType, effectType, stacks, sourceType, effectSlot)
+	lf.FireCallback(LIBCOMBAT_LOG_EVENT_EFFECT, timeMs, unitId, abilityId, changeType, effectType, stacks, sourceType, effectSlot)
 end
 
 local function onEffectChanged(_, ...)

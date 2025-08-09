@@ -244,12 +244,13 @@ local function OnTargetChange()
 	if not DoesUnitExist("reticleover") then
 		if libunits.unitIdsByTag["reticleover"] then
 			UpdateUnitTagId("reticleover", nil)
-			logger:Info("ReticleOverUnit removed.")
+			logger:Debug("ReticleOverUnit removed.")
 		end
 
 		return
 	end
 	local numBuffs = GetNumBuffs("reticleover")
+	if numBuffs == 0 then return end
 
 	for i = 1, numBuffs do
 		local _, _, endTime, buffSlot, _, _, _, _, _, _, abilityId, _ = GetUnitBuffInfo("reticleover", i)
@@ -257,7 +258,7 @@ local function OnTargetChange()
 		local unit = unitId and UnitCache[unitId] or nil
 
 		if unit and unit.effectTimeData[buffSlot] == endTime then
-			logger:Info("ReticleOverUnit found: %s (%d)", unit.name, unitId)
+			logger:Debug("ReticleOverUnit found: %s (%d)", unit.name, unitId)
 			unit:UpdateUnitTag("reticleover")
 			return
 		end

@@ -7,7 +7,6 @@ local lf = libint.functions
 local logger
 local ActiveCallbackTypes = {}
 libint.ActiveCallbackTypes = ActiveCallbackTypes
-local CallbackKeys = libint.CallbackKeys
 
 local Events = {}
 libint.Events = Events

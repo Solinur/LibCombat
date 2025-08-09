@@ -39,12 +39,38 @@ function Queue:IsEmpty()
 	return self.first > self.last
 end
 
----comment
 ---@return Queue
 function lf.CreateQueue()
 	return Queue:New()
 end
 -- Cache formatted Ability Names and Icons. Makes sure they stay consistent, since some addons like to meddle with them.
+
+
+-- Callback Manager
+local cm = ZO_CallbackObject:New()
+lib.internal.cm = cm
+
+---@type [CallbackKey]
+local CallbackKeys = libint.CallbackKeys
+
+---@param eventKey CallbackKey
+function lf.FireCallback(eventKey, ...)
+	cm:FireCallbacks(CallbackKeys[eventKey], eventKey, ...)
+end
+
+---@param eventKey CallbackKey
+---@param callback function
+function lf.RegisterCallback(eventKey, callback)
+	cm:RegisterCallback(CallbackKeys[eventKey], callback)
+end
+
+---@param eventKey CallbackKey
+---@param callback function
+function lf.UnregisterCallback(eventKey, callback)
+	cm:UnregisterCallback(CallbackKeys[eventKey], callback)
+end
+
+----
 
 local CustomAbilityName = {
 	[-1] = "Unknown", -- Whenever there is no known abilityId
