@@ -2,6 +2,7 @@
 
 LibCombat2 = LibCombat2 or {}
 local lib = LibCombat2
+if LibCombat == nil then LibCombat = lib end
 
 -- Basic values
 lib.name = "LibCombat2"

@@ -506,7 +506,7 @@ local UnitAPIHandler = ZO_InitializingObject:Subclass() -- object to expose data
 ---@diagnostic disable-next-line: duplicate-set-field
 function UnitAPIHandler:Initialize(unitId)
 	if unitId == nil then logger:Error("No unit Id!") return end
-	if UnitCache[unitId] == nil then logger:Info("Unit %d is not known!", unitId) return end
+	if UnitCache[unitId] == nil and libint.debug then logger:Info("Unit %d is not known!", unitId) return end
 	-- TODO: Add safeguard if unit is unkown!
 	self.unitId = unitId
 

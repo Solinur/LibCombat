@@ -5,7 +5,7 @@
 ## AddOnVersion: 1
 ## IsLibrary: true
 ## DependsOn: 
-## OptionalDependsOn: LibDebugLogger
+## OptionalDependsOn: LibDebugLogger LibCombat
 ## SavedVariables: LibCombat2_Save
 ## Description: This library handles the data collection of combat events for addons like CombatMetrics and GroupDamageShare
 
