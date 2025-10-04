@@ -80,13 +80,13 @@ end
 
 local GroupUnitTags = {} -- preassemble unit tags
 
-for i = 1, GROUP_SIZE_MAX do
+for i = 1, MAX_GROUP_SIZE_THRESHOLD do
 	GroupUnitTags[i] = ZO_CachedStrFormat("group<<1>>", i)
 end
 libunits.GroupUnitTags = GroupUnitTags
 
 local BossUnitTags = {} -- preassemble unit tags
-for i = 1, MAX_BOSSES do
+for i = 1, BOSS_RANK_ITERATION_END do
 	BossUnitTags[i] = ZO_CachedStrFormat("boss<<1>>", i)
 end
 
@@ -119,7 +119,7 @@ local hasMultipleTags = "multiple tags found"
 local function onBossesChanged(_) -- Detect Bosses
 	local bossTagByName = {}      -- holds only bosses discovered in this round
 
-	for i = 1, MAX_BOSSES do
+	for i = 1, BOSS_RANK_ITERATION_END do
 		local unitTag = BossUnitTags[i]
 
 		if DoesUnitExist(unitTag) then
@@ -507,7 +507,6 @@ local UnitAPIHandler = ZO_InitializingObject:Subclass() -- object to expose data
 function UnitAPIHandler:Initialize(unitId)
 	if unitId == nil then logger:Error("No unit Id!") return end
 	if UnitCache[unitId] == nil and libint.debug then logger:Info("Unit %d is not known!", unitId) return end
-	-- TODO: Add safeguard if unit is unkown!
 	self.unitId = unitId
 
 	UnitExportCache[unitId] = self
@@ -778,7 +777,7 @@ function libint.InitializeUnits()
 
 	onBossesChanged()
 
-	SLASH_COMMANDS["/lcudebug"] = libunits.toggleDebug
+	if libint.debug then SLASH_COMMANDS["/lcudebug"] = libunits.toggleDebug end
 
 	isFileInitialized = true
 	return true
