@@ -1,6 +1,6 @@
 -- This file contains definitions of global variables
 
-local lib = LibCombat
+local lib = LibCombat2
 local CallbackKeys = {}
 lib.internal.CallbackKeys = CallbackKeys
 
@@ -22,7 +22,7 @@ LIBCOMBAT_EVENT_DEATHRECAP = 54				-- LIBCOMBAT_EVENT_DEATHRECAP, timeMs, {data}
 LIBCOMBAT_EVENT_MAX = 54
 
 for i = LIBCOMBAT_EVENT_MIN, LIBCOMBAT_EVENT_MAX do
-	CallbackKeys[i] = "LibCombat" .. i
+	CallbackKeys[i] = "LibCombat2" .. i
 end
 
 ---@alias CallbackLogKey integer
@@ -56,7 +56,7 @@ LIBCOMBAT_LOG_EVENT_QUICKSLOT = 10				-- LIBCOMBAT_LOG_EVENT_QUICKSLOT, timeMs, 
 LIBCOMBAT_LOG_EVENT_MAX = 10
 
 for i = LIBCOMBAT_LOG_EVENT_MIN, LIBCOMBAT_LOG_EVENT_MAX do
-	CallbackKeys[i] = "LibCombat" .. i
+	CallbackKeys[i] = "LibCombat2" .. i
 end
 
 

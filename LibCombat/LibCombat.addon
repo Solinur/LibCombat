@@ -1,12 +1,12 @@
-﻿## Title: LibCombat
+﻿## Title: LibCombat2
 ## APIVersion: 101046
 ## Author: Solinur
-## Version: 85
-## AddOnVersion: 85
+## Version: 1
+## AddOnVersion: 1
 ## IsLibrary: true
 ## DependsOn: 
 ## OptionalDependsOn: LibDebugLogger
-## SavedVariables: LibCombat_Save
+## SavedVariables: LibCombat2_Save
 ## Description: This library handles the data collection of combat events for addons like CombatMetrics and GroupDamageShare
 
 ; This Add-on is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates. 

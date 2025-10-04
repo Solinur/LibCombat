@@ -1,6 +1,6 @@
 -- This file contains handling of the api
 
-local lib = LibCombat
+local lib = LibCombat2
 local libint = lib.internal
 local ld = libint.data
 local libunits = ld.units

@@ -1,6 +1,6 @@
 -- This file contains handling of collected fight data
 
-local lib = LibCombat
+local lib = LibCombat2
 local libint = lib.internal
 local lf = libint.functions
 local ld = libint.data
@@ -133,7 +133,7 @@ local function UpdateStats()
 	lastUpdateStats = data
 	LC_UPDATE_STATS = lastUpdateStats
 
-	logger:Info("Combat Stats Update")
+	logger:Debug("Combat Stats Update")
 end
 
 ---@class Fight
@@ -151,7 +151,7 @@ function FightHandler:Initialize()
 end
 
 function FightHandler:ResetFight()
-	logger:Info("Reset Fight")
+	logger:Debug("Reset Fight")
 
 	if ld.inCombat ~= true then return end
 	reset = true
@@ -452,6 +452,8 @@ function FightHandler:GetPlayerHealingReceived()
 end
 
 local function PrintCombatStats()
+	if not libint.debug then return end
+
 	local playerTime, playerDamage, unitTime, totalDamage = lib.GetCurrentMainTargetDamageDone()
 	local playerDPS =  playerTime > 0 and playerDamage/playerTime or 0
 	local groupDPS =  unitTime > 0 and totalDamage/unitTime or 0

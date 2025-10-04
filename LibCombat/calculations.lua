@@ -1,7 +1,7 @@
 ---@diagnostic disable: undefined-field
 -- contains the analysis of log events to calculate stats 
 
-local lib = LibCombat
+local lib = LibCombat2
 local libint = lib.internal
 local lf = libint.functions
 local ld = libint.data
@@ -58,7 +58,7 @@ function LogProcessingHandler:Activate()
 	for logType, _ in pairs(self.RegisteredLogTypes) do
 		local idString = string.format("LibCombat_%s%d", self.name, logType)
 		local success = lib.RegisterForCombatEvent(idString, logType, lf.AddLogLine)
-		if success then self.idString[logType] = idString else logger:warn("Error during callback registration. Name: %s, Type: %d, idString: %s", self.name, logType, idString) end
+		if success then self.idString[logType] = idString else logger:Warn("Error during callback registration. Name: %s, Type: %d, idString: %s", self.name, logType, idString) end
 	end
 end
 
@@ -159,7 +159,7 @@ local function ProcessChunk()
 		if queue:IsEmpty() then return end
 	end
 
-	logger:Info("Stopped processing with %d entries left", libint.LogProcessingQueue:NumQueuedItems())
+	if libint.debug then logger:Info("Stopped processing with %d entries left", libint.LogProcessingQueue:NumQueuedItems()) end
 end
 
 local function ActivateProcessing()

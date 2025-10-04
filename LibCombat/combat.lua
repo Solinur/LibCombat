@@ -1,6 +1,6 @@
 -- This file provides combat log entries regarding damage and heal events
 
-local lib = LibCombat
+local lib = LibCombat2
 local libint = lib.internal
 local ld = libint.data
 local libunits = ld.units
@@ -318,7 +318,7 @@ end
 
 local function onCombatEventDamage(_, result, _, _, _, _, _, _, targetName, _, hitValue, _, damageType, _, sourceUnitId, targetUnitId, abilityId, overflow)  -- called by Event
 	local timeMs = GetGameTimeMilliseconds()
-	if hitValue > 500000 then logger:Warning("Big Damage Event: (%d) %s did %d damage to %d", abilityId, lib.GetFormattedAbilityName(abilityId), hitValue, tostring(targetName)) end
+	if hitValue > 500000 then logger:Warn("Big Damage Event: (%d) %s did %d damage to %d", abilityId, lib.GetFormattedAbilityName(abilityId), hitValue, tostring(targetName)) end
 	
 	local absorb = CheckForAbsorb(DamageShields, timeMs, sourceUnitId, targetUnitId) or 0
 	if (hitValue + overflow + absorb) <= 0 then 
@@ -348,14 +348,14 @@ local function onCombatEventHeal(_, result, _, _, _, _, _, _, targetName, _, hit
 end
 
 local function onCombatEventDamageAbsorbed(_, result, _, _, _, _, _, _, _, _, hitValue, _, _, _, sourceUnitId, targetUnitId, _, overflow)
-	if overflow and overflow > 0 then logger:Info("Overflow! Add %d (+%d) Shield: %d -> %d  (%d)", hitValue, overflow, sourceUnitId, targetUnitId, #DamageShields) end
+	if overflow and overflow > 0 and libint.debug then logger:Info("Overflow! Add %d (+%d) Shield: %d -> %d  (%d)", hitValue, overflow, sourceUnitId, targetUnitId, #DamageShields) end
 	DamageShields:Push({GetGameTimeMilliseconds(), sourceUnitId, targetUnitId, hitValue})
 
 	logger:Debug("Add %d Shield: %d -> %d  (%d)", hitValue, sourceUnitId, targetUnitId, #DamageShields)
 end
 
 local function onCombatEventHealAbsorbed(_, result, _, _, _, _, _, _, _, _, hitValue, _, _, _, sourceUnitId, targetUnitId, _, overflow)
-	if overflow and overflow > 0 then logger:Info("Overflow! Add %d (+%d) Heal Absorption: %d -> %d  (%d)", hitValue, overflow, sourceUnitId, targetUnitId, #HealAbsorbs) end
+	if overflow and overflow > 0 and libint.debug then logger:Info("Overflow! Add %d (+%d) Heal Absorption: %d -> %d  (%d)", hitValue, overflow, sourceUnitId, targetUnitId, #HealAbsorbs) end
 	HealAbsorbs:Push({GetGameTimeMilliseconds(), sourceUnitId, targetUnitId, hitValue})
 
 	logger:Debug("Add %d Shield: %d -> %d  (%d)", hitValue, sourceUnitId, targetUnitId, #HealAbsorbs)

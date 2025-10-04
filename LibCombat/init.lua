@@ -1,11 +1,11 @@
 -- This file contains the initialziation code 
 
-LibCombat = LibCombat or {}
-local lib = LibCombat
+LibCombat2 = LibCombat2 or {}
+local lib = LibCombat2
 
 -- Basic values
-lib.name = "LibCombat"
-lib.version = 85
+lib.name = "LibCombat2"
+lib.version = 1
 
 lib.internal = {}
 local libint = lib.internal

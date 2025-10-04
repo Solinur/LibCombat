@@ -1,6 +1,6 @@
 local _
 local libunits            = {}
-local lib                 = LibCombat
+local lib                 = LibCombat2
 local libint              = lib.internal
 local lf                  = libint.functions
 local ld                  = libint.data
@@ -126,7 +126,7 @@ local function onBossesChanged(_) -- Detect Bosses
 			local rawName = GetUnitName(unitTag)
 
 			if bossTagByName[rawName] and bossTagByName[rawName] ~= unitTag then
-				logger:Warning("Multiple tags found for %s (%s, %s)", rawName, bossTagByName[rawName], unitTag)
+				logger:Warn("Multiple tags found for %s (%s, %s)", rawName, bossTagByName[rawName], unitTag)
 				bossTagByName[rawName] = hasMultipleTags
 			end
 
@@ -295,7 +295,7 @@ end
 local function onTrialDummy(_, _, _, _, _, _, _, _, _, _, _, _, _, _, sourceUnitId, _, _, _) -- TODO: this
 	logger:Debug("Trial Dummy Detected: %d", sourceUnitId)
 
-	UnitCache[sourceUnitId]:UpdateTrialDummy()
+	-- UnitCache[sourceUnitId]:UpdateTrialDummy() #TODO: Add this function back in
 end
 
 -- UnitHandler

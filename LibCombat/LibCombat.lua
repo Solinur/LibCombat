@@ -12,7 +12,7 @@ Add more debug Functions
 
 ]]
 
-local lib = LibCombat
+local lib = LibCombat2
 local libint = lib.internal
 
 --aliases

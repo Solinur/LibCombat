@@ -1,6 +1,6 @@
 -- This file provides info on player and group member deaths and resurrection
 
-local lib = LibCombat
+local lib = LibCombat2
 local libint = lib.internal
 local lf = libint.functions
 local ld = libint.data

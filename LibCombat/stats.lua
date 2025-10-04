@@ -1,6 +1,6 @@
 -- stats
 
-local lib = LibCombat
+local lib = LibCombat2
 local libint = lib.internal
 local lf = libint.functions
 ---@type fun(actionSlotIndex: integer, hotbarCategory: HotBarCategory): integer, integer?
@@ -27,7 +27,7 @@ local function CheckForHeraldAbility()
 	local bonus = ParseDescriptionBonus(description, startindex)
 
 	if bonus == nil and parseHeraldFail == false then
-		logger:Warning("Failed to parse description for SE bonus: %s", description)
+		logger:Warn("Failed to parse description for SE bonus: %s", description)
 		parseHeraldFail = true
 	end
 
@@ -66,7 +66,7 @@ local function GetChargedBonus()
 			local bonus = ParseDescriptionBonus(description)
 
 			if bonus == nil and parseChargedFail == false then
-				logger:Warning("Failed to parse description for SE bonus: %s", description)
+				logger:Warn("Failed to parse description for SE bonus: %s", description)
 				parseChargedFail = true
 			end
 			
@@ -80,7 +80,7 @@ local function GetChargedBonus()
 			local bonus = ParseDescriptionBonus(description)
 
 			if bonus == nil and parseChargedFail == false then
-				logger:Warning("Failed to parse description for SE bonus: %s", description)
+				logger:Warn("Failed to parse description for SE bonus: %s", description)
 				parseChargedFail = true
 			end
 			
@@ -99,7 +99,7 @@ local function CheckHeartlandSet()
 	local bonus = ParseDescriptionBonus(description)
 
 	if bonus == nil and parseHeartlandFail == false then
-		logger:Warning("Failed to parse description for SE bonus: %s", description)
+		logger:Warn("Failed to parse description for SE bonus: %s", description)
 		parseHeartlandFail = true
 	end
 	return (bonus or 0) / 100
@@ -120,7 +120,7 @@ local function CheckDestroPassive()
 	local bonus = ParseDescriptionBonus(description)
 
 	if bonus == nil and parseDestroFail == false then
-		logger:Warning("Failed to parse description for SE bonus: %s", description)
+		logger:Warn("Failed to parse description for SE bonus: %s", description)
 		parseDestroFail = true
 	end
 
@@ -146,7 +146,7 @@ local function CheckWealdSet()
 	local bonus = ParseDescriptionBonus(description)
 
 	if bonus == nil and parseWealdFail == false then
-		logger:Warning("Failed to parse description for SE bonus: %s", description)
+		logger:Warn("Failed to parse description for SE bonus: %s", description)
 		parseWealdFail = true
 	end
 	return bonus or 0
@@ -160,7 +160,7 @@ local function GetFocusedEffortsBonus()
 	local bonus = ParseDescriptionBonus(description)
 
 	if bonus == nil and parseFocusedEffortsFail == false then
-		logger:Warning("Failed to parse description for SE bonus: %s", description)
+		logger:Warn("Failed to parse description for SE bonus: %s", description)
 		parseFocusedEffortsFail = true
 	end
 	return bonus or 0

@@ -6,7 +6,7 @@ TBD: Save replacements per patch or relearn on use?
 
 --]]
 
-local lib = LibCombat
+local lib = LibCombat2
 local libint = lib.internal
 local lf = libint.functions
 local ld = libint.data
@@ -442,7 +442,7 @@ local function onQueueEvent(_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, abil
 
 	if reducedslot == nil then
 
-		logger:Warning("reducedslot missing on queue event: [%.3f s] %s (%d)", (timeMs - libint.currentFight.combatStart)/1000, GetAbilityName(abilityId), abilityId)
+		logger:Warn("reducedslot missing on queue event: [%.3f s] %s (%d)", (timeMs - libint.currentFight.combatStart)/1000, GetAbilityName(abilityId), abilityId)
 		return
 
 	end
@@ -499,14 +499,14 @@ end
 local function onQuickSlotChanged(_, actionSlotIndex)
 	ld.currentQuickslotIndex = actionSlotIndex
 	local itemLink = GetSlotItemLink(ld.currentQuickslotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
-	logger:Info("Quickslot New: %s", itemLink, actionSlotIndex)
+	logger:Debug("Quickslot New: %s", itemLink, actionSlotIndex)
 end
 
 local function onQuickSlotUsed(_, itemSoundCategory)
 	local timeMs = GetGameTimeMilliseconds()
 	-- if ld.inCombat == false then return end
 	local itemLink = GetSlotItemLink(ld.currentQuickslotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
-	logger:Info("Used: %s", itemLink)
+	logger:Debug("Used: %s", itemLink)
 	if itemSoundCategory ~= GetSlotItemSound(ld.currentQuickslotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL) then return end
 	lf.FireCallback(LIBCOMBAT_LOG_EVENT_QUICKSLOT, timeMs, itemLink)
 end

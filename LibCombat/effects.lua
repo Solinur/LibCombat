@@ -1,6 +1,6 @@
 -- This file provides combat log entries regarding buffs and debuffs
 
-local lib = LibCombat
+local lib = LibCombat2
 local libint = lib.internal
 local ld = libint.data
 local libunits = ld.units
@@ -289,13 +289,13 @@ local function UpdateZenData(timeMs, unitId, abilityId, changeType, effectType, 
 		local stacks = isActive and zo_min(unit.stacksOfZen, 5) or 0
 
 		lf.FireCallback(LIBCOMBAT_LOG_EVENT_EFFECT, timeMs, unitId, abilityIdZen, changeType, effectType, stacks, sourceType, effectSlot)	-- stack count is 1 to 6, with 1 meaning 0% bonus, and 6 meaning 5% bonus from Z'en
-		logger:Debug("VERBOSE", table.concat({timeMs, unitId, abilityIdZen, changeType, effectType, stacks, sourceType, effectSlot}, ", "))
+		logger:Verbose(table.concat({timeMs, unitId, abilityIdZen, changeType, effectType, stacks, sourceType, effectSlot}, ", "))
 		unit.zenEffectSlot = (isActive and effectSlot) or nil
 	else
 		if changeType == EFFECT_RESULT_GAINED then
 			unit.stacksOfZen = unit.stacksOfZen + 1
 		elseif changeType == EFFECT_RESULT_FADED then
-			if unit.stacksOfZen - 1 < 0 then logger:Debug("WARNING", "Encountered negative Z'en stacks: %s (%d)", lib.GetFormattedAbilityName(abilityId), abilityId) end
+			if unit.stacksOfZen - 1 < 0 and libint.debug then logger:Info("Encountered negative Z'en stacks: %s (%d)", lib.GetFormattedAbilityName(abilityId), abilityId) end
 			unit.stacksOfZen = zo_max(0, unit.stacksOfZen - 1)
 		end
 
@@ -320,20 +320,20 @@ function UpdateForceOfNatureData(timeMs, unitId, abilityId, changeType, _, _, _,
 		debugChangeType = "+"
 
 		if unit.forceOfNatureStacks == 1 then forceOfNatureChangeType = EFFECT_RESULT_GAINED end
-		if unit.forceOfNatureStacks > 8 then logger:Debug("WARNING", "Encountered too many Force of Nature stacks (%d): %s (%d)", unit.forceOfNatureStacks, lib.GetFormattedAbilityName(abilityId), abilityId) end
+		if unit.forceOfNatureStacks > 8 then logger:Warn("Encountered too many Force of Nature stacks (%d): %s (%d)", unit.forceOfNatureStacks, lib.GetFormattedAbilityName(abilityId), abilityId) end
 	elseif changeType == EFFECT_RESULT_FADED and unit.forceOfNature[abilityId] == true then
 		unit.forceOfNature[abilityId] = nil
 		debugChangeType = "-"
 
 		if unit.forceOfNatureStacks == 0 then forceOfNatureChangeType = EFFECT_RESULT_FADED end
-		if unit.forceOfNatureStacks - 1 < 0 then logger:Debug("WARNING", "Encountered negative Force of Nature stacks: %s (%d)", lib.GetFormattedAbilityName(abilityId), abilityId) end
+		if unit.forceOfNatureStacks - 1 < 0 then logger:Warn("Encountered negative Force of Nature stacks: %s (%d)", lib.GetFormattedAbilityName(abilityId), abilityId) end
 
 		unit.forceOfNatureStacks = zo_max(0, unit.forceOfNatureStacks - 1)
 	end
 
 	local stacks = zo_min(unit.forceOfNatureStacks, 8)
 	lf.FireCallback(LIBCOMBAT_LOG_EVENT_EFFECT, timeMs, unitId, abilityIdForceOfNature, forceOfNatureChangeType, BUFF_EFFECT_TYPE_DEBUFF, stacks, COMBAT_UNIT_TYPE_PLAYER, 0)
-	logger:Debug("VERBOSE", "Force of Nature: %s (%d) x%d, %s%s", unit.name, unit.unitId, stacks, lib.GetFormattedAbilityName(abilityId), debugChangeType)
+	logger:Verbose("Force of Nature: %s (%d) x%d, %s%s", unit.name, unit.unitId, stacks, lib.GetFormattedAbilityName(abilityId), debugChangeType)
 end
 
 -- TODO: use units module to get the unit directly
@@ -417,7 +417,7 @@ local function SpecialBuffEventHandler(isdebuff, result, _, _, _, _, _, sourceTy
 	-- if unitName ~= ld.units.rawPlayername then return end
 
 	local changeType = resultToChangeType[result] or nil
-	-- logger:Info("%s (%d): %d (%d)", GetFormattedAbilityName(abilityId), abilityId, changeType, result)
+	-- logger:Debug("%s (%d): %d (%d)", GetFormattedAbilityName(abilityId), abilityId, changeType, result)
 
 	local effectType = isdebuff and BUFF_EFFECT_TYPE_DEBUFF or BUFF_EFFECT_TYPE_BUFF
 	local endTime = now + duration/1000
