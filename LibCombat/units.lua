@@ -264,7 +264,7 @@ local function OnTargetChange()
 		end
 	end
 
-	logger:Info("ReticleOverUnit not found: %s (%d buffs)", GetUnitName("reticleover"), numBuffs)
+	logger:Debug("ReticleOverUnit not found: %s (%d buffs)", GetUnitName("reticleover"), numBuffs)
 end
 
 local function OnEffectChanged(_, changeType, effectSlot, _, unitTag, _, endTime, _, _, _, effectType, _, _, unitName,
@@ -333,7 +333,7 @@ function UnitHandler:Initialize(rawName, unitId, unitType, unitTag)
 
 	UnitCache[unitId] = self
 
-	logger:Info("New Unit: %s (%d, %d, %s)", name, unitId, unitType, unitTag or "")
+	logger:Debug("New Unit: %s (%d, %d, %s)", name, unitId, unitType, unitTag or "")
 end
 
 function UnitHandler:LookupUnitTag()
@@ -384,7 +384,7 @@ function UnitHandler:Update(rawName, unitType, unitTag)
 	if unitTag then self:UpdateUnitTag(unitTag) end
 
 	if unitType and self.unitType ~= unitType then
-		logger.Info("unitType changed: %d -> %d %s (%d)", self.unitType, unitType, self.name, self.unitId)
+		logger.Debug("unitType changed: %d -> %d %s (%d)", self.unitType, unitType, self.name, self.unitId)
 		self.unitType = unitType
 		self:UpdateFriendlyStatus()
 	end
