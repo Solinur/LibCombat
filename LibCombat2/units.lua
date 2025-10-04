@@ -514,7 +514,7 @@ end
 
 ---@return UnitData?
 function UnitAPIHandler:GetFullUnitData()
-	if self.unitId == nil then return end
+	if not self:IsValid() then return end
 
 	---@class UnitData
 	local unitData = {
@@ -531,32 +531,37 @@ function UnitAPIHandler:GetFullUnitData()
 	return unitData
 end
 
+function UnitAPIHandler:IsValid()
+	-- return true
+	return type(self.unitId) == "number" and UnitCache[self.unitId] ~= nil 
+end
+
 function UnitAPIHandler:GetUnitName()
-	return UnitCache[self.unitId].name
+	if self:IsValid() then return UnitCache[self.unitId].name end
 end
 
 function UnitAPIHandler:GetUnitRawName()
-	return UnitCache[self.unitId].rawName
+	if self:IsValid() then return UnitCache[self.unitId].rawName end
 end
 
 function UnitAPIHandler:GetUnitType()
-	return UnitCache[self.unitId].unitType
+	if self:IsValid() then return UnitCache[self.unitId].unitType end
 end
 
 function UnitAPIHandler:GetUnitTags()
-	return UnitCache[self.unitId].unitTags
+	if self:IsValid() then return UnitCache[self.unitId].unitTags end
 end
 
 function UnitAPIHandler:IsBoss()
-	return UnitCache[self.unitId].isBoss
+	if self:IsValid() then return UnitCache[self.unitId].isBoss end
 end
 
 function UnitAPIHandler:IsFriendly()
-	return UnitCache[self.unitId].isFriendly
+	if self:IsValid() then return UnitCache[self.unitId].isFriendly end
 end
 
 function UnitAPIHandler:GetMaxHealth()
-	return UnitCache[self.unitId].maxHealth
+	if self:IsValid() then return UnitCache[self.unitId].maxHealth end
 end
 
 local function GetExportUnit(unitId)

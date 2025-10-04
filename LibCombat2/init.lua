@@ -6,7 +6,7 @@ if LibCombat == nil then LibCombat = lib end
 
 -- Basic values
 lib.name = "LibCombat2"
-lib.version = 1
+lib.version = 2
 
 lib.internal = {}
 local libint = lib.internal
