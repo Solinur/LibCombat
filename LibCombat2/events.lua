@@ -127,6 +127,7 @@ local function UpdateEventRegistrations()
 end
 
 function lf.UpdateResources(name, callbacktype, callback)
+	if ActiveCallbackTypes[callbacktype] == nil then return false end
 	local oldCallback = ActiveCallbackTypes[callbacktype][name]
 
 	if callback and oldCallback then 

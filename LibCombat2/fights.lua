@@ -263,8 +263,10 @@ function FightHandler:CheckUnit(unitId)
 	if self.units[unitId] == nil then 
 		---@type UnitData
 		local unit = lib.GetUnitById(unitId):GetFullUnitData()
+
 		if unit == nil then return end
 		self.units[unitId] = unit
+		
 		if unit.unitType == COMBAT_UNIT_TYPE_PLAYER then 
 			self.unitIds.player = unitId
 		end
