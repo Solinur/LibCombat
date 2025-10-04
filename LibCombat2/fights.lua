@@ -125,7 +125,6 @@ local function UpdateStats()
 
 	for key, value in pairs(data) do
 		if lastUpdateStats[key] ~= value then 
-			lf.FireCallback(LIBCOMBAT_EVENT_UNITS, fight.units)
 			lf.FireCallback(LIBCOMBAT_EVENT_FIGHTRECAP, data)
 			break
 		end
