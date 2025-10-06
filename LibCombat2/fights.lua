@@ -489,6 +489,7 @@ end
 
 function lf.onPlayerActivated()
 	logger:Debug("onPlayerActivated")
+	lf.ActivateProcessors()
 
 	-- zo_callLater(lf.GetCurrentSkillBars, 100) -- TODO: Reactivate ?
 	libint.isInPortalWorld = false
@@ -578,7 +579,6 @@ function libint.InitializeFights()
 
 	local newFight = FightHandler:New()
 	libint.currentFight = newFight
-	lf.ActivateProcessors()
 	libint.LogProcessingQueue:SetFight(newFight)
 	
 	libint.onCombatState(EVENT_PLAYER_COMBAT_STATE, IsUnitInCombat("player"))
