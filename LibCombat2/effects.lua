@@ -148,8 +148,9 @@ function LogProcessorEffects:GetPlayerBuffs(fight)
 			self:ProcessLogLine(fight, LIBCOMBAT_LOG_EVENT_EFFECT, timeMs, playerId, abilityId, EFFECT_RESULT_GAINED, effectType, stacks, sourceType, effectSlot)
 		end
 
-		if abilityId ==	13984 then lf.GetShadowBonus(effectSlot) end
-		if abilityId ==	51176 then lf.onTFSChanged(_, EFFECT_RESULT_GAINED, _, _, _, _, _, stackCount) end -- TFS workaround
+		-- TODO: activate once available
+		-- if abilityId ==	13984 then lf.GetShadowBonus(effectSlot) end
+		-- if abilityId ==	51176 then lf.onTFSChanged(_, EFFECT_RESULT_GAINED, _, _, _, _, _, stackCount) end -- TFS workaround
 	end
 end
 
