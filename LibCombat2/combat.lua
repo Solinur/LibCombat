@@ -75,6 +75,7 @@ function LogProcessorCombat:onCombatStart() end
 
 ---@param fight Fight
 function LogProcessorCombat:onCombatEnd(fight)
+	if fight.processors[self.name] ~= true then return end
 	for targetUnitId, data in pairs(fight.damageReceived) do
 		local hasData = false
 		for sourceUnitId, _ in pairs(data) do
