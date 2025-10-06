@@ -53,7 +53,8 @@ function LogProcessingHandler:RegisterLogType(logType)
 end
 
 function LogProcessingHandler:Activate()
-	self.active  = true
+	if self.active == true then return end
+	self.active = true
 
 	for logType, _ in pairs(self.RegisteredLogTypes) do
 		local idString = string.format("LibCombat_%s%d", self.name, logType)
@@ -63,6 +64,7 @@ function LogProcessingHandler:Activate()
 end
 
 function LogProcessingHandler:Deactivate()
+	if self.active == false then return end
 	self.active = false
 
 	for logType, _ in pairs(self.RegisteredLogTypes) do
