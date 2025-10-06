@@ -455,6 +455,8 @@ function UnitHandler:Delete()
 	UnitCache[self.unitId] = nil
 	UnitExportCache[self.unitId] = nil
 
+	logger:Info("Deleting Unit: %s (%d)", self.name or "", self.unitId)
+
 	if self.unitTags then
 		for _, unitTag in pairs(self.unitTags) do
 			if self.unitId == libunits.unitIdsByTag[unitTag] then libunits.unitIdsByTag[unitTag] = nil end
@@ -514,6 +516,7 @@ end
 
 ---@return UnitData?
 function UnitAPIHandler:GetFullUnitData()
+	-- if self.unitId == nil then return end
 	if not self:IsValid() then return end
 
 	---@class UnitData
@@ -532,7 +535,14 @@ function UnitAPIHandler:GetFullUnitData()
 end
 
 function UnitAPIHandler:IsValid()
-	-- return true
+	if type(self.unitId) ~= "number" and libint.debug then
+		logger:Info("Invalid Unit: %s", tostring(self.unitId))
+	end
+
+	if UnitCache[self.unitId] == nil and libint.debug then
+		logger:Info("Invalid Unit: %s. No Unit Cache!", tostring(self.unitId))
+	end
+
 	return type(self.unitId) == "number" and UnitCache[self.unitId] ~= nil 
 end
 

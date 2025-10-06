@@ -29,9 +29,8 @@ function LogProcessingHandler:Initialize(name,  AllowedLogTypes)
 	self.active = false
 	self.name = name
 	self.idCounter = 1
-	self.RegisteredLogTypes = {}
 	self.currentFight = nil
-	self.idString = {}
+	self.idStrings = {}
 
 	libint.LogProcessors[name] = self
 	self:RegisterLogTypes(AllowedLogTypes)
@@ -49,25 +48,33 @@ end
 ---@param logType number
 function LogProcessingHandler:RegisterLogType(logType)
 	lf.LogTypeProcessors[logType] = self
-	self.RegisteredLogTypes[logType] = false
+	self.idStrings[logType] = false
 end
 
 function LogProcessingHandler:Activate()
-	self.active  = true
+	if self.active == true then return end
+	self.active = true
 
-	for logType, _ in pairs(self.RegisteredLogTypes) do
+	for logType, _ in pairs(self.idStrings) do
 		local idString = string.format("LibCombat_%s%d", self.name, logType)
 		local success = lib.RegisterForCombatEvent(idString, logType, lf.AddLogLine)
-		if success then self.idString[logType] = idString else logger:Warn("Error during callback registration. Name: %s, Type: %d, idString: %s", self.name, logType, idString) end
+		if success then
+			self.idStrings[logType] = idString
+		else
+			logger:Warn("Error during callback registration. Name: %s, Type: %d, idString: %s", self.name, logType, idString)
+		end
 	end
 end
 
 function LogProcessingHandler:Deactivate()
+	if self.active == false then return end
 	self.active = false
 
-	for logType, _ in pairs(self.RegisteredLogTypes) do
-		lib.UnregisterForCombatEvent(logType, self.idString[logType])
-		self.idString[logType] = nil
+	for logType, idString in pairs(self.idStrings) do
+		if type(idString) == "string" then 
+			lib.UnregisterForCombatEvent(logType, self.idStrings[logType])
+			self.idStrings[logType] = false
+		end
 	end
 end
 
@@ -91,7 +98,7 @@ end
 
 function LogProcessingQueue:SetCombatState(inCombat)
 	assert(type(inCombat) == "boolean", "Wrong type on argument of LogProcessingQueue:SetCombatState")
-	if inCombat == true then 
+	if inCombat == true then
 		self:Push(LOG_LINE_COMBAT_START)
 	else
 		self:Push(LOG_LINE_COMBAT_END)
@@ -101,11 +108,12 @@ end
 local line = {}
 function LogProcessingQueue:ProcessLine()
 	local item = self:Pop()
-	
+
 	if item == LOG_LINE_SET_FIGHT_STRING then
 		self.fight = self:Pop()
 		if self:Pop() == LOG_LINE_TERMINATE_STRING then
-			return lf.ProcessorsInitilizeFight(self.fight)
+			lf.ProcessorsInitilizeFight(self.fight)
+			return
 		else
 			logger:Error("End of log line expected!")
 		end
@@ -120,7 +128,7 @@ function LogProcessingQueue:ProcessLine()
 	if item == LOG_LINE_COMBAT_END then
 		return lf.ProcessorsOnCombatEnd(self.fight)
 	end
-	
+
 	local processor = lf.LogTypeProcessors[item]
 	local i = 1
     while item ~= LOG_LINE_TERMINATE_STRING do
@@ -147,9 +155,9 @@ end
 local function ProcessChunk()
 	if isFileInitialized == false or libint.LogProcessingQueue == nil then return end
 	local queue = libint.LogProcessingQueue
-	if queue:IsEmpty() then 
+	if queue:IsEmpty() then
 		if GetGameTimeSeconds() - lastStart > 0.5 then DeactivateProcessing() end
-		return 
+		return
 	end
 
 	lastStart = GetGameTimeSeconds()
@@ -178,8 +186,16 @@ function lf.AddLogLine(...)
 end
 
 function lf.ProcessorsInitilizeFight(fight)
+	fight.processors = {}
+	local inCombat = ld.inCombat
 	for _, processor in pairs(libint.LogProcessors) do
-		if processor.active then processor:onInitilizeFight(fight) end
+		if processor.active then
+			fight.processors[processor.name] = true
+			processor:onInitilizeFight(fight)
+			if inCombat then
+				processor:onCombatStart()
+			end
+		end
 	end
 end
 
@@ -189,18 +205,18 @@ function lf.ActivateProcessors() -- add start / stop / pause and connect with fi
 	end
 end
 
-function lf.DeactivateProcessors() 
+function lf.DeactivateProcessors()
 	for _, processor in pairs(libint.LogProcessors) do
 		processor:Dectivate()
 	end
 end
 
-function lf.ProcessorsOnCombatStart(fight) 
+function lf.ProcessorsOnCombatStart(fight)
 	for _, processor in pairs(libint.LogProcessors) do
 		processor:onCombatStart(fight)
 	end
 end
-function lf.ProcessorsOnCombatEnd(fight) 
+function lf.ProcessorsOnCombatEnd(fight)
 	for _, processor in pairs(libint.LogProcessors) do
 		processor:onCombatEnd(fight)
 	end
