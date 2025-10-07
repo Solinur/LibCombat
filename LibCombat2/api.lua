@@ -51,8 +51,7 @@ function lib.GetCurrentMainTargetDamageDone()
 	local fight = libint.currentFight
 
 	if fight.bossFight then
-		local unitIds = fight.unitIds.bosses
-		return fight:GetDamageToUnits(unitIds)
+		return fight:GetDamageToUnits(fight.unitIds.bosses)
 	else
 		local unitId = fight:GetMainUnit()
 		return fight:GetDamageToUnit(unitId)
@@ -70,7 +69,7 @@ function lib.GetCurrentTotalDamageDone()
 
 	local unitIds = {}
 	for unitId, unit in pairs(fight.units) do
-		if unit.isFriendly == false then unitIds[#unitIds+1] = unitId end
+		if unit.isFriendly == false then unitIds[unitId] = true end
 	end
 
 	return fight:GetDamageToUnits(unitIds)
@@ -87,7 +86,7 @@ function lib.GetCurrentTotalDamageReceived()
 
 	local unitIds = {}
 	for unitId, unit in pairs(fight.units) do
-		if unit.isFriendly == true then unitIds[#unitIds+1] = unitId end
+		if unit.isFriendly == true then unitIds[unitId] = true end
 	end
 
 	return fight:GetDamageToUnits(unitIds)

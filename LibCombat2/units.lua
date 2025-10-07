@@ -123,13 +123,14 @@ local function onBossesChanged(_) -- Detect Bosses
 		local unitTag = BossUnitTags[i]
 
 		if DoesUnitExist(unitTag) then
-			local rawName = GetUnitName(unitTag)
+			local rawName = GetRawUnitName(unitTag)
 
 			if bossTagByName[rawName] and bossTagByName[rawName] ~= unitTag then
 				logger:Warn("Multiple tags found for %s (%s, %s)", rawName, bossTagByName[rawName], unitTag)
 				bossTagByName[rawName] = hasMultipleTags
 			end
 
+			bossTagByName[rawName] = unitTag
 			libunits.bossTagByName[rawName] = bossTagByName[rawName]
 		end
 	end
@@ -350,7 +351,6 @@ function UnitHandler:LookupUnitTag()
 		local bossTag = libunits.bossTagByName[self.rawName]
 
 		if bossTag then
-			self.isBoss = true
 			if bossTag ~= hasMultipleTags then
 				self:UpdateUnitTag(bossTag)
 			end
@@ -430,6 +430,10 @@ function UnitHandler:UpdateUnitTag(newUnitTag)
 
 	local unitId = self.unitId
 	self:UpdateUnitTagData(newUnitTag)
+
+	if newUnitTag:sub(1,4) == "boss" then 
+		self.isBoss = true
+	end
 
 	if self.unitTags == nil then
 		self.unitTags = { [newUnitTag] = newUnitTag }

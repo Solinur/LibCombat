@@ -18,17 +18,19 @@ local lf = libint.functions
 
 -- Logger
 
-if LibDebugLogger then
+if LibDebugLogger and libint.debug then
 	libint.logger.main = LibDebugLogger.Create(lib.name)
 else
 	local internalLogger = {}
-	function internalLogger:Debug(...)
+
+	function internalLogger:Warn(...)
 		df(...)
 	end
-	internalLogger.Warn = internalLogger.Debug
-	internalLogger.Info = internalLogger.Debug
-	internalLogger.Error = internalLogger.Debug
+	function internalLogger:Debug() end -- do nothing
+
 	internalLogger.Verbose = internalLogger.Debug
+	internalLogger.Info = internalLogger.Debug
+	internalLogger.Error = internalLogger.Warn
 	libint.logger.main = internalLogger
 end
 
