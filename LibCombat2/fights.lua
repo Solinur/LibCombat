@@ -9,6 +9,7 @@ local logger
 local isFileInitialized = false
 local reset = false
 local timeout = 800
+local _
 
 local function GetCurrentCP()
 	local CP = {}
@@ -91,7 +92,7 @@ local function UpdateStats()
 	local HPSIn = get_per_second_value(healingReceived, healingReceivedTime)
 
 	local data = {
-		["bossfight"] = fight.bossfight,
+		["bossfight"] = fight.bossFight,
 		["group"] = fight.group,
 
 		["bossDamageTotal"] = playerBossDamage,
@@ -339,7 +340,7 @@ function FightHandler:GetDamageToUnits(unitIds)
 	local endTime = 0
 	local totalDamage = 0
 	
-	for i, unitId in ipairs(unitIds) do
+	for unitId, _ in pairs(unitIds) do
 		local unitData = self.damageReceived[unitId]
 		if unitData then
 			startTime = zo_min(startTime, unitData.startTime)
