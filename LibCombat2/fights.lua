@@ -455,15 +455,21 @@ end
 local function PrintCombatStats()
 	if not libint.debug then return end
 
-	local playerTime, playerDamage, unitTime, totalDamage = lib.GetCurrentMainTargetDamageDone()
-	local playerDPS =  playerTime > 0 and playerDamage/playerTime or 0
-	local groupDPS =  unitTime > 0 and totalDamage/unitTime or 0
-	logger:Info("%.0f, %.3fs / %.0f, %.3fs", playerDPS, playerTime, groupDPS, unitTime)
+	local playerBossTime, playerBossDamage, groupBossTime, groupBossDamage = lib.GetCurrentMainTargetDamageDone()
+	local playerBossDPSOut = get_per_second_value(playerBossDamage, playerBossTime)
+	local groupBossDPSOut = get_per_second_value(groupBossDamage, groupBossTime)
 
-	local playerMultiTime, playerMultiDamage, unitMultiTime, totalMultiDamage = lib.GetCurrentTotalDamageDone()
-	local playerMultiDPS =  playerMultiTime > 0 and playerMultiDamage/playerMultiTime or 0
-	local groupMultiDPS =  unitMultiTime > 0 and totalMultiDamage/unitMultiTime or 0
-	logger:Info("%.0f, %.3fs / %.0f, %.3fs", playerMultiDPS, playerMultiTime, groupMultiDPS, unitMultiTime)
+	local playerDPSTime, playerDamageOut, groupDPSTime, groupDamageOut = lib.GetCurrentTotalDamageDone()
+	local playerDPSOut = get_per_second_value(playerDamageOut, playerDPSTime)
+	local groupDPSOut = get_per_second_value(groupDamageOut, groupDPSTime)
+
+	if playerBossTime == 0 then playerBossTime = 1 end
+	if groupBossTime == 0 then groupBossTime = 1 end
+	if playerDPSTime == 0 then playerDPSTime = 1 end
+	if groupDPSTime == 0 then groupDPSTime = 1 end
+
+	logger:Info("ST: %.0f, %.3fs / %.0f, %.3fs", playerBossDPSOut, playerBossTime, groupBossDPSOut, groupBossTime)
+	logger:Info("MT: %.0f, %.3fs / %.0f, %.3fs", playerDPSOut, playerDPSTime, groupDPSOut, groupDPSTime)
 end
 
 function FightHandler:onUpdate()
