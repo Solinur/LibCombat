@@ -13,7 +13,7 @@ Add more debug Functions
 
 ]]
 local lib = {}
-lib.version = 82
+lib.version = 83
 LibCombat = lib
 
 -- Basic values

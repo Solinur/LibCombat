@@ -1,3 +1,6 @@
+83 DL: 4,604,094 (08.10.2025) 23:23
+[*] Minor fixes and improvements.
+
 82 DL: 4,457,560 (15.05.2025) 21:26
 [*] Fixed an issue, where casts of Ulfsild's Contingency were not properly tracked. (Thx to Skinny Cheeks for reporting)
 
