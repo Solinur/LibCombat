@@ -96,7 +96,8 @@ local function UpdateStats()
 	if playerHPSTime == 0 then playerHPSTime = 1 end
 
 	local data = {
-		["bossfight"] = fight.bossFight,
+		["bossfight"] = fight.bossFight == true,
+		["bossFight"] = fight.bossFight == true,
 		["group"] = fight.group,
 
 		["bossDamageTotal"] = playerBossDamage,
