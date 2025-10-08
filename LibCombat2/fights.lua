@@ -60,7 +60,8 @@ local function GetCurrentCP()
 end
 
 local function get_per_second_value(x, y)
-	return zo_round(x/zo_max(y/1))
+	if y <= 0 then return x end
+	return zo_round(x/y)
 end
 
 local lastUpdateStats = {}
@@ -90,19 +91,23 @@ local function UpdateStats()
 	local healingReceivedTime, healingReceived = fight:GetPlayerHealingReceived()
 	local HPSIn = get_per_second_value(healingReceived, healingReceivedTime)
 
+	if playerBossTime == 0 then playerBossTime = 1 end
+	if playerDPSTime == 0 then playerDPSTime = 1 end
+	if playerHPSTime == 0 then playerHPSTime = 1 end
+
 	local data = {
 		["bossfight"] = fight.bossFight,
 		["group"] = fight.group,
 
 		["bossDamageTotal"] = playerBossDamage,
-		["bossTime"] = zo_max(playerBossTime, 1),
+		["bossTime"] = playerBossTime, -- TODO: Give real value
 		["bossDPSOut"] = playerBossDPSOut,
 		["bossDamageTotalGroup"] = groupBossDamage,
 		["bossGroupTime"] = groupBossTime,
 		["bossDPSOutGroup"] = groupBossDPSOut,
 
 		["damageOutTotal"] = playerDamageOut,
-		["dpstime"] = zo_max(playerDPSTime, 1),
+		["dpstime"] = playerDPSTime, -- TODO: Give real value
 		["DPSOut"] = playerDPSOut,
 		["dpsGroupTime"] = groupDPSTime,
 		["damageOutTotalGroup"] = groupDamageOut,
@@ -110,7 +115,7 @@ local function UpdateStats()
 
 		["healingOutTotal"] = playerHealingOut,
 		["overHealingOutTotal"] = playerHealingOutOverflow,
-		["hpstime"] = zo_max(playerHPSTime, 1),
+		["hpstime"] = playerHPSTime, -- TODO: Give real value
 		["HPSOut"] = playerHPSOut,
 		["HPSAOut"] = playerOHPSOut,
 		["OHPSOut"] = playerOHPSOut,
@@ -398,7 +403,7 @@ end
 ---@return integer totalOverflowHealing
 function FightHandler:GetHealingDone()
 	local healingData = self.healingReceived
-	if healingData == nil then return 0, 0, 0, 0 end
+	if healingData == nil then return 0, 0, 0, 0, 0, 0 end
 
 	local playerStartTime = math.huge
 	local playerEndTime = 0
@@ -455,15 +460,21 @@ end
 local function PrintCombatStats()
 	if not libint.debug then return end
 
-	local playerTime, playerDamage, unitTime, totalDamage = lib.GetCurrentMainTargetDamageDone()
-	local playerDPS =  playerTime > 0 and playerDamage/playerTime or 0
-	local groupDPS =  unitTime > 0 and totalDamage/unitTime or 0
-	logger:Info("%.0f, %.3fs / %.0f, %.3fs", playerDPS, playerTime, groupDPS, unitTime)
+	local playerBossTime, playerBossDamage, groupBossTime, groupBossDamage = lib.GetCurrentMainTargetDamageDone()
+	local playerBossDPSOut = get_per_second_value(playerBossDamage, playerBossTime)
+	local groupBossDPSOut = get_per_second_value(groupBossDamage, groupBossTime)
 
-	local playerMultiTime, playerMultiDamage, unitMultiTime, totalMultiDamage = lib.GetCurrentTotalDamageDone()
-	local playerMultiDPS =  playerMultiTime > 0 and playerMultiDamage/playerMultiTime or 0
-	local groupMultiDPS =  unitMultiTime > 0 and totalMultiDamage/unitMultiTime or 0
-	logger:Info("%.0f, %.3fs / %.0f, %.3fs", playerMultiDPS, playerMultiTime, groupMultiDPS, unitMultiTime)
+	local playerDPSTime, playerDamageOut, groupDPSTime, groupDamageOut = lib.GetCurrentTotalDamageDone()
+	local playerDPSOut = get_per_second_value(playerDamageOut, playerDPSTime)
+	local groupDPSOut = get_per_second_value(groupDamageOut, groupDPSTime)
+
+	if playerBossTime == 0 then playerBossTime = 1 end
+	if groupBossTime == 0 then groupBossTime = 1 end
+	if playerDPSTime == 0 then playerDPSTime = 1 end
+	if groupDPSTime == 0 then groupDPSTime = 1 end
+
+	logger:Info("ST: %.0f, %.3fs / %.0f, %.3fs", playerBossDPSOut, playerBossTime, groupBossDPSOut, groupBossTime)
+	logger:Info("MT: %.0f, %.3fs / %.0f, %.3fs", playerDPSOut, playerDPSTime, groupDPSOut, groupDPSTime)
 end
 
 function FightHandler:onUpdate()
