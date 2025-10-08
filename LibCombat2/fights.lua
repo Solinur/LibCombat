@@ -398,7 +398,7 @@ end
 ---@return integer totalOverflowHealing
 function FightHandler:GetHealingDone()
 	local healingData = self.healingReceived
-	if healingData == nil then return 0, 0, 0, 0 end
+	if healingData == nil then return 0, 0, 0, 0, 0, 0 end
 
 	local playerStartTime = math.huge
 	local playerEndTime = 0
