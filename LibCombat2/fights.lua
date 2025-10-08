@@ -95,14 +95,14 @@ local function UpdateStats()
 		["group"] = fight.group,
 
 		["bossDamageTotal"] = playerBossDamage,
-		["bossTime"] = zo_max(playerBossTime, 1),
+		["bossTime"] = zo_max(playerBossTime, 1), -- TODO: Give real value
 		["bossDPSOut"] = playerBossDPSOut,
 		["bossDamageTotalGroup"] = groupBossDamage,
 		["bossGroupTime"] = groupBossTime,
 		["bossDPSOutGroup"] = groupBossDPSOut,
 
 		["damageOutTotal"] = playerDamageOut,
-		["dpstime"] = zo_max(playerDPSTime, 1),
+		["dpstime"] = zo_max(playerDPSTime, 1), -- TODO: Give real value
 		["DPSOut"] = playerDPSOut,
 		["dpsGroupTime"] = groupDPSTime,
 		["damageOutTotalGroup"] = groupDamageOut,
@@ -110,7 +110,7 @@ local function UpdateStats()
 
 		["healingOutTotal"] = playerHealingOut,
 		["overHealingOutTotal"] = playerHealingOutOverflow,
-		["hpstime"] = zo_max(playerHPSTime, 1),
+		["hpstime"] = zo_max(playerHPSTime, 1), -- TODO: Give real value
 		["HPSOut"] = playerHPSOut,
 		["HPSAOut"] = playerOHPSOut,
 		["OHPSOut"] = playerOHPSOut,
