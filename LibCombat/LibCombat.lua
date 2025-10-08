@@ -1802,6 +1802,7 @@ function FightHandler:UpdateStats()
 		["groupHPSOut"] = self.HPSOut,
 		["damageOutTotalGroup"] = self.damageOutTotal,
 		["bossfight"] = self.bossfight == true,
+		["bossFight"] = self.bossfight == true,
 		["bossDPSOut"] = bossDPSOut,
 		["bossDamageTotal"] = totalBossDamage,
 		["bossDPSOutGroup"] = bossDPSOut,
