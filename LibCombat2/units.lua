@@ -85,6 +85,7 @@ for i = 1, MAX_GROUP_SIZE_THRESHOLD do
 end
 libunits.GroupUnitTags = GroupUnitTags
 
+---@type table<integer,string>
 local BossUnitTags = {} -- preassemble unit tags
 for i = 1, BOSS_RANK_ITERATION_END do
 	BossUnitTags[i] = ZO_CachedStrFormat("boss<<1>>", i)
@@ -117,6 +118,7 @@ end
 local hasMultipleTags = "multiple tags found"
 
 local function onBossesChanged(_) -- Detect Bosses
+	---@type [string]
 	local bossTagByName = {}      -- holds only bosses discovered in this round
 
 	for i = 1, BOSS_RANK_ITERATION_END do
@@ -125,7 +127,7 @@ local function onBossesChanged(_) -- Detect Bosses
 		if DoesUnitExist(unitTag) then
 			local rawName = GetRawUnitName(unitTag)
 
-			if bossTagByName[rawName] and bossTagByName[rawName] ~= unitTag then
+			if bossTagByName[rawName] and bossTagByName[rawName] ~= unitTag and libint.debug then
 				logger:Warn("Multiple tags found for %s (%s, %s)", rawName, bossTagByName[rawName], unitTag)
 				bossTagByName[rawName] = hasMultipleTags
 			end

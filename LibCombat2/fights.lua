@@ -60,8 +60,7 @@ local function GetCurrentCP()
 end
 
 local function get_per_second_value(x, y)
-	if y == 0 then return 0 end
-	return zo_round(x/y)
+	return zo_round(x/zo_max(y/1))
 end
 
 local lastUpdateStats = {}
@@ -96,14 +95,14 @@ local function UpdateStats()
 		["group"] = fight.group,
 
 		["bossDamageTotal"] = playerBossDamage,
-		["bossTime"] = playerBossTime,
+		["bossTime"] = zo_max(playerBossTime, 1),
 		["bossDPSOut"] = playerBossDPSOut,
 		["bossDamageTotalGroup"] = groupBossDamage,
 		["bossGroupTime"] = groupBossTime,
 		["bossDPSOutGroup"] = groupBossDPSOut,
 
 		["damageOutTotal"] = playerDamageOut,
-		["dpstime"] = playerDPSTime,
+		["dpstime"] = zo_max(playerDPSTime, 1),
 		["DPSOut"] = playerDPSOut,
 		["dpsGroupTime"] = groupDPSTime,
 		["damageOutTotalGroup"] = groupDamageOut,
@@ -111,7 +110,7 @@ local function UpdateStats()
 
 		["healingOutTotal"] = playerHealingOut,
 		["overHealingOutTotal"] = playerHealingOutOverflow,
-		["hpstime"] = playerHPSTime,
+		["hpstime"] = zo_max(playerHPSTime, 1),
 		["HPSOut"] = playerHPSOut,
 		["HPSAOut"] = playerOHPSOut,
 		["OHPSOut"] = playerOHPSOut,
@@ -131,7 +130,7 @@ local function UpdateStats()
 		end
 	end
 	lastUpdateStats = data
-	LC_UPDATE_STATS = lastUpdateStats
+	if libint.debug then LC_UPDATE_STATS = lastUpdateStats end
 
 	logger:Debug("Combat Stats Update")
 end
