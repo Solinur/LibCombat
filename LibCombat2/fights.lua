@@ -60,7 +60,8 @@ local function GetCurrentCP()
 end
 
 local function get_per_second_value(x, y)
-	return zo_round(x/zo_max(y/1))
+	if y <= 0 then return x end
+	return zo_round(x/y)
 end
 
 local lastUpdateStats = {}
@@ -90,19 +91,23 @@ local function UpdateStats()
 	local healingReceivedTime, healingReceived = fight:GetPlayerHealingReceived()
 	local HPSIn = get_per_second_value(healingReceived, healingReceivedTime)
 
+	if playerBossTime == 0 then playerBossTime = 1 end
+	if playerDPSTime == 0 then playerDPSTime = 1 end
+	if playerHPSTime == 0 then playerHPSTime = 1 end
+
 	local data = {
 		["bossfight"] = fight.bossFight,
 		["group"] = fight.group,
 
 		["bossDamageTotal"] = playerBossDamage,
-		["bossTime"] = zo_max(playerBossTime, 1), -- TODO: Give real value
+		["bossTime"] = playerBossTime, -- TODO: Give real value
 		["bossDPSOut"] = playerBossDPSOut,
 		["bossDamageTotalGroup"] = groupBossDamage,
 		["bossGroupTime"] = groupBossTime,
 		["bossDPSOutGroup"] = groupBossDPSOut,
 
 		["damageOutTotal"] = playerDamageOut,
-		["dpstime"] = zo_max(playerDPSTime, 1), -- TODO: Give real value
+		["dpstime"] = playerDPSTime, -- TODO: Give real value
 		["DPSOut"] = playerDPSOut,
 		["dpsGroupTime"] = groupDPSTime,
 		["damageOutTotalGroup"] = groupDamageOut,
@@ -110,7 +115,7 @@ local function UpdateStats()
 
 		["healingOutTotal"] = playerHealingOut,
 		["overHealingOutTotal"] = playerHealingOutOverflow,
-		["hpstime"] = zo_max(playerHPSTime, 1), -- TODO: Give real value
+		["hpstime"] = playerHPSTime, -- TODO: Give real value
 		["HPSOut"] = playerHPSOut,
 		["HPSAOut"] = playerOHPSOut,
 		["OHPSOut"] = playerOHPSOut,
