@@ -142,7 +142,7 @@ function LogProcessorEffects:GetPlayerBuffs(fight)
 
 		local sourceType = castByPlayer and COMBAT_UNIT_TYPE_PLAYER or COMBAT_UNIT_TYPE_NONE
 		local stacks = zo_max(stackCount, 1)
-		logger:Debug("player has the %s %d x %s (%d, ET: %d, self: %s)", effectType == BUFF_EFFECT_TYPE_BUFF and "buff" or "debuff", stackCount, lib.GetFormattedAbilityName(abilityId), abilityId, abilityType, tostring(castByPlayer))
+		logger:Debug("player has the %s %d x %s (%d, AType: %d, self: %s)", effectType == BUFF_EFFECT_TYPE_BUFF and "buff" or "debuff", stackCount, lib.GetFormattedAbilityName(abilityId), abilityId, abilityType, tostring(castByPlayer))
 
 		if (not libint.badAbility[abilityId]) then
 			self:ProcessLogLine(fight, LIBCOMBAT_LOG_EVENT_EFFECT, timeMs, playerId, abilityId, EFFECT_RESULT_GAINED, effectType, stacks, sourceType, effectSlot)
@@ -364,7 +364,7 @@ local function BuffEventHandler(isspecial, changeType, effectSlot, _, unitTag, _
 
 	local timeMs = GetGameTimeMilliseconds()
 	local stacks = zo_max(1, stackCount)
-	logger:Verbose("%s %s the %s %dx %s (%d, ET: %d, %s, %d)", unitName, changeType, effectType == BUFF_EFFECT_TYPE_BUFF and "buff" or "debuff", stackCount, lib.GetFormattedAbilityName(abilityId), abilityId, abilityType, unitTag, sourceType)
+	logger:Verbose("%s %d the %s %dx %s (%d, AT: %d, %s, %d)", unitName, changeType, effectType == BUFF_EFFECT_TYPE_BUFF and "buff" or "debuff", stackCount, lib.GetFormattedAbilityName(abilityId), abilityId, abilityType, unitTag or "", sourceType)
 
 	-- if lib.IsPlayerUnitId(unitId) then libint.currentFight:QueueStatUpdate(timeMs) end -- TODO: move to stats
 

@@ -369,7 +369,7 @@ local function onAbilityUsed(eventCode, result, isError, abilityName, abilityGra
 
 	local channeled, castTime = GetAbilityCastInfo(origId)
 
-	logger:Verbose("[%.3f] Skill fired: %s (%d), Duration: %ds Target: %s", timeMs/1000, GetAbilityName(origId), origId, (castTime or 0)/1000, tostring(targetName))
+	logger:Verbose("[%.3f] Skill fired: %s (%d), Duration: %.3fs Target: %s", timeMs/1000, GetAbilityName(origId), origId, (castTime or 0)/1000, tostring(targetName))
 
 	HeavyAttackCharging = libint.directHeavyAttacks[origId] and origId or nil
 
@@ -499,7 +499,7 @@ end
 local function onQuickSlotChanged(_, actionSlotIndex)
 	ld.currentQuickslotIndex = actionSlotIndex
 	local itemLink = GetSlotItemLink(ld.currentQuickslotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
-	logger:Debug("Quickslot New: %s", itemLink, actionSlotIndex)
+	logger:Debug("Quickslot New: %s (%d)", itemLink, actionSlotIndex)
 end
 
 local function onQuickSlotUsed(_, itemSoundCategory)
