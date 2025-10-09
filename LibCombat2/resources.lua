@@ -141,7 +141,7 @@ local function checkLastAbilities(timeMs, powerType, powerValueChange, powerValu
 		if (values[1] - timeMs) > 1000 then break end
 	end
 
-	logger:Debug("Ability Result: %s (%d), %d", GetFormattedAbilityName(abilityId), abilityId, tostring(adjustedPowerValueChange))
+	logger:Debug("Ability Result: %s (%d), %d", GetFormattedAbilityName(abilityId), abilityId, adjustedPowerValueChange)
 
 	return abilityId, adjustedPowerValueChange
 
@@ -223,7 +223,7 @@ local function onBaseResourceChanged(powerType, powerValue, powerValueChange)
 
 			abilityId = 0
 
-			logger:Debug("Magicka Regeneration  (%d)", powerValueChange)
+			logger:Debug("Magicka Regeneration (%d)", powerValueChange)
 
 		elseif abilityId == -1 then	-- Check for combination of skill and regeneration tick
 

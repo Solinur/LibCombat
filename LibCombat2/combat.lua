@@ -100,7 +100,7 @@ function LogProcessorCombat:ProcessLogLine(fight, logType, ...)
 		self:ProcessLogLineHeal(fight, ...)
 		return
 	end
-	logger:Error("Unsupported logtype %s for processor %s", logType, self.name)
+	logger:Error("Unsupported logtype %d for processor %s", logType, self.name)
 end
 
 local function InitUnitDamageData(fight, t, unitId, timeMs)
@@ -319,11 +319,11 @@ end
 
 local function onCombatEventDamage(_, result, _, _, _, _, _, _, targetName, _, hitValue, _, damageType, _, sourceUnitId, targetUnitId, abilityId, overflow)  -- called by Event
 	local timeMs = GetGameTimeMilliseconds()
-	if hitValue > 500000 then logger:Warn("Big Damage Event: (%d) %s did %d damage to %d", abilityId, lib.GetFormattedAbilityName(abilityId), hitValue, tostring(targetName)) end
+	if hitValue > 500000 and libint.debug then logger:Warn("Big Damage Event: (%d) %s did %d damage to %s", abilityId, lib.GetFormattedAbilityName(abilityId), hitValue, tostring(targetName)) end
 	
 	local absorb = CheckForAbsorb(DamageShields, timeMs, sourceUnitId, targetUnitId) or 0
 	if (hitValue + overflow + absorb) <= 0 then 
-		logger:Debug("Empty Damage Event %s (%d) -> targetName", lib.GetFormattedAbilityName(abilityId), abilityId, tostring(targetName)) 
+		logger:Debug("Empty Damage Event %s (%d) -> %s", lib.GetFormattedAbilityName(abilityId), abilityId, tostring(targetName)) 
 		return
 	end
 
@@ -338,7 +338,7 @@ local function onCombatEventHeal(_, result, _, _, _, _, _, _, targetName, _, hit
 	local timeMs = GetGameTimeMilliseconds()
 	local absorb = CheckForAbsorb(HealAbsorbs, timeMs, sourceUnitId, targetUnitId) or 0
 	if (hitValue + overflow + absorb) <= 0 then
-		logger:Debug("Empty Damage Event %s (%d) -> targetName", lib.GetFormattedAbilityName(abilityId), abilityId, tostring(targetName)) 
+		logger:Debug("Empty Damage Event %s (%d) -> %s", lib.GetFormattedAbilityName(abilityId), abilityId, tostring(targetName)) 
 		return
 	end
 
