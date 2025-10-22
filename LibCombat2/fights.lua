@@ -95,6 +95,10 @@ local function UpdateStats()
 	if playerDPSTime == 0 then playerDPSTime = 1 end
 	if playerHPSTime == 0 then playerHPSTime = 1 end
 
+	if groupBossTime == 0 then groupBossTime = 1 end
+	if groupDPSTime == 0 then groupDPSTime = 1 end
+	if groupHPSTime == 0 then groupHPSTime = 1 end
+
 	local data = {
 		["bossfight"] = fight.bossFight == true,
 		["bossFight"] = fight.bossFight == true,
@@ -492,6 +496,8 @@ function FightHandler:onUpdate()
 		PrintCombatStats()
 
 		libint.lastFight = libint.currentFight
+		LibCombat2_Save = libint.currentFight
+		
 		local newFight = FightHandler:New()
 		libint.currentFight = newFight
 		libint.LogProcessingQueue:SetFight(newFight)
