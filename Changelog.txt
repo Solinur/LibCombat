@@ -1,3 +1,6 @@
+﻿84 DL: 4,649,287 (24.10.2025) 23:49
+[*] Fixed an issue where incorrect fight recap group numbers were given for the callback in rare cases.
+
 83 DL: 4,604,094 (08.10.2025) 23:23
 [*] Minor fixes and improvements.
 

@@ -13,7 +13,7 @@ Add more debug Functions
 
 ]]
 local lib = {}
-lib.version = 83
+lib.version = 84
 LibCombat = lib
 
 -- Basic values
@@ -3669,7 +3669,7 @@ Events.HealIn = EventHandler:New(
 )
 
 Events.CombatGrp = EventHandler:New(
-	{LIBCOMBAT_EVENT_GROUPRECAP},
+	{LIBCOMBAT_EVENT_FIGHTRECAP, LIBCOMBAT_EVENT_GROUPRECAP},
 	function (self)
 		local filters = {
 			[onCombatEventDmgGrp] = {
