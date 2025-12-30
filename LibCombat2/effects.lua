@@ -97,16 +97,21 @@ local function InitEffectdata(unitData, abilityId, effectType)
 	return effectData
 end
 
-local function InitStackData(effectData, stacks)
-	local stackData = {
+local function GetStackData(effectData, stacks)
+	local stacksData = effectData.stacks
+	local data = stacksData[stacks]
+
+	if data ~= nil then return data end
+
+	local data = {
 		uptime = 0,			-- uptime of effect caused by player
 		count = 0,			-- count of effect applications caused by player
 		groupUptime = 0,	-- uptime of effect caused by the whole group
 		groupCount = 0,		-- count of effect applications caused by the whole group}
 	}
 
-	effectData[stacks] = stackData
-	return stackData
+	stacksData[stacks] = data
+	return data
 end
 
 local function GetEffectData(fight, unitId, abilityId, effectType)
@@ -174,14 +179,40 @@ local function CountSlots(slots)
 	return slotcount, groupSlotCount
 end
 
+local changeTypeStr = {
+	[EFFECT_RESULT_UPDATED] = "Update",
+	[EFFECT_RESULT_GAINED] = "Gain",
+	[EFFECT_RESULT_FADED] = "Fade",
+	[EFFECT_RESULT_FULL_REFRESH] = "Refresh",
+	[EFFECT_RESULT_TRANSFER] = "Transfer",
+}
+
+local effectTypeStr = {
+	[BUFF_EFFECT_TYPE_BUFF] = "Buff",
+	[BUFF_EFFECT_TYPE_DEBUFF] = "Debuff",
+	[BUFF_EFFECT_TYPE_NOT_AN_EFFECT] = "NoEffect",
+}
+
+local sourceTypeStr = {
+	[COMBAT_UNIT_TYPE_GROUP] = "GROUP",
+	[COMBAT_UNIT_TYPE_NONE] = "NONE",
+	[COMBAT_UNIT_TYPE_OTHER] = "OTHER",
+	[COMBAT_UNIT_TYPE_PLAYER] = "PLAYER",
+	[COMBAT_UNIT_TYPE_PLAYER_COMPANION] = "COMPANION",
+	[COMBAT_UNIT_TYPE_PLAYER_PET] = "PET",
+	[COMBAT_UNIT_TYPE_TARGET_DUMMY] = "DUMMY",
+}
 
 function LogProcessorEffects:ProcessLogLine(fight, logType, timeMs, unitId, abilityId, changeType, effectType, stacks, sourceType, slotId)
 	-- TODO: handle processing before combatStart 
-
-	local currentstacks = stacks or 0
+	
 	local effectData = GetEffectData(fight, unitId, abilityId, effectType)
-	effectData.maxStacks = zo_max(stacks, effectData.maxStacks)
 
+	local minStacks = abilityId == abilityIdZen and 0 or 1
+	local currentstacks = stacks or minStacks
+	local maxStacks = zo_max(stacks, effectData.maxStacks)
+	effectData.maxStacks = maxStacks
+	
 	local isPlayerSource = sourceType == COMBAT_UNIT_TYPE_PLAYER or sourceType == COMBAT_UNIT_TYPE_PLAYER_PET
 
 	local slots = effectData.slots
@@ -191,28 +222,27 @@ function LogProcessorEffects:ProcessLogLine(fight, logType, timeMs, unitId, abil
 	local combatEnd = fight.info and fight.info.combatEnd or timeMs
 	local combatStart = fight.info and fight.info.combatStart or timeMs
 
-	if (changeType == EFFECT_RESULT_GAINED or changeType == EFFECT_RESULT_UPDATED) and timeMs < combatEnd then
+	-- logger:Info("[%.3f] %s -> U:%d, A:%d, %s %s, x%d, Slot: %d ", timeMs/1000, sourceTypeStr[sourceType], unitId, abilityId, changeTypeStr[changeType], effectTypeStr[effectType], stacks or 0, slotId or -1)
+
+	if (changeType == EFFECT_RESULT_GAINED or changeType == EFFECT_RESULT_UPDATED) and timeMs <= combatEnd then
 		local starttime = zo_max(timeMs, combatStart)
 
 		if slotcount == 0 and isPlayerSource then effectData.firstStartTime = starttime end
 		if groupSlotCount == 0 then effectData.firstGroupStartTime = starttime end
 
 		if slotdata == nil then
-			slotdata = {isPlayerSource = isPlayerSource, abilityId = abilityId,}
+			slotdata = {isPlayerSource = isPlayerSource, abilityId = abilityId}
 			slots[slotId] = slotdata
 		end
+		
+		for stacks = minStacks, maxStacks do
+			local slotStartTime = slotdata[stacks]
 
-		local minStacks = abilityId == abilityIdZen and 0 or 1
-		for stacks = minStacks, currentstacks do
-			if slotdata[stacks] == nil then
+			if slotStartTime == nil and stacks <= currentstacks then
 				slotdata[stacks] = starttime
-			end
-		end
-
-		for stacks, starttime in pairs(slotdata) do
-			if type(stacks) == "number" and stacks > currentstacks then
-				local stackData = effectData[stacks] or InitStackData(effectData, stacks)
-				local duration = timeMs - starttime
+			elseif slotStartTime and stacks > currentstacks then
+				local stackData = GetStackData(effectData, stacks)
+				local duration = timeMs - slotStartTime
 
 				if isPlayerSource then
 					stackData.uptime = stackData.uptime + duration
@@ -232,14 +262,12 @@ function LogProcessorEffects:ProcessLogLine(fight, logType, timeMs, unitId, abil
 			if slotdata.isPlayerSource then slotcount = slotcount - 1 end
 			groupSlotCount = groupSlotCount - 1
 
-			slotdata.isPlayerSource = nil	-- remove, so the loop gets only stackData
-			slotdata.abilityId = nil
-
 			local endTime = zo_min(timeMs, combatEnd)
 
-			for stacks, starttime in pairs(slotdata) do
-				local stackData = effectData[stacks] or InitStackData(effectData, stacks)
-				local duration = endTime - starttime
+			for stacks = minStacks, maxStacks do
+				local stackData = GetStackData(effectData, stacks)
+				local slotStartTime = slotdata[stacks]
+				local duration = endTime - slotStartTime
 
 				if isPlayerSource then
 					stackData.uptime = stackData.uptime + duration
