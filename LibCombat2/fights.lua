@@ -185,15 +185,14 @@ function FightHandler:GetMetaData(timeMs)
 		combatStart = timeMs
 	}
 
-	local charData = {}
-	self.charData = charData
-
-	charData.name = libunits.playername
-	charData.raceId = GetUnitRaceId("player")
-	charData.gender = GetUnitGender("player")
-	charData.classId = GetUnitClassId("player")
-	charData.level = GetUnitLevel("player")
-	charData.CPtotal = GetUnitChampionPoints("player")
+	self.charData = {
+		name = libunits.playername,
+		raceId = GetUnitRaceId("player"),
+		gender = GetUnitGender("player"),
+		classId = GetUnitClassId("player"),
+		level = GetUnitLevel("player"),
+		CPtotal = GetUnitChampionPoints("player"),
+	}
 
 	self.CP = GetCurrentCP()
 end
@@ -212,7 +211,7 @@ function FightHandler:PrepareFight()
 		logger:Debug("PrepareFight")
 		libint.LogProcessingQueue:SetCombatState(true)
 
-		FightHandler:GetMetaData(timeMs)
+		self:GetMetaData(timeMs)
 
 		 -- TODO: Move to resource processor 
 		-- InitUnitPower()
