@@ -37,7 +37,10 @@ end
 ---@return number combatDuration 
 function lib.GetCurrentFightDuration()
 	local fight = libint.currentFight
-	return (GetGameTimeMilliseconds() - fight.info.combatStart)/1000
+	if fight and fight.info and fight.info.combatStart then
+		return (GetGameTimeMilliseconds() - fight.info.combatStart)/1000
+	end
+	return 0
 end
 
 ---Returns player and total damage done to the main target(s) as well as the durations during which the damage occured.
