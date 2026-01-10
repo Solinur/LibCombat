@@ -831,6 +831,19 @@ function FightHandler:ResetFight()
 	onCombatState(EVENT_PLAYER_COMBAT_STATE, IsUnitInCombat("player"))
 end
 
+local function onDuelEnd() -- for duels, where resetting combat sometimes fails
+	if data.inCombat ~= true then return end
+
+	reset = true
+
+	currentfight:FinishFight()
+	currentfight:onUpdate()
+end
+
+local function onDuelStart() -- for duels, where resetting combat sometimes fails
+	if currentfight.prepared == false then currentfight:PrepareFight() end
+end
+
 function lib.ResetFight()
 	currentfight:ResetFight()
 end
@@ -3558,6 +3571,8 @@ Events.General = EventHandler:New(GetAllCallbackTypes()
 	,
 	function (self)
 		self:RegisterEvent(EVENT_PLAYER_COMBAT_STATE, onCombatState)
+		self:RegisterEvent(EVENT_DUEL_FINISHED, onDuelEnd)
+		self:RegisterEvent(EVENT_DUEL_STARTED , onDuelStart)
 		self:RegisterEvent(EVENT_GROUP_UPDATE, onGroupChange)
 		self:RegisterEvent(EVENT_ACTION_SLOT_ABILITY_SLOTTED, GetCurrentSkillBars)
 		self:RegisterEvent(EVENT_PLAYER_ACTIVATED, onPlayerActivated)
