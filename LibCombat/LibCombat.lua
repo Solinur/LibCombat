@@ -9,11 +9,10 @@ Implement tracking when players are resurrecting
 implement group info function
 work on the addon description
 Add more debug Functions
-
-
 ]]
+
 local lib = {}
-lib.version = 84
+lib.version = 85
 LibCombat = lib
 
 -- Basic values
