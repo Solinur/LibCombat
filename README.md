@@ -11,4 +11,4 @@ I tried to optimize the code to impact the performance as little as possible.
 
 ## API Implementation
 
-See the [API Documentation](docs/api.md) for details.
+See the [API Documentation](docs/API.md) for details.
