@@ -575,11 +575,13 @@ local function GetFormattedAbilityName(id, isScript)
 	local name = cache[id]
 
 	if name == nil then
+		local rawname
 		if isScript then
-			name = GetCraftedAbilityScriptDisplayName(id)
+			rawname = GetCraftedAbilityScriptDisplayName(id)
 		else
-			name =  CustomAbilityName[id] or GetAbilityName(id)
+			rawname =  CustomAbilityName[id] or GetAbilityName(id)
 		end
+		name = ZO_CachedStrFormat(SI_ABILITY_NAME, rawname)
 		if name == "Off-Balance" then name = "Off Balance" end
 		cache[id] = name
 	end
