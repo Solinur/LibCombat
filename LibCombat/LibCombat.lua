@@ -2386,22 +2386,14 @@ local SPRINT_STATE_ACTIVE = 1
 local SPRINT_STATE_NONE = 0
 
 local function GetPlayerSprintState()
+	local hotbarCategory = GetActiveHotbarCategory()
 
 	for slot = 3,8 do
-
-		local anyAbilityActive = not (
-			ActionSlotHasTargetFailure(slot, HOTBAR_CATEGORY_PRIMARY) and
-			ActionSlotHasNonCostStateFailure(slot, HOTBAR_CATEGORY_PRIMARY) and
-			ActionSlotHasTargetFailure(slot, HOTBAR_CATEGORY_BACKUP) and
-			ActionSlotHasNonCostStateFailure(slot, HOTBAR_CATEGORY_PRIMARY)
-		)
-
-		if anyAbilityActive then return SPRINT_STATE_NONE end
-
+		local button = ZO_ActionBar_GetButton(slot,hotbarCategory)
+		if button and button.usable then return SPRINT_STATE_NONE end
 	end
 
 	return SPRINT_STATE_ACTIVE
-
 end
 
 local function checkLastAbilities(timems, powerType, powerValueChange, powerValue)
