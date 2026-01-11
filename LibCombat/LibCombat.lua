@@ -1172,7 +1172,7 @@ local function CheckForHeraldAbility()
 		for slot = 3, 8 do
 			local abilityId = GetSlottedAbilityId(slot, hotbarCategory)
 			local skillType, lineIndex2, _ = GetSpecificSkillAbilityKeysByAbilityId(abilityId)
-			if skillType == 0 and lineIndex == lineIndex2 and abilityId ~= 0 then
+			if skillType == SKILL_TYPE_CLASS and lineIndex == lineIndex2 and abilityId ~= 0 then
 				bonusData[hotbarCategory] = bonus
 				break
 			end
