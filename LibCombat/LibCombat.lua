@@ -831,6 +831,7 @@ function FightHandler:ResetFight()
 end
 
 local function onDuelEnd() -- for duels, where resetting combat sometimes fails
+	Log("fight", LOG_LEVEL_DEBUG, "Exiting duel.")
 	if data.inCombat ~= true then return end
 
 	reset = true
@@ -844,6 +845,7 @@ local function onDuelEndDelayed()
 end
 
 local function onDuelStart() -- for duels, where resetting combat sometimes fails
+	Log("fight", LOG_LEVEL_DEBUG, "Entering duel.")
 	if currentfight.prepared == false then currentfight:PrepareFight() end
 end
 
@@ -1122,7 +1124,7 @@ local function GetCurrentSkillBars()
 		if conversion and conversion[3] then IdToReducedSlot[conversion[3]] = reducedslot end
 		if scribedAbilityId and scribedSkills[id] == nil then
 			scribedSkills[id] = {GetCraftedAbilityActiveScriptIds(scribedAbilityId)}
-			Log("debug", LOG_LEVEL_INFO, "ScribedSkill: ", scribedAbilityId, unpack(scribedSkills[id]))
+			Log("debug", LOG_LEVEL_DEBUG, "ScribedSkill: ", scribedAbilityId, unpack(scribedSkills[id]))
 		end
 	end
 	UpdateSlotSkillEvents()
@@ -1320,6 +1322,7 @@ function FightHandler:PrepareFight()
 	local timems = GetGameTimeMilliseconds()
 
 	if self.prepared ~= true then
+		Log("fight", LOG_LEVEL_DEBUG, "Prepare fight")
 
 		self.combatstart = timems
 		self.group = data.inGroup
@@ -1383,8 +1386,11 @@ function FightHandler:PrepareFight()
 
 	end
 
-	em:RegisterForUpdate("LibCombat_update", 500, function() self:onUpdate() end)
+	local onUpdate = function() self:onUpdate() end
+	local success = em:RegisterForUpdate("LibCombat_update", 500, onUpdate)
+	if not success then zo_callLater(function() em:RegisterForUpdate("LibCombat_update", 500, onUpdate) end, 1500) end
 end
+
 
 local function GetEquip()
 	local equip = {}
@@ -1396,6 +1402,7 @@ local function GetEquip()
 end
 
 function FightHandler:FinishFight()
+	Log("fight", LOG_LEVEL_DEBUG, "Finish fight")
 
 	local charData = self.charData
 
@@ -1412,15 +1419,6 @@ function FightHandler:FinishFight()
 	self.starttime = zo_min(self.dpsstart or self.hpsstart or 0, self.hpsstart or self.dpsstart or 0)
 	self.endtime = zo_max(self.dpsend or 0, self.hpsend or 0)
 	self.activetime = zo_max((self.endtime - self.starttime) / 1000, 1)
-
-	EffectBuffer = {}
-
-	lastAbilityActivations = {}
-	isProjectile = {}
-
-	Log("other", LOG_LEVEL_DEBUG, "Number of Projectile data entries: %d", NonContiguousCount(isProjectile))
-
-	data.lastabilities = {}
 end
 
 local function GetStat(stat) -- helper function to make code shorter
@@ -1530,7 +1528,6 @@ local zoDerivedStatIds = {
 }
 
 local function GetSingleStat(statId)
-	if not currentfight.prepared then currentfight:PrepareFight() end
 	return statSourceFunctions[statId](zoDerivedStatIds[statId])
 end
 
@@ -1715,16 +1712,6 @@ local function ProcessDeathRecaps()
 			UnitCache:ProcessDeath()
 		end
 	end
-end
-
-local function ClearUnitCaches()
-	Log("debug", LOG_LEVEL_DEBUG, "ClearUnitCaches (%d)", NonContiguousCount(CombatEventCache))
-
-	for unitId, UnitCache in pairs(CombatEventCache) do
-		CombatEventCache[unitId] = nil
-	end
-
-	UnitDeathsToProcess = {}
 end
 
 function FightHandler:GetBossTargetDamage() -- Gets Damage done to bosses and counts enemy boss units.
@@ -1932,49 +1919,64 @@ local function IsOngoingBossfight()
 	end
 end
 
+
+local function ClearUnitCaches()
+	Log("debug", LOG_LEVEL_DEBUG, "ClearUnitCaches (%d)", NonContiguousCount(CombatEventCache))
+
+	for unitId, UnitCache in pairs(CombatEventCache) do
+		CombatEventCache[unitId] = nil
+	end
+
+	UnitDeathsToProcess = {}
+end
+
+local function ResetBuffers()
+	Log("other", LOG_LEVEL_DEBUG, "Number of Projectile data entries: %d", NonContiguousCount(isProjectile))
+	isProjectile = {}
+
+	data.lastabilities = {}
+	ClearUnitCaches()
+	EffectBuffer = {}
+	lastAbilityActivations = {}
+end
+
 function FightHandler:onUpdate()
 	onCombatState(EVENT_PLAYER_COMBAT_STATE, IsUnitInCombat("player"))
 
 	--reset data
 	if reset == true or (data.inCombat == false and self.combatend > 0 and (GetGameTimeMilliseconds() > (self.combatend + timeout)) ) then
-
 		reset = false
-
-		self:UpdateStats()
-
-		if self.damageOutTotal>0 or self.healingOutTotal>0 or self.damageInTotal>0 then
-
-			Log("fight", LOG_LEVEL_DEBUG, "Time: %.2fs (DPS) | %.2fs (HPS) ", self.dpstime, self.hpstime)
-			Log("fight", LOG_LEVEL_DEBUG, "Dmg: %d (DPS: %d)", self.damageOutTotal, self.DPSOut)
-			Log("fight", LOG_LEVEL_DEBUG, "Heal: %d (HPS: %d)", self.healingOutTotal, self.HPSOut)
-			Log("fight", LOG_LEVEL_DEBUG, "IncDmg: %d (Shield: %d, IncDPS: %d)", self.damageInTotal, self.damageInShielded, self.DPSIn)
-			Log("fight", LOG_LEVEL_DEBUG, "IncHeal: %d (IncHPS: %d)", self.healingInTotal, self.HPSIn)
-
-			if data.inGroup and Events.CombatGrp.active then
-
-				Log("fight", LOG_LEVEL_DEBUG, "GrpDmg: %d (DPS: %d)", self.groupDamageOut, self.groupDPSOut)
-				Log("fight", LOG_LEVEL_DEBUG, "GrpHeal: %d (HPS: %d)", self.groupHealingOut, self.groupHPSOut)
-				Log("fight", LOG_LEVEL_DEBUG, "GrpIncDmg: %d (IncDPS: %d)", self.groupDamageIn, self.groupDPSIn)
-
-			end
-		end
+		self:PrintDamageStats()
 
 		Log("fight", LOG_LEVEL_DEBUG, "resetting...")
-
 		self.grplog = {}
 
 		lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_FIGHTSUMMARY]), LIBCOMBAT_EVENT_FIGHTSUMMARY, self)
-
 		em:UnregisterForUpdate("LibCombat_update")
+		ResetBuffers()
 		currentfight = FightHandler:New()
-		ClearUnitCaches()
 
 	elseif data.inCombat == true then
-
 		self:UpdateStats()
-
 	end
+end
 
+function FightHandler:PrintDamageStats()
+	self:UpdateStats()
+
+	if self.damageOutTotal>0 or self.healingOutTotal>0 or self.damageInTotal>0 then
+		Log("fight", LOG_LEVEL_DEBUG, "Time: %.2fs (DPS) | %.2fs (HPS) ", self.dpstime, self.hpstime)
+		Log("fight", LOG_LEVEL_DEBUG, "Dmg: %d (DPS: %d)", self.damageOutTotal, self.DPSOut)
+		Log("fight", LOG_LEVEL_DEBUG, "Heal: %d (HPS: %d)", self.healingOutTotal, self.HPSOut)
+		Log("fight", LOG_LEVEL_DEBUG, "IncDmg: %d (Shield: %d, IncDPS: %d)", self.damageInTotal, self.damageInShielded, self.DPSIn)
+		Log("fight", LOG_LEVEL_DEBUG, "IncHeal: %d (IncHPS: %d)", self.healingInTotal, self.HPSIn)
+
+		if data.inGroup and Events.CombatGrp.active then
+			Log("fight", LOG_LEVEL_DEBUG, "GrpDmg: %d (DPS: %d)", self.groupDamageOut, self.groupDPSOut)
+			Log("fight", LOG_LEVEL_DEBUG, "GrpHeal: %d (HPS: %d)", self.groupHealingOut, self.groupHPSOut)
+			Log("fight", LOG_LEVEL_DEBUG, "GrpIncDmg: %d (IncDPS: %d)", self.groupDamageIn, self.groupDPSIn)
+		end
+	end
 end
 
 local UnitCacheHandler = ZO_Object:Subclass()	-- holds all recent events + info to send on death
@@ -2143,9 +2145,16 @@ function onCombatState(event, inCombat)  -- Detect Combat Stage, local is define
 
 		if inCombat then
 			data.inCombat = inCombat
-			Log("fight", LOG_LEVEL_DEBUG, "Entering combat.")
+			
 			lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_MESSAGES]), LIBCOMBAT_EVENT_MESSAGES, timems, LIBCOMBAT_MESSAGE_COMBATSTART, 0)
-			currentfight:PrepareFight()
+
+			if currentfight.combatend > 0 and timems > (currentfight.combatend + timeout) then
+				currentfight.combatend = -150
+				Log("fight", LOG_LEVEL_INFO, "'Re-entering combat.")
+			else
+				Log("fight", LOG_LEVEL_DEBUG, "Entering combat.")
+				currentfight:PrepareFight()
+			end
 		else
 			if IsOngoingBossfight() then
 				Log("fight", LOG_LEVEL_DEBUG, "Failed: Leaving combat.")
@@ -2154,8 +2163,8 @@ function onCombatState(event, inCombat)  -- Detect Combat Stage, local is define
 
 			data.inCombat = false
 			Log("fight", LOG_LEVEL_DEBUG, "Leaving combat.")
-			currentfight:FinishFight()
-
+			if currentfight.prepared and currentfight.combatend < 0 then currentfight:FinishFight() end
+			
 			if currentfight.charData == nil then return end
 			lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_MESSAGES]), LIBCOMBAT_EVENT_MESSAGES, timems, LIBCOMBAT_MESSAGE_COMBATEND, 0)
 		end
@@ -2577,7 +2586,7 @@ local function onBaseResourceChanged(powerType, powerValue, powerValueChange)
 		end
 	end
 
-	Log("events", LOG_LEVEL_DEBUG, "Resource: %s (%d): %d (%d) --> %d", GetFormattedAbilityName(abilityId), abilityId, powerValueChange, powerType, powerValue)
+	Log("events", LOG_LEVEL_DEBUG, "Resource: %s (%d): %d (%d) --> %d", GetFormattedAbilityName(abilityId), abilityId or -100, powerValueChange, powerType, powerValue)
 	lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_RESOURCES]), LIBCOMBAT_EVENT_RESOURCES, timems, abilityId, powerValueChange, powerType, powerValue)
 end
 
@@ -4331,6 +4340,7 @@ local function Initialize()
 	InitResources()
 	onBossesChanged()
 	InitAdvancedStats()
+	InitStatusEffectBonuses()
 
 	if data.LoadCustomizations then data.LoadCustomizations() end
 
