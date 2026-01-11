@@ -839,6 +839,10 @@ local function onDuelEnd() -- for duels, where resetting combat sometimes fails
 	currentfight:onUpdate()
 end
 
+local function onDuelEndDelayed()
+	zo_callLater(function() onDuelEnd() end, 1)
+end
+
 local function onDuelStart() -- for duels, where resetting combat sometimes fails
 	if currentfight.prepared == false then currentfight:PrepareFight() end
 end
@@ -1929,7 +1933,6 @@ local function IsOngoingBossfight()
 end
 
 function FightHandler:onUpdate()
-
 	onCombatState(EVENT_PLAYER_COMBAT_STATE, IsUnitInCombat("player"))
 
 	--reset data
@@ -1962,10 +1965,9 @@ function FightHandler:onUpdate()
 
 		lib.cm:FireCallbacks((CallbackKeys[LIBCOMBAT_EVENT_FIGHTSUMMARY]), LIBCOMBAT_EVENT_FIGHTSUMMARY, self)
 
+		em:UnregisterForUpdate("LibCombat_update")
 		currentfight = FightHandler:New()
 		ClearUnitCaches()
-
-		em:UnregisterForUpdate("LibCombat_update")
 
 	elseif data.inCombat == true then
 
@@ -3570,7 +3572,7 @@ Events.General = EventHandler:New(GetAllCallbackTypes()
 	,
 	function (self)
 		self:RegisterEvent(EVENT_PLAYER_COMBAT_STATE, onCombatState)
-		self:RegisterEvent(EVENT_DUEL_FINISHED, onDuelEnd)
+		self:RegisterEvent(EVENT_DUEL_FINISHED, onDuelEndDelayed)
 		self:RegisterEvent(EVENT_DUEL_STARTED , onDuelStart)
 		self:RegisterEvent(EVENT_GROUP_UPDATE, onGroupChange)
 		self:RegisterEvent(EVENT_ACTION_SLOT_ABILITY_SLOTTED, GetCurrentSkillBars)
