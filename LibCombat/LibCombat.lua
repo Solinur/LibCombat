@@ -831,7 +831,7 @@ function FightHandler:ResetFight()
 end
 
 local function onDuelEnd() -- for duels, where resetting combat sometimes fails
-	Log("fight", LOG_LEVEL_DEBUG, "Exiting duel.")
+	Log("debug", LOG_LEVEL_DEBUG, "Exiting duel.")
 	if data.inCombat ~= true then return end
 
 	reset = true
@@ -845,7 +845,7 @@ local function onDuelEndDelayed()
 end
 
 local function onDuelStart() -- for duels, where resetting combat sometimes fails
-	Log("fight", LOG_LEVEL_DEBUG, "Entering duel.")
+	Log("debug", LOG_LEVEL_DEBUG, "Entering duel.")
 	if currentfight.prepared == false then currentfight:PrepareFight() end
 end
 
@@ -1390,7 +1390,6 @@ function FightHandler:PrepareFight()
 	local success = em:RegisterForUpdate("LibCombat_update", 500, onUpdate)
 	if not success then zo_callLater(function() em:RegisterForUpdate("LibCombat_update", 500, onUpdate) end, 1500) end
 end
-
 
 local function GetEquip()
 	local equip = {}
@@ -2150,7 +2149,7 @@ function onCombatState(event, inCombat)  -- Detect Combat Stage, local is define
 
 			if currentfight.combatend > 0 and timems > (currentfight.combatend + timeout) then
 				currentfight.combatend = -150
-				Log("fight", LOG_LEVEL_INFO, "'Re-entering combat.")
+				Log("fight", LOG_LEVEL_DEBUG, "'Re-entering combat.")
 			else
 				Log("fight", LOG_LEVEL_DEBUG, "Entering combat.")
 				currentfight:PrepareFight()
