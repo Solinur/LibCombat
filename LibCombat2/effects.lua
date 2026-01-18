@@ -87,10 +87,11 @@ local function InitEffectdata(unitData, abilityId, effectType)
 		groupCount = 0,					-- count of effect applications caused by the whole group
 		effectType = effectType,		-- buff or debuff
 		maxStacks = 0,					-- stacks = 0 if the effect wasn't tracked trough EVENT_EFFECT_CHANGED
+		stacks = {},					-- tracking applied stacks
+
 		firstStartTime = nil,			-- temp variable to track when uptime for a buff initially started
 		firstGroupStartTime = nil,		-- temp variable to track when uptime for a buff from the group initially started
 		slots = {},						-- slotid is unique for each application, this is the temporary place to track them
-		stacks = {}						-- tracking applied stacks
 	}
 
 	unitData[abilityId] = effectData
@@ -164,7 +165,8 @@ function LogProcessorEffects:onCombatStart(fight)
 end
 
 function LogProcessorEffects:onCombatEnd()
-	--TODO: Truncate and hand over running buffs.
+	-- TODO: Truncate and hand over running buffs.
+	-- TODO: remove temp data
 end
 
 local function CountSlots(slots)
