@@ -1,11 +1,18 @@
 -- This file provides combat log entries regarding buffs and debuffs
 
+---@class LibCombat2
 local lib = LibCombat2
+---@class LCint
 local libint = lib.internal
+---@class LCData
 local ld = libint.data
+---@class LCUnits
 local libunits = ld.units
-local logger
+---@class LCfunc
 local lf = libint.functions
+---@class Logger
+local logger
+
 local unitData = {}
 local abilityIdZen = libint.abilityIdZen
 local abilityIdForceOfNature = libint.abilityIdForceOfNature

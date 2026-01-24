@@ -1,13 +1,19 @@
 -- stats
 
+---@class LibCombat2
 local lib = LibCombat2
+---@class LCint
 local libint = lib.internal
-local lf = libint.functions
----@type fun(actionSlotIndex: integer, hotbarCategory: HotBarCategory): integer, integer?
-local GetSlottedAbilityId = lf.GetSlottedAbilityId
+---@class LCData
 local ld = libint.data
+---@class LCUnits
+local libunits = ld.units
+---@class LCfunc
+local lf = libint.functions
+---@class Logger
 local logger
 
+local GetSlottedAbilityId = lf.GetSlottedAbilityId
 local DivineSlots = {EQUIP_SLOT_HEAD, EQUIP_SLOT_SHOULDERS, EQUIP_SLOT_CHEST, EQUIP_SLOT_HAND, EQUIP_SLOT_WAIST, EQUIP_SLOT_LEGS, EQUIP_SLOT_FEET}
 
 local function ParseDescriptionBonus(description, startIndex)

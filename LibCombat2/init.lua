@@ -1,6 +1,8 @@
 -- This file contains the initialziation code 
 
+---@class LibCombat2
 LibCombat2 = LibCombat2 or {}
+---@class LibCombat2
 local lib = LibCombat2
 if LibCombat == nil then LibCombat = lib end
 
@@ -8,17 +10,24 @@ if LibCombat == nil then LibCombat = lib end
 lib.name = "LibCombat2"
 lib.version = 8
 
+---@class LCint
 lib.internal = {}
+---@class LCint
 local libint = lib.internal
 libint.debug = false or GetDisplayName() == "@Solinur"
+
+---@class LCfunc
 libint.functions = {}
+---@class LCData
 libint.data = {}
 libint.logger = {}
+---@class LCfunc
 local lf = libint.functions
 
 -- Logger
 
 if LibDebugLogger and libint.debug then
+	---@type Logger
 	libint.logger.main = LibDebugLogger.Create(lib.name)
 else
 	local internalLogger = {}
@@ -48,7 +57,11 @@ function lf.initSublogger(name)
 	return sublogger
 end
 
-local function spairs(t, order) -- from https://stackoverflow.com/questions/15706270/sort-a-table-in-lua
+---from https://stackoverflow.com/questions/15706270/sort-a-table-in-lua
+---@param t table
+---@param order? fun(t: table, a, b):boolean
+---@return function
+local function spairs(t, order)
     local keys = {}
     for k in pairs(t) do keys[#keys+1] = k end
 

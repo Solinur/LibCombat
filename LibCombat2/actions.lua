@@ -6,11 +6,19 @@ TBD: Save replacements per patch or relearn on use?
 
 --]]
 
+---@class LibCombat2
 local lib = LibCombat2
+---@class LCint
 local libint = lib.internal
-local lf = libint.functions
+---@class LCData
 local ld = libint.data
+---@class LCUnits
+local libunits = ld.units
+---@class LCfunc
+local lf = libint.functions
+---@class Logger
 local logger
+
 libint.ABILITY_RESOURCE_CACHE_SIZE = 20
 local maxSkillDelay = 2000
 
@@ -294,11 +302,12 @@ local function UpdateSlotSkillEvents()
 	events:Update()
 end
 
+--- snippet by Anthonysc. Thanks!
 ---@param actionSlotIndex integer
 ---@param hotbarCategory HotBarCategory
 ---@return integer abilityId
 ---@return integer? craftedAbilityId
-local function GetSlottedAbilityId(actionSlotIndex, hotbarCategory)	-- thanks to Anthonysc for the snippet
+local function GetSlottedAbilityId(actionSlotIndex, hotbarCategory)	
 	hotbarCategory = hotbarCategory or GetActiveHotbarCategory()
 	local actionType = GetSlotType(actionSlotIndex, hotbarCategory)
 	local abilityId = GetSlotBoundId(actionSlotIndex, hotbarCategory)

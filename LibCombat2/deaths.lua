@@ -1,10 +1,16 @@
 -- This file provides info on player and group member deaths and resurrection
 
+---@class LibCombat2
 local lib = LibCombat2
+---@class LCint
 local libint = lib.internal
-local lf = libint.functions
+---@class LCData
 local ld = libint.data
+---@class LCUnits
 local libunits = ld.units
+---@class LCfunc
+local lf = libint.functions
+---@class Logger
 local logger
 
 local lastdeaths = {}

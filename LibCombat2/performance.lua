@@ -1,3 +1,4 @@
+---@class LibCombat2
 local lib = LibCombat2
 local libint = lib.internal
 local lf = libint.functions

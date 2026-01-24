@@ -1,11 +1,18 @@
 -- This file contains handling of the api
 
+---@class LibCombat2
 local lib = LibCombat2
+---@class LCint
 local libint = lib.internal
+---@class LCData
 local ld = libint.data
+---@class LCUnits
 local libunits = ld.units
+---@class LCfunc
 local lf = libint.functions
+---@class Logger
 local logger
+
 local isFileInitialized = false
 
 --- Ends the current fight and immediately starts a new one.

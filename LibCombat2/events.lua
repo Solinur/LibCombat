@@ -1,10 +1,16 @@
 -- This file provides the framework to (de-)register the required set of events
 
+---@class LibCombat2
 local lib = LibCombat2
+---@class LCint
 local libint = lib.internal
+---@class LCData
 local ld = libint.data
+---@class LCfunc
 local lf = libint.functions
+---@class Logger
 local logger
+
 local ActiveCallbackTypes = {}
 libint.ActiveCallbackTypes = ActiveCallbackTypes
 

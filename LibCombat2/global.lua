@@ -1,8 +1,11 @@
 -- This file contains definitions of global variables
 
+---@class LibCombat2
 local lib = LibCombat2
+---@class LCint
+local libint = lib.internal
 local CallbackKeys = {}
-lib.internal.CallbackKeys = CallbackKeys
+libint.CallbackKeys = CallbackKeys
 
 ---@alias CallbackEventKey integer
 ---| "LIBCOMBAT_EVENT_MIN"
@@ -175,11 +178,11 @@ function lib.IsMundusBuff(abilityId)
 	return MundusStones[abilityId] == true
 end
 
-lib.internal.abilityIdZen = 126597
-lib.internal.abilityIdForceOfNature = 174250
+libint.abilityIdZen = 126597
+libint.abilityIdForceOfNature = 174250
 
 local isFileInitialized = false
-function lib.internal.InitializeGlobals()
+function libint.InitializeGlobals()
 	if isFileInitialized == true then return false end
 
     isFileInitialized = true

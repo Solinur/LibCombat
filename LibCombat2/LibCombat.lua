@@ -12,7 +12,9 @@ Add more debug Functions
 
 ]]
 
+---@class LibCombat2
 local lib = LibCombat2
+---@class LCint
 local libint = lib.internal
 
 --aliases

@@ -1,12 +1,21 @@
 local _
-local libunits            = {}
-local lib                 = LibCombat2
-local libint              = lib.internal
-local lf                  = libint.functions
-local ld                  = libint.data
-ld.units                  = libunits
+---@class LCUnits
+libunits = {}
+
+---@class LibCombat2
+local lib = LibCombat2
+---@class LCint
+local libint = lib.internal
+---@class LCData
+local ld = libint.data
+---@class LCfunc
+local lf = libint.functions
+---@class Logger
 local logger
-local spairs              = lf.spairs
+
+---@class LCUnits
+ld.units= libunits
+local spairs= lf.spairs
 
 ---@diagnostic disable-next-line: undefined-global
 local em                  = EventCallbackManager and EventCallbackManager:New("LCU_EventManager") or GetEventManager()
