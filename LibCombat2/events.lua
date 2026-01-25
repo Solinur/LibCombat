@@ -17,10 +17,11 @@ libint.ActiveCallbackTypes = ActiveCallbackTypes
 local Events = {}
 libint.Events = Events
 
+---@class EventHandler
+---@field New fun(callbacktypes: integer[], regfunc: fun): EventHandler
 local EventHandler = ZO_Object:Subclass()
 libint.EventHandler = EventHandler
 
----@diagnostic disable-next-line: duplicate-set-field
 function EventHandler:New(...)
     local object = ZO_Object.New(self)
     object:Initialize(...)

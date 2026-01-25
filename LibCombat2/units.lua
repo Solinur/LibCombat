@@ -312,6 +312,7 @@ end
 
 -- UnitHandler
 ---@class UnitHandler 
+---@field New fun(): UnitHandler
 UnitHandler = ZO_InitializingObject:Subclass() -- internal object to store everything about a unit
 
 ---@diagnostic disable-next-line: duplicate-set-field

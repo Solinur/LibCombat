@@ -12,7 +12,7 @@ local lf = libint.functions
 local logger
 
 ---@class Queue
----@field New function
+---@field New fun(): Queue
 local Queue = ZO_InitializingObject:Subclass()
 
 function Queue:Initialize()

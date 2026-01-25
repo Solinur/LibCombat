@@ -41,6 +41,8 @@ function lf.ClearUnitCaches()
 	UnitDeathsToProcess = {}
 end
 
+---@class UnitDeathCacheHandler
+---@field New fun(unitId: integer): UnitDeathCacheHandler
 local UnitDeathCacheHandler = ZO_Object:Subclass()	-- holds all recent events + info to send on death
 
 ---@diagnostic disable-next-line: duplicate-set-field

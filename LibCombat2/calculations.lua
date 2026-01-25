@@ -23,6 +23,7 @@ libint.LogProcessors = {}
 lf.LogTypeProcessors = {}
 
 ---@class LogProcessingHandler
+---@field New fun(): LogProcessingHandler
 local LogProcessingHandler = ZO_InitializingObject:Subclass() -- object to store log proccessing routines
 lf.LogProcessingHandler = LogProcessingHandler
 
