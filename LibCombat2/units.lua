@@ -738,7 +738,6 @@ function lib.GetUnitIdsByRawName(unitName)
 	return unpack(libunits.unitIdsByRawName[unitName])
 end
 
----comment
 ---@param unitId integer
 ---@return UnitAPIHandler
 function lib.GetUnitById(unitId)

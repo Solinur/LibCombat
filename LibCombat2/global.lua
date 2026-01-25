@@ -147,7 +147,6 @@ local foodBuffIdToItemLinks = {
 	[147687] = "|H0:item:171323:124:10:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h", -- Colovian War Torte
 }
 
----comment
 ---@param abilityId integer
 ---@return string itemLink
 function lib.GetFoodDrinkItemLinkFromAbilityId(abilityId)
