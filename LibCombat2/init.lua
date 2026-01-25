@@ -107,6 +107,7 @@ local function Initialize(eventId, addon)
 	-- assert(libint.InitializePerformance(), "Initialization of performance module failed")
 	-- assert(libint.InitializeDeaths(), "Initialization of deaths module failed")
 	assert(libint.InitializeFights(), "Initialization of fights module failed")
+	assert(libint.InitializeFightStatUtils(), "Initialization of fight stat utils module failed")
 	assert(libint.InitializeAPI(), "Initialization of api module failed")
 
 	EVENT_MANAGER:UnregisterForEvent("LibCombat_Initialize", EVENT_ADD_ON_LOADED)

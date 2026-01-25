@@ -36,13 +36,15 @@ libunits.effectSlotCache = {}
 libunits.UnitExportCache = {}
 libunits.debugPanel = { init = false }
 
--- localized to optimze performace due to frequent calls by OnCombatEvent
+--- Table of all units. Localized to optimze performace due to frequent calls by OnCombatEvent
+---@type { [integer]: UnitCacheData }
 local UnitCache = libunits.unitData
 local EffectCache = libunits.effectCache
 
 -- localized for convinience
 local UnitExportCache = libunits.UnitExportCache
----@class UnitHandler
+
+---@class UnitCacheData
 local UnitHandler
 
 ---@diagnostic disable-next-line: undefined-global
@@ -356,12 +358,15 @@ local function onTrialDummy(_, _, _, _, _, _, _, _, _, _, _, _, _, _, sourceUnit
 	-- UnitCache[sourceUnitId]:UpdateTrialDummy() #TODO: Add this function back in
 end
 
--- UnitHandler
----@class UnitHandler
----@field New fun(): UnitHandler
+---@class UnitCacheData
+---@field New fun(): UnitCacheData
+---@field unitTags { [string]: string }
 UnitHandler = ZO_InitializingObject:Subclass() -- internal object to store everything about a unit
 
----@diagnostic disable-next-line: duplicate-set-field
+---@param rawName string
+---@param unitId integer
+---@param unitType CombatUnitType
+---@param unitTag string
 function UnitHandler:Initialize(rawName, unitId, unitType, unitTag)
 	if unitType == COMBAT_UNIT_TYPE_PLAYER then
 		UpdatePlayerId(unitId)
@@ -598,9 +603,10 @@ end
 -- Unit object for exporting info
 
 ---@class UnitAPIHandler
+---@field New fun(integer):UnitAPIHandler
 local UnitAPIHandler = ZO_InitializingObject:Subclass() -- object to expose data about units
 
----@diagnostic disable-next-line: duplicate-set-field
+---@param unitId integer
 function UnitAPIHandler:Initialize(unitId)
 	if unitId == nil then
 		logger:Error("No unit Id!")
@@ -615,7 +621,6 @@ function UnitAPIHandler:Initialize(unitId)
 	UnitExportCache[unitId] = self
 end
 
----@return UnitData?
 function UnitAPIHandler:GetFullUnitData()
 	-- if self.unitId == nil then return end
 	if not self:IsValid() then
@@ -661,6 +666,7 @@ function UnitAPIHandler:GetUnitRawName()
 	end
 end
 
+---@return CombatUnitType
 function UnitAPIHandler:GetUnitType()
 	if self:IsValid() then
 		return UnitCache[self.unitId].unitType
@@ -685,6 +691,7 @@ function UnitAPIHandler:IsFriendly()
 	end
 end
 
+---@return number
 function UnitAPIHandler:GetMaxHealth()
 	if self:IsValid() then
 		return UnitCache[self.unitId].maxHealth

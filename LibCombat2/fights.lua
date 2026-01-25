@@ -183,7 +183,7 @@ function FightHandler:Initialize()
 	self.char = libunits.playername
 	self.group = libunits.inGroup
 	self.dataVersion = 3
-	---@type table<integer, UnitData>
+	---@type {[integer]: UnitData}
 	self.units = {}
 	self.unitIds = { bosses = {}, group = {}, player = libunits.playerId }
 	self.CP = GetCurrentCP()
@@ -368,11 +368,11 @@ function FightHandler:GetDamageToUnit(unitId)
 	local playerDamage = 0
 	local playerTime = 0
 	if playerUnitData then
-		playerDamage = playerUnitData.totalDamage
+		playerDamage = playerUnitData.totalAmount
 		playerTime = (playerUnitData.endTime - playerUnitData.startTime) / 1000
 	end
 
-	return playerTime, playerDamage, unitTime, unitData.totalDamage
+	return playerTime, playerDamage, unitTime, unitData.totalAmount
 end
 
 -- Return player and total damage done to specified units including the durations in seconds during which the damage happend.
@@ -397,13 +397,13 @@ function FightHandler:GetDamageToUnits(unitIds)
 		if unitData then
 			startTime = zo_min(startTime, unitData.startTime)
 			endTime = zo_max(endTime, unitData.endTime)
-			totalDamage = totalDamage + unitData.totalDamage
+			totalDamage = totalDamage + unitData.totalAmount
 
 			local playerUnitData = unitData[self.unitIds.player]
 			if playerUnitData then
 				playerStartTime = zo_min(playerStartTime, playerUnitData.startTime)
 				playerEndTime = zo_max(playerEndTime, playerUnitData.endTime)
-				playerDamage = playerDamage + playerUnitData.totalDamage
+				playerDamage = playerDamage + playerUnitData.totalAmount
 			end
 		end
 	end
@@ -437,9 +437,9 @@ function FightHandler:GetMainUnit()
 			maxHealth = unit.maxHealth
 		end
 		local unitData = damageData[unitId]
-		if unitData ~= nil and unitData.totalDamage > maxHealth then
+		if unitData ~= nil and unitData.totalAmount > maxHealth then
 			targetUnitId = unitId
-			maxHealth = unitData.totalDamage
+			maxHealth = unitData.totalAmount
 		end
 	end
 
@@ -475,7 +475,7 @@ function FightHandler:GetHealingDone()
 		if unitData then
 			startTime = zo_min(startTime, unitData.startTime)
 			endTime = zo_max(endTime, unitData.endTime)
-			totalHealing = totalHealing + unitData.totalHealing
+			totalHealing = totalHealing + unitData.totalAmount
 			totalOverflowHealing = totalOverflowHealing + unitData.totalOverflowHealing
 		end
 	end
@@ -484,8 +484,8 @@ function FightHandler:GetHealingDone()
 	if playerUnitData then
 		playerStartTime = playerUnitData.startTime
 		playerEndTime = playerUnitData.endTime
-		playerHealing = playerUnitData.totalHealing
-		playerOverflowHealing = playerUnitData.overflowHealing
+		playerHealing = playerUnitData.totalAmount
+		playerOverflowHealing = playerUnitData.overflowAmount
 	end
 
 	local unitTime = endTime == 0 and 0 or (endTime - startTime) / 1000
@@ -505,7 +505,7 @@ function FightHandler:GetPlayerHealingReceived()
 
 	local playerStartTime = playerUnitData.startTime
 	local playerEndTime = playerUnitData.endTime
-	local healing = playerUnitData.totalHealing
+	local healing = playerUnitData.totalAmount
 
 	if playerEndTime == nil then
 		return 0, 0
