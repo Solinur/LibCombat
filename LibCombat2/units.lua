@@ -14,28 +14,27 @@ local lf = libint.functions
 local logger
 
 ---@class LCUnits
-ld.units= libunits
-local spairs= lf.spairs
+ld.units = libunits
+local spairs = lf.spairs
 
 ---@diagnostic disable-next-line: undefined-global
-local em                  = EventCallbackManager and EventCallbackManager:New("LCU_EventManager") or GetEventManager()
-local wm                  = GetWindowManager()
-
+local em = EventCallbackManager and EventCallbackManager:New("LCU_EventManager") or GetEventManager()
+local wm = GetWindowManager()
 
 -- internal objects
-libunits.debug            = false or GetDisplayName() == "@Solinur"
-libunits.unitData         = {}
+libunits.debug = false or GetDisplayName() == "@Solinur"
+libunits.unitData = {}
 libunits.unitIdsByRawName = {}
-libunits.unitIdsByName    = {}
-libunits.unitIdsByTag     = {}
-libunits.groupTagByName   = {}
-libunits.petData          = {}
-libunits.bossTagByName    = {}
-libunits.petTagByName     = {}
-libunits.effectCache      = {}
-libunits.effectSlotCache  = {}
-libunits.UnitExportCache  = {}
-libunits.debugPanel       = { init = false }
+libunits.unitIdsByName = {}
+libunits.unitIdsByTag = {}
+libunits.groupTagByName = {}
+libunits.petData = {}
+libunits.bossTagByName = {}
+libunits.petTagByName = {}
+libunits.effectCache = {}
+libunits.effectSlotCache = {}
+libunits.UnitExportCache = {}
+libunits.debugPanel = { init = false }
 
 -- localized to optimze performace due to frequent calls by OnCombatEvent
 local UnitCache = libunits.unitData
@@ -43,7 +42,7 @@ local EffectCache = libunits.effectCache
 
 -- localized for convinience
 local UnitExportCache = libunits.UnitExportCache
----@class UnitHandler 
+---@class UnitHandler
 local UnitHandler
 
 ---@diagnostic disable-next-line: undefined-global
@@ -64,24 +63,29 @@ local function IsValidUnitData(rawName, unitId, unitType)
 end
 
 local function UpdatePlayerId(newPlayerId)
-	if libunits.playerId == newPlayerId then return end -- check if it changed
+	if libunits.playerId == newPlayerId then
+		return
+	end -- check if it changed
 
 	local oldPlayerId = libunits.playerId
 	libunits.playerId = newPlayerId
 
-	if oldPlayerId then UnitCache[oldPlayerId]:Delete() end -- delete old unit since it is obsolete
+	if oldPlayerId then
+		UnitCache[oldPlayerId]:Delete()
+	end -- delete old unit since it is obsolete
 end
 
 local function UpdateUnitTagId(unitTag, unitId)
 	local UnitIdsByTag = libunits.unitIdsByTag
 	local oldUnitId = UnitIdsByTag[unitTag]
 
-	if oldUnitId then UnitCache[oldUnitId]:RemoveUnitTag(unitTag) end
+	if oldUnitId then
+		UnitCache[oldUnitId]:RemoveUnitTag(unitTag)
+	end
 	UnitIdsByTag[unitTag] = unitId
 end
 
 local function CheckForPetUnit(rawName, unitId) -- TODO: potentially detect other people's pets ?
-
 end
 
 -- Event Callbacks
@@ -128,7 +132,7 @@ local hasMultipleTags = "multiple tags found"
 
 local function onBossesChanged(_) -- Detect Bosses
 	---@type [string]
-	local bossTagByName = {}      -- holds only bosses discovered in this round
+	local bossTagByName = {} -- holds only bosses discovered in this round
 
 	for i = 1, BOSS_RANK_ITERATION_END do
 		local unitTag = BossUnitTags[i]
@@ -211,9 +215,29 @@ local unitDetectionResults = { -- valid values of result from combat events to d
 	[ACTION_RESULT_HOT_TICK_CRITICAL] = true,
 }
 
-local function OnCombatEvent(eventCode, result, _, _, _, _, sourceName, sourceType, targetName, targetType, _, _, _, _,
-							 sourceUnitId, targetUnitId, _, _)
-	if not unitDetectionResults[result] then return end
+local function OnCombatEvent(
+	eventCode,
+	result,
+	_,
+	_,
+	_,
+	_,
+	sourceName,
+	sourceType,
+	targetName,
+	targetType,
+	_,
+	_,
+	_,
+	_,
+	sourceUnitId,
+	targetUnitId,
+	_,
+	_
+)
+	if not unitDetectionResults[result] then
+		return
+	end
 
 	if IsValidUnitData(sourceName, sourceUnitId, sourceType) then
 		if UnitCache[sourceUnitId] == nil then
@@ -262,7 +286,9 @@ local function OnTargetChange()
 		return
 	end
 	local numBuffs = GetNumBuffs("reticleover")
-	if numBuffs == 0 then return end
+	if numBuffs == 0 then
+		return
+	end
 
 	for i = 1, numBuffs do
 		local _, _, endTime, buffSlot, _, _, _, _, _, _, abilityId, _ = GetUnitBuffInfo("reticleover", i)
@@ -279,8 +305,25 @@ local function OnTargetChange()
 	logger:Debug("ReticleOverUnit not found: %s (%d buffs)", GetUnitName("reticleover"), numBuffs)
 end
 
-local function OnEffectChanged(_, changeType, effectSlot, _, unitTag, _, endTime, _, _, _, effectType, _, _, unitName,
-							   unitId, abilityId, _)
+local function OnEffectChanged(
+	_,
+	changeType,
+	effectSlot,
+	_,
+	unitTag,
+	_,
+	endTime,
+	_,
+	_,
+	_,
+	effectType,
+	_,
+	_,
+	unitName,
+	unitId,
+	abilityId,
+	_
+)
 	local unitType = GetUnitTypeFromTag(unitTag)
 	if IsValidUnitData(unitName, unitId, unitType) then -- Allow even if unitType is not known?
 		if UnitCache[unitId] == nil then
@@ -290,19 +333,22 @@ local function OnEffectChanged(_, changeType, effectSlot, _, unitTag, _, endTime
 		end
 	end
 
-	if (changeType ~= EFFECT_RESULT_GAINED and changeType ~= EFFECT_RESULT_FADED and changeType ~= EFFECT_RESULT_UPDATED) or
-		(effectType ~= BUFF_EFFECT_TYPE_BUFF and effectType ~= BUFF_EFFECT_TYPE_DEBUFF) then
+	if
+		(
+			changeType ~= EFFECT_RESULT_GAINED
+			and changeType ~= EFFECT_RESULT_FADED
+			and changeType ~= EFFECT_RESULT_UPDATED
+		) or (effectType ~= BUFF_EFFECT_TYPE_BUFF and effectType ~= BUFF_EFFECT_TYPE_DEBUFF)
+	then
 		return
 	end
 
 	if IsValidUnitId(unitId) and UnitCache[unitId] then
-		UnitCache[unitId]:UpdateEffectData(abilityId, changeType, endTime,
-			effectSlot)
+		UnitCache[unitId]:UpdateEffectData(abilityId, changeType, endTime, effectSlot)
 	end
 
 	OnTargetChange()
 end
-
 
 local function onTrialDummy(_, _, _, _, _, _, _, _, _, _, _, _, _, _, sourceUnitId, _, _, _) -- TODO: this
 	logger:Debug("Trial Dummy Detected: %d", sourceUnitId)
@@ -311,33 +357,46 @@ local function onTrialDummy(_, _, _, _, _, _, _, _, _, _, _, _, _, _, sourceUnit
 end
 
 -- UnitHandler
----@class UnitHandler 
+---@class UnitHandler
 ---@field New fun(): UnitHandler
 UnitHandler = ZO_InitializingObject:Subclass() -- internal object to store everything about a unit
 
 ---@diagnostic disable-next-line: duplicate-set-field
 function UnitHandler:Initialize(rawName, unitId, unitType, unitTag)
-	if unitType == COMBAT_UNIT_TYPE_PLAYER then UpdatePlayerId(unitId) end
+	if unitType == COMBAT_UNIT_TYPE_PLAYER then
+		UpdatePlayerId(unitId)
+	end
 
-	local name          = ZO_CachedStrFormat(SI_UNIT_NAME, rawName) -- name
+	local name = ZO_CachedStrFormat(SI_UNIT_NAME, rawName) -- name
 
-	self.unitId         = unitId
-	self.name           = name
-	self.rawName        = rawName
-	self.unitType       = unitType -- type of unit: player, group, pet, companion, group_companion or boss
-	self.effectData     = {}
+	self.unitId = unitId
+	self.name = name
+	self.rawName = rawName
+	self.unitType = unitType -- type of unit: player, group, pet, companion, group_companion or boss
+	self.effectData = {}
 	self.effectTimeData = {}
 
 	self:UpdateFriendlyStatus()
 
-	if (unitTag == nil or unitTag == "") then self:LookupUnitTag() end
+	if unitTag == nil or unitTag == "" then
+		self:LookupUnitTag()
+	end
 
 	local UnitIdByRawName = libunits.unitIdsByRawName
 	local UnitIdByName = libunits.unitIdsByName
 
-	if UnitIdByRawName[rawName] then table.insert(UnitIdByRawName[rawName], unitId) else UnitIdByRawName[rawName] = {
-			unitId } end
-	if UnitIdByName[name] then table.insert(UnitIdByName[name], unitId) else UnitIdByName[name] = { unitId } end
+	if UnitIdByRawName[rawName] then
+		table.insert(UnitIdByRawName[rawName], unitId)
+	else
+		UnitIdByRawName[rawName] = {
+			unitId,
+		}
+	end
+	if UnitIdByName[name] then
+		table.insert(UnitIdByName[name], unitId)
+	else
+		UnitIdByName[name] = { unitId }
+	end
 
 	self:UpdateUnitTag(unitTag)
 
@@ -350,7 +409,9 @@ function UnitHandler:Initialize(rawName, unitId, unitType, unitTag)
 end
 
 function UnitHandler:LookupUnitTag()
-	if self.unitType == nil then return end
+	if self.unitType == nil then
+		return
+	end
 
 	if self.unitType == COMBAT_UNIT_TYPE_PLAYER then
 		self:UpdateUnitTag("player")
@@ -393,7 +454,9 @@ function UnitHandler:Update(rawName, unitType, unitTag)
 		return
 	end
 
-	if unitTag then self:UpdateUnitTag(unitTag) end
+	if unitTag then
+		self:UpdateUnitTag(unitTag)
+	end
 
 	if unitType and self.unitType ~= unitType then
 		logger.Debug("unitType changed: %d -> %d %s (%d)", self.unitType, unitType, self.name, self.unitId)
@@ -426,24 +489,32 @@ function UnitHandler:UpdateUnitTagData(unitTag)
 end
 
 function UnitHandler:ValidateUnitTagUpdate(key, value)
-	if value == nil then return end
+	if value == nil then
+		return
+	end
 	if type(value) == "string" then
-		if value == "" then return end
+		if value == "" then
+			return
+		end
 	end
 	if type(value) == "number" then
-		if value == 0 then return end
+		if value == 0 then
+			return
+		end
 	end
 
 	self[key] = value
 end
 
 function UnitHandler:UpdateUnitTag(newUnitTag)
-	if newUnitTag == nil or newUnitTag == "" or (self.unitTags and self.unitTags[newUnitTag]) then return end
+	if newUnitTag == nil or newUnitTag == "" or (self.unitTags and self.unitTags[newUnitTag]) then
+		return
+	end
 
 	local unitId = self.unitId
 	self:UpdateUnitTagData(newUnitTag)
 
-	if newUnitTag:sub(1,4) == "boss" then 
+	if newUnitTag:sub(1, 4) == "boss" then
 		self.isBoss = true
 	end
 
@@ -454,7 +525,9 @@ function UnitHandler:UpdateUnitTag(newUnitTag)
 		for unitTag, _ in pairs(self.unitTags) do
 			if AreUnitsEqual(unitTag, newUnitTag) == false then
 				self.unitTags[unitTag] = nil -- this tag doesn't belong to this unit
-				if libunits.unitIdsByTag[unitTag] == unitId then libunits.unitIdsByTag[unitTag] = nil end
+				if libunits.unitIdsByTag[unitTag] == unitId then
+					libunits.unitIdsByTag[unitTag] = nil
+				end
 			end
 		end
 
@@ -475,7 +548,9 @@ function UnitHandler:Delete()
 
 	if self.unitTags then
 		for _, unitTag in pairs(self.unitTags) do
-			if self.unitId == libunits.unitIdsByTag[unitTag] then libunits.unitIdsByTag[unitTag] = nil end
+			if self.unitId == libunits.unitIdsByTag[unitTag] then
+				libunits.unitIdsByTag[unitTag] = nil
+			end
 		end
 	end
 
@@ -490,7 +565,9 @@ function UnitHandler:Delete()
 	for effectSlot, abilityId in pairs(self.effectData) do -- remove cached effects
 		local endTime = self.effectTimeData[effectSlot]
 
-		if EffectCache[abilityId] and EffectCache[abilityId][endTime] then EffectCache[abilityId][endTime] = nil end
+		if EffectCache[abilityId] and EffectCache[abilityId][endTime] then
+			EffectCache[abilityId][endTime] = nil
+		end
 	end
 end
 
@@ -499,16 +576,18 @@ function UnitHandler:UpdateEffectData(abilityId, changeType, endTime, effectSlot
 	local effectTimeData = self.effectTimeData
 
 	if changeType == EFFECT_RESULT_GAINED or changeType == EFFECT_RESULT_UPDATED then
-		effectData[effectSlot]          = abilityId -- effectSlot should be unique per unit
-		effectTimeData[effectSlot]      = endTime
+		effectData[effectSlot] = abilityId -- effectSlot should be unique per unit
+		effectTimeData[effectSlot] = endTime
 
-		EffectCache[abilityId]          = EffectCache[abilityId] or {}
+		EffectCache[abilityId] = EffectCache[abilityId] or {}
 		EffectCache[abilityId][endTime] = self.unitId
 	elseif changeType == EFFECT_RESULT_FADED then
 		effectData[effectSlot] = nil
 		effectTimeData[effectSlot] = nil
 
-		if EffectCache[abilityId] and EffectCache[abilityId][endTime] then EffectCache[abilityId][endTime] = nil end
+		if EffectCache[abilityId] and EffectCache[abilityId][endTime] then
+			EffectCache[abilityId][endTime] = nil
+		end
 	end
 end
 
@@ -518,13 +597,19 @@ end
 
 -- Unit object for exporting info
 
----@class UnitAPIHandler 
+---@class UnitAPIHandler
 local UnitAPIHandler = ZO_InitializingObject:Subclass() -- object to expose data about units
 
 ---@diagnostic disable-next-line: duplicate-set-field
 function UnitAPIHandler:Initialize(unitId)
-	if unitId == nil then logger:Error("No unit Id!") return end
-	if UnitCache[unitId] == nil and libint.debug then logger:Info("Unit %d is not known!", unitId) return end
+	if unitId == nil then
+		logger:Error("No unit Id!")
+		return
+	end
+	if UnitCache[unitId] == nil and libint.debug then
+		logger:Info("Unit %d is not known!", unitId)
+		return
+	end
 	self.unitId = unitId
 
 	UnitExportCache[unitId] = self
@@ -533,18 +618,20 @@ end
 ---@return UnitData?
 function UnitAPIHandler:GetFullUnitData()
 	-- if self.unitId == nil then return end
-	if not self:IsValid() then return end
+	if not self:IsValid() then
+		return
+	end
 
 	---@class UnitData
 	local unitData = {
-		unitId     = self.unitId,
-		name       = self:GetUnitName(),
-		rawName    = self:GetUnitRawName(),
-		unitType   = self:GetUnitType(),
-		unitTags   = self:GetUnitTags(),
-		isBoss     = self:IsBoss(),
+		unitId = self.unitId,
+		name = self:GetUnitName(),
+		rawName = self:GetUnitRawName(),
+		unitType = self:GetUnitType(),
+		unitTags = self:GetUnitTags(),
+		isBoss = self:IsBoss(),
 		isFriendly = self:IsFriendly(),
-		maxHealth  = self:GetMaxHealth(),
+		maxHealth = self:GetMaxHealth(),
 	}
 
 	return unitData
@@ -559,35 +646,49 @@ function UnitAPIHandler:IsValid()
 		logger:Info("Invalid Unit: %s. No Unit Cache!", tostring(self.unitId))
 	end
 
-	return type(self.unitId) == "number" and UnitCache[self.unitId] ~= nil 
+	return type(self.unitId) == "number" and UnitCache[self.unitId] ~= nil
 end
 
 function UnitAPIHandler:GetUnitName()
-	if self:IsValid() then return UnitCache[self.unitId].name end
+	if self:IsValid() then
+		return UnitCache[self.unitId].name
+	end
 end
 
 function UnitAPIHandler:GetUnitRawName()
-	if self:IsValid() then return UnitCache[self.unitId].rawName end
+	if self:IsValid() then
+		return UnitCache[self.unitId].rawName
+	end
 end
 
 function UnitAPIHandler:GetUnitType()
-	if self:IsValid() then return UnitCache[self.unitId].unitType end
+	if self:IsValid() then
+		return UnitCache[self.unitId].unitType
+	end
 end
 
 function UnitAPIHandler:GetUnitTags()
-	if self:IsValid() then return UnitCache[self.unitId].unitTags end
+	if self:IsValid() then
+		return UnitCache[self.unitId].unitTags
+	end
 end
 
 function UnitAPIHandler:IsBoss()
-	if self:IsValid() then return UnitCache[self.unitId].isBoss end
+	if self:IsValid() then
+		return UnitCache[self.unitId].isBoss
+	end
 end
 
 function UnitAPIHandler:IsFriendly()
-	if self:IsValid() then return UnitCache[self.unitId].isFriendly end
+	if self:IsValid() then
+		return UnitCache[self.unitId].isFriendly
+	end
 end
 
 function UnitAPIHandler:GetMaxHealth()
-	if self:IsValid() then return UnitCache[self.unitId].maxHealth end
+	if self:IsValid() then
+		return UnitCache[self.unitId].maxHealth
+	end
 end
 
 local function GetExportUnit(unitId)
@@ -649,7 +750,7 @@ local logBase = math.log(5)
 
 local function GetUnitSummary() -- gives a list of all units with names and id and the last seen time:
 	local unitData = {}
-	local now      = GetGameTimeSeconds()
+	local now = GetGameTimeSeconds()
 
 	for unitId, unit in pairs(UnitCache) do
 		unitData[unitId] = {
@@ -741,12 +842,14 @@ local function UpdateDebugPanel()
 
 		local string = string.format("%s (%d, %s, %s): %.1f", unit.name, unitId, type, tags, now - unit.lastSeen)
 
-		stringArray[#stringArray + 1] = string.format("|c%.2x%.2x%.2x%s|r", zo_floor(r * 255), zo_floor(g * 255), 0,
-			string)
+		stringArray[#stringArray + 1] =
+			string.format("|c%.2x%.2x%.2x%s|r", zo_floor(r * 255), zo_floor(g * 255), 0, string)
 
 		lines = lines + 1
 
-		if lines >= 40 then break end
+		if lines >= 40 then
+			break
+		end
 	end
 
 	local fullstring = table.concat(stringArray, "\n")
@@ -755,10 +858,12 @@ local function UpdateDebugPanel()
 end
 
 function libunits.toggleDebug(override)
-	libunits.debug = override or (not libunits.debug)
+	libunits.debug = override or not libunits.debug
 
 	if libunits.debug then
-		if libunits.debugPanel.init == false then InitDebugPanel() end
+		if libunits.debugPanel.init == false then
+			InitDebugPanel()
+		end
 		libunits.debugPanel.tlw:SetHidden(false)
 		em:RegisterForUpdate("LCU_DebugPanel", 500, UpdateDebugPanel)
 	else
@@ -771,34 +876,42 @@ end
 
 -- Init
 
-libint.Events.Units = libint.EventHandler:New(
-	lf.GetAllCallbackTypes(),
-	function(self)
-		self:RegisterEvent(EVENT_COMBAT_EVENT, OnCombatEvent)
-		self:RegisterEvent(EVENT_EFFECT_CHANGED, OnEffectChanged)
-		self:RegisterEvent(EVENT_RETICLE_TARGET_CHANGED, OnTargetChange)
+libint.Events.Units = libint.EventHandler:New(lf.GetAllCallbackTypes(), function(self)
+	self:RegisterEvent(EVENT_COMBAT_EVENT, OnCombatEvent)
+	self:RegisterEvent(EVENT_EFFECT_CHANGED, OnEffectChanged)
+	self:RegisterEvent(EVENT_RETICLE_TARGET_CHANGED, OnTargetChange)
 
-		self:RegisterEvent(EVENT_GROUP_UPDATE, onGroupChange)
-		self:RegisterEvent(EVENT_PLAYER_ACTIVATED, onGroupChange)
-		self:RegisterEvent(EVENT_BOSSES_CHANGED, onBossesChanged)
-		self:RegisterEvent(EVENT_PLAYER_ACTIVATED, onBossesChanged)
+	self:RegisterEvent(EVENT_GROUP_UPDATE, onGroupChange)
+	self:RegisterEvent(EVENT_PLAYER_ACTIVATED, onGroupChange)
+	self:RegisterEvent(EVENT_BOSSES_CHANGED, onBossesChanged)
+	self:RegisterEvent(EVENT_PLAYER_ACTIVATED, onBossesChanged)
 
-		self:RegisterEvent(EVENT_EFFECT_CHANGED, onBossesChanged, REGISTER_FILTER_ABILITY_ID, 108045) -- Rescan bosses on certain portal use
-		self:RegisterEvent(EVENT_EFFECT_CHANGED, onBossesChanged, REGISTER_FILTER_ABILITY_ID, 121216) -- Rescan bosses on certain portal use
+	self:RegisterEvent(EVENT_EFFECT_CHANGED, onBossesChanged, REGISTER_FILTER_ABILITY_ID, 108045) -- Rescan bosses on certain portal use
+	self:RegisterEvent(EVENT_EFFECT_CHANGED, onBossesChanged, REGISTER_FILTER_ABILITY_ID, 121216) -- Rescan bosses on certain portal use
 
-		EVENT_MANAGER:RegisterForUpdate("LibCombat_PetStatus", 500, onPlayerPetsChanged) --  TODO: find better way to determine if pets changed
-		self:RegisterEvent(EVENT_COMBAT_EVENT, onTrialDummy, REGISTER_FILTER_ABILITY_ID, 120024,
-			REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_GAINED, REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE,
-			COMBAT_UNIT_TYPE_TARGET_DUMMY, REGISTER_FILTER_IS_ERROR, false)
+	EVENT_MANAGER:RegisterForUpdate("LibCombat_PetStatus", 500, onPlayerPetsChanged) --  TODO: find better way to determine if pets changed
+	self:RegisterEvent(
+		EVENT_COMBAT_EVENT,
+		onTrialDummy,
+		REGISTER_FILTER_ABILITY_ID,
+		120024,
+		REGISTER_FILTER_COMBAT_RESULT,
+		ACTION_RESULT_EFFECT_GAINED,
+		REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE,
+		COMBAT_UNIT_TYPE_TARGET_DUMMY,
+		REGISTER_FILTER_IS_ERROR,
+		false
+	)
 
-		self.active = true
-	end
-)
+	self.active = true
+end)
 
 local isFileInitialized = false
 
 function libint.InitializeUnits()
-	if isFileInitialized == true then return false end
+	if isFileInitialized == true then
+		return false
+	end
 	logger = lf.initSublogger("units")
 
 	libunits.rawPlayername = GetRawUnitName("player")
@@ -808,7 +921,9 @@ function libint.InitializeUnits()
 
 	onBossesChanged()
 
-	if libint.debug then SLASH_COMMANDS["/lcudebug"] = libunits.toggleDebug end
+	if libint.debug then
+		SLASH_COMMANDS["/lcudebug"] = libunits.toggleDebug
+	end
 
 	isFileInitialized = true
 	return true

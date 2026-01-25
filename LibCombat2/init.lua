@@ -1,10 +1,12 @@
--- This file contains the initialziation code 
+-- This file contains the initialziation code
 
 ---@class LibCombat2
 LibCombat2 = LibCombat2 or {}
 ---@class LibCombat2
 local lib = LibCombat2
-if LibCombat == nil then LibCombat = lib end
+if LibCombat == nil then
+	LibCombat = lib
+end
 
 -- Basic values
 lib.name = "LibCombat2"
@@ -45,7 +47,9 @@ end
 
 function lf.initSublogger(name)
 	local mainlogger = libint.logger.main
-	if mainlogger.Create == nil or name == nil or name == "" then return mainlogger end
+	if mainlogger.Create == nil or name == nil or name == "" then
+		return mainlogger
+	end
 	if libint.logger[name] ~= nil then
 		libint.logger.main:Warn("Sublogger %s already exists!", name)
 		return libint.logger[name]
@@ -62,27 +66,33 @@ end
 ---@param order? fun(t: table, a, b):boolean
 ---@return function
 local function spairs(t, order)
-    local keys = {}
-    for k in pairs(t) do keys[#keys+1] = k end
+	local keys = {}
+	for k in pairs(t) do
+		keys[#keys + 1] = k
+	end
 
-    if order then
-        table.sort(keys, function(a,b) return order(t, a, b) end)
-    else
-        table.sort(keys)
-    end
+	if order then
+		table.sort(keys, function(a, b)
+			return order(t, a, b)
+		end)
+	else
+		table.sort(keys)
+	end
 
-    local i = 0
-    return function()
-        i = i + 1
-        if keys[i] then
-            return keys[i], t[keys[i]]
-        end
-    end
+	local i = 0
+	return function()
+		i = i + 1
+		if keys[i] then
+			return keys[i], t[keys[i]]
+		end
+	end
 end
 lf.spairs = spairs
 
 local function Initialize(eventId, addon)
-	if addon ~= lib.name then return end
+	if addon ~= lib.name then
+		return
+	end
 
 	assert(libint.InitializeGlobals(), "Initialization of globals module failed")
 	assert(libint.InitializeUtility(), "Initialization of utility module failed")

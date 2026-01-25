@@ -1,5 +1,5 @@
 ---@diagnostic disable: undefined-field
--- contains the analysis of log events to calculate stats 
+-- contains the analysis of log events to calculate stats
 
 ---@class LibCombat2
 local lib = LibCombat2
@@ -34,7 +34,7 @@ LogProcessingHandler.ProcessLogLine = LogProcessingHandler:MUST_IMPLEMENT()
 
 ---@param name string
 ---@param AllowedLogTypes number|[number]
-function LogProcessingHandler:Initialize(name,  AllowedLogTypes)
+function LogProcessingHandler:Initialize(name, AllowedLogTypes)
 	self.active = false
 	self.name = name
 	self.idCounter = 1
@@ -47,7 +47,9 @@ end
 
 ---@param logTypes number|[number]
 function LogProcessingHandler:RegisterLogTypes(logTypes)
-	if type(logTypes) == "number" then return self:RegisterLogType(logTypes) end
+	if type(logTypes) == "number" then
+		return self:RegisterLogType(logTypes)
+	end
 
 	for _, logType in pairs(logTypes) do
 		self:RegisterLogType(logType)
@@ -61,7 +63,9 @@ function LogProcessingHandler:RegisterLogType(logType)
 end
 
 function LogProcessingHandler:Activate()
-	if self.active == true then return end
+	if self.active == true then
+		return
+	end
 	self.active = true
 
 	for logType, _ in pairs(self.idStrings) do
@@ -70,17 +74,24 @@ function LogProcessingHandler:Activate()
 		if success then
 			self.idStrings[logType] = idString
 		else
-			logger:Warn("Error during callback registration. Name: %s, Type: %d, idString: %s", self.name, logType, idString)
+			logger:Warn(
+				"Error during callback registration. Name: %s, Type: %d, idString: %s",
+				self.name,
+				logType,
+				idString
+			)
 		end
 	end
 end
 
 function LogProcessingHandler:Deactivate()
-	if self.active == false then return end
+	if self.active == false then
+		return
+	end
 	self.active = false
 
 	for logType, idString in pairs(self.idStrings) do
-		if type(idString) == "string" then 
+		if type(idString) == "string" then
 			lib.UnregisterForCombatEvent(logType, self.idStrings[logType])
 			self.idStrings[logType] = false
 		end
@@ -128,7 +139,9 @@ function LogProcessingQueue:ProcessLine()
 		end
 	end
 
-	if self.fight == nil then logger:Error("No fight is set for processing!") end
+	if self.fight == nil then
+		logger:Error("No fight is set for processing!")
+	end
 
 	if item == LOG_LINE_COMBAT_START then
 		return lf.ProcessorsOnCombatStart(self.fight)
@@ -140,17 +153,16 @@ function LogProcessingQueue:ProcessLine()
 
 	local processor = lf.LogTypeProcessors[item]
 	local i = 1
-    while item ~= LOG_LINE_TERMINATE_STRING do
+	while item ~= LOG_LINE_TERMINATE_STRING do
 		line[i] = item
 		i = i + 1
 		item = self:Pop()
 	end
 
-	logger:Debug("Process Line: ", processor and processor.name or "nil", unpack(line, 1, i-1))
-	processor:ProcessLogLine(self.fight, unpack(line, 1, i-1))
+	logger:Debug("Process Line: ", processor and processor.name or "nil", unpack(line, 1, i - 1))
+	processor:ProcessLogLine(self.fight, unpack(line, 1, i - 1))
 	ZO_ClearTable(line)
 end
-
 
 local desiredFrameTime
 local lastStart
@@ -160,12 +172,15 @@ local function DeactivateProcessing()
 	libint.LogProcessingQueue.active = not success
 end
 
-
 local function ProcessChunk()
-	if isFileInitialized == false or libint.LogProcessingQueue == nil then return end
+	if isFileInitialized == false or libint.LogProcessingQueue == nil then
+		return
+	end
 	local queue = libint.LogProcessingQueue
 	if queue:IsEmpty() then
-		if GetGameTimeSeconds() - lastStart > 0.5 then DeactivateProcessing() end
+		if GetGameTimeSeconds() - lastStart > 0.5 then
+			DeactivateProcessing()
+		end
 		return
 	end
 
@@ -173,14 +188,20 @@ local function ProcessChunk()
 
 	while GetGameTimeSeconds() - lastStart < desiredFrameTime do -- TODO: Consider using LibAsync
 		libint.LogProcessingQueue:ProcessLine()
-		if queue:IsEmpty() then return end
+		if queue:IsEmpty() then
+			return
+		end
 	end
 
-	if libint.debug then logger:Info("Stopped processing with %d entries left", libint.LogProcessingQueue:NumQueuedItems()) end
+	if libint.debug then
+		logger:Info("Stopped processing with %d entries left", libint.LogProcessingQueue:NumQueuedItems())
+	end
 end
 
 local function ActivateProcessing()
-	if isFileInitialized == false or libint.LogProcessingQueue == nil or libint.LogProcessingQueue.active == true then return end
+	if isFileInitialized == false or libint.LogProcessingQueue == nil or libint.LogProcessingQueue.active == true then
+		return
+	end
 	desiredFrameTime = tonumber(GetCVar("MinFrameTime.2") * 0.5)
 	libint.LogProcessingQueue.active = EVENT_MANAGER:RegisterForUpdate("LibCombatProcessing", 0, ProcessChunk)
 end
@@ -191,7 +212,9 @@ function lf.AddLogLine(...)
 		queue:Push(select(i, ...))
 	end
 	queue:Push(LOG_LINE_TERMINATE_STRING)
-	if queue.active == false then ActivateProcessing() end
+	if queue.active == false then
+		ActivateProcessing()
+	end
 end
 
 function lf.ProcessorsInitilizeFight(fight)
@@ -232,10 +255,12 @@ function lf.ProcessorsOnCombatEnd(fight)
 end
 
 function libint.InitializeCalculations()
-	if isFileInitialized == true then return false end
+	if isFileInitialized == true then
+		return false
+	end
 	logger = lf.initSublogger("calc")
 	libint.LogProcessingQueue = LogProcessingQueue
 
-    isFileInitialized = true
+	isFileInitialized = true
 	return true
 end
