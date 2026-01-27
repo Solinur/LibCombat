@@ -38,7 +38,6 @@ local LOG_LEVEL_ERROR = "E"
 
 if LibDebugLogger then
 
-	---@type Logger
 	logger = LibDebugLogger.Create(lib.name)
 
 	LOG_LEVEL_VERBOSE = LibDebugLogger.LOG_LEVEL_VERBOSE
