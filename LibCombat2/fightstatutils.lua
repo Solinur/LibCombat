@@ -84,13 +84,16 @@ local function GetUnitDamageDoneToUnits(fight, sourceUnitId, targetUnitIds, abil
 		return
 	end
 
-	dataOut = dataOut or lf.InitDamageAbilityData()
+	dataOut = dataOut or lf.InitDamageAbilityData(0)
 
 	for unitId in pairs(targetUnitIds) do
 		-- TODO: Validate?
-		for abilityId, abilityData in pairs(data) do
-			if type(abilityId) == "number" and (abilityIds == nil or abilityIds[abilityId]) then
-				CombineDamageAbilityData(dataOut, abilityData)
+		local unitData = data[unitId]
+		if unitData ~= nil then
+			for abilityId, abilityData in pairs(unitData) do
+				if type(abilityId) == "number" and (abilityIds == nil or abilityIds[abilityId]) then
+					CombineDamageAbilityData(dataOut, abilityData)
+				end
 			end
 		end
 	end
@@ -114,7 +117,7 @@ end
 ---@return DamageAbilityData | nil
 function lib.GetAllDamageDoneToUnits(fight, targetUnitIds, abilityIds)
 	local data = fight.damageDone
-	local dataOut = lf.InitDamageAbilityData()
+	local dataOut = lf.InitDamageAbilityData(0)
 
 	for sourceUnitId, sourceData in pairs(data) do
 		GetUnitDamageDoneToUnits(fight, sourceUnitId, targetUnitIds, abilityIds, dataOut)
@@ -142,13 +145,17 @@ local function GetUnitDamageReceivedByUnits(fight, targetUnitId, sourceUnitIds, 
 		return dataOut
 	end
 
-	dataOut = dataOut or lf.InitDamageAbilityData()
+	dataOut = dataOut or lf.InitDamageAbilityData(0)
 
 	for unitId in pairs(sourceUnitIds) do
 		-- TODO: Validate?
-		for abilityId, abilityData in pairs(data) do
-			if type(abilityId) == "number" and (abilityIds == nil or abilityIds[abilityId]) then
-				CombineDamageAbilityData(dataOut, abilityData)
+
+		local unitData = data[unitId]
+		if unitData ~= nil then
+			for abilityId, abilityData in pairs(unitData) do
+				if type(abilityId) == "number" and (abilityIds == nil or abilityIds[abilityId]) then
+					CombineDamageAbilityData(dataOut, abilityData)
+				end
 			end
 		end
 	end
@@ -172,7 +179,7 @@ end
 ---@return DamageAbilityData | nil
 function lib.GetAllDamageReceivedByUnits(fight, sourceUnitIds, abilityIds)
 	local data = fight.damageReceived
-	local dataOut = lf.InitDamageAbilityData()
+	local dataOut = lf.InitDamageAbilityData(0)
 
 	for sourceUnitId, sourceData in pairs(data) do
 		GetUnitDamageReceivedByUnits(fight, sourceUnitId, sourceUnitIds, abilityIds, dataOut)
@@ -221,13 +228,17 @@ function lib.GetUnitHealingDoneToUnits(fight, sourceUnitId, targetUnitIds, abili
 		return
 	end
 
-	dataOut = dataOut or lf.InitHealAbilityData()
+	dataOut = dataOut or lf.InitHealAbilityData(0)
 
 	for unitId in pairs(targetUnitIds) do
 		-- TODO: Validate?
-		for abilityId, abilityData in pairs(data) do
-			if type(abilityId) == "number" and (abilityIds == nil or abilityIds[abilityId]) then
-				CombineHealAbilityData(dataOut, abilityData)
+
+		local unitData = data[unitId]
+		if unitData ~= nil then
+			for abilityId, abilityData in pairs(unitData) do
+				if type(abilityId) == "number" and (abilityIds == nil or abilityIds[abilityId]) then
+					CombineHealAbilityData(dataOut, abilityData)
+				end
 			end
 		end
 	end
@@ -250,7 +261,7 @@ end
 ---@return HealAbilityData | nil
 function lib.GetAllHealingDoneToUnits(fight, targetUnitIds, abilityIds)
 	local data = fight.healingDone
-	local dataOut = lf.InitHealAbilityData()
+	local dataOut = lf.InitHealAbilityData(0)
 
 	for sourceUnitId, sourceData in pairs(data) do
 		lib.GetUnitHealingDoneToUnits(fight, sourceUnitId, targetUnitIds, abilityIds, dataOut)
@@ -276,13 +287,17 @@ function lib.GetUnitHealingReceivedByUnits(fight, targetUnitId, sourceUnitIds, a
 		return
 	end
 
-	dataOut = dataOut or lf.InitHealAbilityData()
+	dataOut = dataOut or lf.InitHealAbilityData(0)
 
 	for unitId in pairs(sourceUnitIds) do
 		-- TODO: Validate?
-		for abilityId, abilityData in pairs(data) do
-			if type(abilityId) == "number" and (abilityIds == nil or abilityIds[abilityId]) then
-				CombineHealAbilityData(dataOut, abilityData)
+
+		local unitData = data[unitId]
+		if unitData ~= nil then
+			for abilityId, abilityData in pairs(unitData) do
+				if type(abilityId) == "number" and (abilityIds == nil or abilityIds[abilityId]) then
+					CombineHealAbilityData(dataOut, abilityData)
+				end
 			end
 		end
 	end
@@ -305,7 +320,7 @@ end
 ---@return HealAbilityData | nil
 function lib.GetAllHealingReceivedByUnits(fight, sourceUnitIds, abilityIds)
 	local data = fight.healingReceived
-	local dataOut = lf.InitHealAbilityData()
+	local dataOut = lf.InitHealAbilityData(0)
 
 	for sourceUnitId, sourceData in pairs(data) do
 		lib.GetUnitHealingReceivedByUnits(fight, sourceUnitId, sourceUnitIds, abilityIds, dataOut)

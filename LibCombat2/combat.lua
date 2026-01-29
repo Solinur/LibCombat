@@ -206,7 +206,7 @@ local function UpdateDamageAbilityData(abilityData, timeMs, damage, overflow, re
 	local hitKey = countResultKeys[result]
 
 	abilityData.totalAmount = abilityData.totalAmount + fullValue
-	abilityData.totalCount = abilityData.totalCount + fullValue
+	abilityData.totalCount = abilityData.totalCount + 1
 	abilityData[resultkey] = abilityData[resultkey] + fullValue
 	abilityData[hitKey] = abilityData[hitKey] + 1
 
