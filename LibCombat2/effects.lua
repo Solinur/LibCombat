@@ -1,15 +1,21 @@
 -- This file provides combat log entries regarding buffs and debuffs
 
+---@class LibCombat2
 local lib = LibCombat2
+---@class LCint
 local libint = lib.internal
+---@class LCData
 local ld = libint.data
+---@class LCUnits
 local libunits = ld.units
-local logger
+---@class LCfunc
 local lf = libint.functions
+---@class Logger
+local logger
+
 local unitData = {}
 local abilityIdZen = libint.abilityIdZen
 local abilityIdForceOfNature = libint.abilityIdForceOfNature
-
 
 libint.badAbility = {
 	[51487] = true, -- Shehai Shockwave
@@ -20,49 +26,49 @@ libint.badAbility = {
 	[63601] = true, -- ESO Plus
 }
 
-libint.SpecialBuffs = {	-- buffs that the API doesn't show via EVENT_EFFECT_CHANGED and need to be specially tracked via EVENT_COMBAT_EVENT
-	21230,	-- Weapon/spell power enchant (Berserker)
-	21578,	-- Damage shield enchant (Hardening)
-	71067,	-- Trial By Fire: Shock
-	71058,	-- Trial By Fire: Fire
-	71019,	-- Trial By Fire: Frost
-	71069,	-- Trial By Fire: Disease
-	71072,	-- Trial By Fire: Poison
-	49236,	-- Whitestrake's Retribution
-	57170,	-- Blood Frenzy
-	75726,	-- Tava's Favor
-	75746,	-- Clever Alchemist
-	61870,	-- Armor Master Resistance
-	71107,	-- Briarheart
-	122729,	-- Seething Fury Stat Buff
-}
+libint.SpecialBuffs =
+	{ -- buffs that the API doesn't show via EVENT_EFFECT_CHANGED and need to be specially tracked via EVENT_COMBAT_EVENT
+		21230, -- Weapon/spell power enchant (Berserker)
+		21578, -- Damage shield enchant (Hardening)
+		71067, -- Trial By Fire: Shock
+		71058, -- Trial By Fire: Fire
+		71019, -- Trial By Fire: Frost
+		71069, -- Trial By Fire: Disease
+		71072, -- Trial By Fire: Poison
+		49236, -- Whitestrake's Retribution
+		57170, -- Blood Frenzy
+		75726, -- Tava's Favor
+		75746, -- Clever Alchemist
+		61870, -- Armor Master Resistance
+		71107, -- Briarheart
+		122729, -- Seething Fury Stat Buff
+	}
 
-
-libint.SpecialDebuffs = {   -- debuffs that the API doesn't show via EVENT_EFFECT_CHANGED and need to be specially tracked via EVENT_COMBAT_EVENT
-	95136,   -- Chilled (used for tracking Warden crit damage buff)
-	178118,  -- Status Effect Magic (Overcharged)
-	95136,   -- Status Effect Frost (Chill, used for tracking Warden crit damage buff)
-	95134,   -- Status Effect Lightning (Concussion)
-	178123,  -- Status Effect Physical (Sundered)
-	178127,  -- Status Effect Foulness (Diseased)
-	148801,  -- Status Effect Bleeding (Hemorrhaging)
-}
+libint.SpecialDebuffs =
+	{ -- debuffs that the API doesn't show via EVENT_EFFECT_CHANGED and need to be specially tracked via EVENT_COMBAT_EVENT
+		95136, -- Chilled (used for tracking Warden crit damage buff)
+		178118, -- Status Effect Magic (Overcharged)
+		95136, -- Status Effect Frost (Chill, used for tracking Warden crit damage buff)
+		95134, -- Status Effect Lightning (Concussion)
+		178123, -- Status Effect Physical (Sundered)
+		178127, -- Status Effect Foulness (Diseased)
+		148801, -- Status Effect Bleeding (Hemorrhaging)
+	}
 
 libint.StatusEffectIds = {
 	[178118] = true, -- Magic (Overcharged)
-	[18084]  = true, -- Fire (Burning)
-	[95136]  = true, -- Frost (Chill)
-	[95134]  = true, -- Lightning (Concussion)
+	[18084] = true, -- Fire (Burning)
+	[95136] = true, -- Frost (Chill)
+	[95134] = true, -- Lightning (Concussion)
 	[178123] = true, -- Physical (Sundered)
-	[21929]  = true, -- Poison (Poisoned)
+	[21929] = true, -- Poison (Poisoned)
 	[178127] = true, -- Foulness (Diseased)
 	[148801] = true, -- Bleeding (Hemorrhaging)
 }
 
-libint.sourceBuggedBuffs = {   -- buffs where ZOS messed up the source, causing CMX to falsely not track them
-	88401,  -- Minor Magickasteal
+libint.sourceBuggedBuffs = { -- buffs where ZOS messed up the source, causing CMX to falsely not track them
+	88401, -- Minor Magickasteal
 }
-
 
 local function InitUnitData(fight, unitId)
 	fight:CheckUnit(unitId)
@@ -81,17 +87,17 @@ local function InitEffectdata(unitData, abilityId, effectType)
 	local effectData = {
 		name = lib.GetFormattedAbilityName(abilityId),
 		iconId = abilityId,
-		uptime = 0,						-- uptime of effect caused by player
-		count = 0,						-- count of effect applications caused by player
-		groupUptime = 0,				-- uptime of effect caused by the whole group
-		groupCount = 0,					-- count of effect applications caused by the whole group
-		effectType = effectType,		-- buff or debuff
-		maxStacks = 0,					-- stacks = 0 if the effect wasn't tracked trough EVENT_EFFECT_CHANGED
-		stacks = {},					-- tracking applied stacks
+		uptime = 0, -- uptime of effect caused by player
+		count = 0, -- count of effect applications caused by player
+		groupUptime = 0, -- uptime of effect caused by the whole group
+		groupCount = 0, -- count of effect applications caused by the whole group
+		effectType = effectType, -- buff or debuff
+		maxStacks = 0, -- stacks = 0 if the effect wasn't tracked trough EVENT_EFFECT_CHANGED
+		stacks = {}, -- tracking applied stacks
 
-		firstStartTime = nil,			-- temp variable to track when uptime for a buff initially started
-		firstGroupStartTime = nil,		-- temp variable to track when uptime for a buff from the group initially started
-		slots = {},						-- slotid is unique for each application, this is the temporary place to track them
+		firstStartTime = nil, -- temp variable to track when uptime for a buff initially started
+		firstGroupStartTime = nil, -- temp variable to track when uptime for a buff from the group initially started
+		slots = {}, -- slotid is unique for each application, this is the temporary place to track them
 	}
 
 	unitData[abilityId] = effectData
@@ -102,13 +108,15 @@ local function GetStackData(effectData, stacks)
 	local stacksData = effectData.stacks
 	local data = stacksData[stacks]
 
-	if data ~= nil then return data end
+	if data ~= nil then
+		return data
+	end
 
 	local data = {
-		uptime = 0,			-- uptime of effect caused by player
-		count = 0,			-- count of effect applications caused by player
-		groupUptime = 0,	-- uptime of effect caused by the whole group
-		groupCount = 0,		-- count of effect applications caused by the whole group}
+		uptime = 0, -- uptime of effect caused by player
+		count = 0, -- count of effect applications caused by player
+		groupUptime = 0, -- uptime of effect caused by the whole group
+		groupCount = 0, -- count of effect applications caused by the whole group}
 	}
 
 	stacksData[stacks] = data
@@ -122,11 +130,13 @@ local function GetEffectData(fight, unitId, abilityId, effectType)
 	return effectData
 end
 
--- Log Handling -- 
+-- Log Handling --
 local LogProcessorEffects = lf.LogProcessingHandler:New("effects", LIBCOMBAT_LOG_EVENT_EFFECT)
 
 function LogProcessorEffects:onInitilizeFight(fight)
-	if self.active ~= true then return end
+	if self.active ~= true then
+		return
+	end
 
 	fight.effects = {}
 	--TODO: Import handover effects, refresh group member buffs using unitTag?
@@ -134,24 +144,50 @@ function LogProcessorEffects:onInitilizeFight(fight)
 end
 
 function LogProcessorEffects:GetPlayerBuffs(fight)
-	if libint.Events.Effects.active == false then return end
+	if libint.Events.Effects.active == false then
+		return
+	end
 	local timeMs = GetGameTimeMilliseconds()
 	local playerId = fight.unitIds.player or libunits.playerId
-	if playerId == nil then return end
+	if playerId == nil then
+		return
+	end
 
-	for i=1,GetNumBuffs("player") do
+	for i = 1, GetNumBuffs("player") do
 		-- buffName, timeStarted, timeEnding, effectSlot, stackCount, iconFilename, buffType, effectType, abilityType, statusEffectType, abilityId, canClickOff, castByPlayer
-		local _, timeStarted, endTime, effectSlot, stackCount, _, _, effectType, abilityType, _, abilityId, _, castByPlayer = GetUnitBuffInfo("player",i)
+		local _, timeStarted, endTime, effectSlot, stackCount, _, _, effectType, abilityType, _, abilityId, _, castByPlayer =
+			GetUnitBuffInfo("player", i)
 
 		local effectData = GetEffectData(fight, playerId, abilityId, effectType)
-		if effectData.slots[effectSlot] then return end
+		if effectData.slots[effectSlot] then
+			return
+		end
 
 		local sourceType = castByPlayer and COMBAT_UNIT_TYPE_PLAYER or COMBAT_UNIT_TYPE_NONE
 		local stacks = zo_max(stackCount, 1)
-		logger:Debug("player has the %s %d x %s (%d, AType: %d, self: %s)", effectType == BUFF_EFFECT_TYPE_BUFF and "buff" or "debuff", stackCount, lib.GetFormattedAbilityName(abilityId), abilityId, abilityType, tostring(castByPlayer))
+		logger:Debug(
+			"player has the %s %d x %s (%d, AType: %d, self: %s)",
+			effectType == BUFF_EFFECT_TYPE_BUFF and "buff" or "debuff",
+			stackCount,
+			lib.GetFormattedAbilityName(abilityId),
+			abilityId,
+			abilityType,
+			tostring(castByPlayer)
+		)
 
-		if (not libint.badAbility[abilityId]) then
-			self:ProcessLogLine(fight, LIBCOMBAT_LOG_EVENT_EFFECT, timeMs, playerId, abilityId, EFFECT_RESULT_GAINED, effectType, stacks, sourceType, effectSlot)
+		if not libint.badAbility[abilityId] then
+			self:ProcessLogLine(
+				fight,
+				LIBCOMBAT_LOG_EVENT_EFFECT,
+				timeMs,
+				playerId,
+				abilityId,
+				EFFECT_RESULT_GAINED,
+				effectType,
+				stacks,
+				sourceType,
+				effectSlot
+			)
 		end
 
 		-- TODO: activate once available
@@ -174,7 +210,9 @@ local function CountSlots(slots)
 	local groupSlotCount = 0
 
 	for _, slotData in pairs(slots) do
-		if slotData.isPlayerSource then slotcount = slotcount + 1 end
+		if slotData.isPlayerSource then
+			slotcount = slotcount + 1
+		end
 		groupSlotCount = groupSlotCount + 1
 	end
 
@@ -205,16 +243,27 @@ local sourceTypeStr = {
 	[COMBAT_UNIT_TYPE_TARGET_DUMMY] = "DUMMY",
 }
 
-function LogProcessorEffects:ProcessLogLine(fight, logType, timeMs, unitId, abilityId, changeType, effectType, stacks, sourceType, slotId)
-	-- TODO: handle processing before combatStart 
-	
+function LogProcessorEffects:ProcessLogLine(
+	fight,
+	logType,
+	timeMs,
+	unitId,
+	abilityId,
+	changeType,
+	effectType,
+	stacks,
+	sourceType,
+	slotId
+)
+	-- TODO: handle processing before combatStart
+
 	local effectData = GetEffectData(fight, unitId, abilityId, effectType)
 
 	local minStacks = abilityId == abilityIdZen and 0 or 1
 	local currentstacks = stacks or minStacks
 	local maxStacks = zo_max(stacks, effectData.maxStacks)
 	effectData.maxStacks = maxStacks
-	
+
 	local isPlayerSource = sourceType == COMBAT_UNIT_TYPE_PLAYER or sourceType == COMBAT_UNIT_TYPE_PLAYER_PET
 
 	local slots = effectData.slots
@@ -229,14 +278,18 @@ function LogProcessorEffects:ProcessLogLine(fight, logType, timeMs, unitId, abil
 	if (changeType == EFFECT_RESULT_GAINED or changeType == EFFECT_RESULT_UPDATED) and timeMs <= combatEnd then
 		local starttime = zo_max(timeMs, combatStart)
 
-		if slotcount == 0 and isPlayerSource then effectData.firstStartTime = starttime end
-		if groupSlotCount == 0 then effectData.firstGroupStartTime = starttime end
+		if slotcount == 0 and isPlayerSource then
+			effectData.firstStartTime = starttime
+		end
+		if groupSlotCount == 0 then
+			effectData.firstGroupStartTime = starttime
+		end
 
 		if slotdata == nil then
-			slotdata = {isPlayerSource = isPlayerSource, abilityId = abilityId}
+			slotdata = { isPlayerSource = isPlayerSource, abilityId = abilityId }
 			slots[slotId] = slotdata
 		end
-		
+
 		for stacks = minStacks, maxStacks do
 			local slotStartTime = slotdata[stacks]
 
@@ -256,12 +309,13 @@ function LogProcessorEffects:ProcessLogLine(fight, logType, timeMs, unitId, abil
 				slotdata[stacks] = nil
 			end
 		end
-
 	elseif changeType == EFFECT_RESULT_FADED then
 		slots[slotId] = nil
 
 		if slotdata and timeMs > combatStart then
-			if slotdata.isPlayerSource then slotcount = slotcount - 1 end
+			if slotdata.isPlayerSource then
+				slotcount = slotcount - 1
+			end
 			groupSlotCount = groupSlotCount - 1
 
 			local endTime = zo_min(timeMs, combatEnd)
@@ -299,7 +353,6 @@ function LogProcessorEffects:ProcessLogLine(fight, logType, timeMs, unitId, abil
 	-- unit:UpdateStats(fight, effectData, abilityId, hitValue) -- TODO: Setup when stats module works
 end
 
-
 ---[[ TODO: implement Z'en and FoN tracking on analysis side
 local function InitLocalUnitData(unitId)
 	local unit = {
@@ -311,7 +364,6 @@ local function InitLocalUnitData(unitId)
 	return unit
 end
 
-
 local function UpdateZenData(timeMs, unitId, abilityId, changeType, effectType, sourceType, effectSlot)
 	local unit = unitData[unitId] or InitLocalUnitData(unitId)
 
@@ -319,20 +371,48 @@ local function UpdateZenData(timeMs, unitId, abilityId, changeType, effectType, 
 		local isActive = changeType == EFFECT_RESULT_GAINED -- or (changeType == EFFECT_RESULT_UPDATED)
 		local stacks = isActive and zo_min(unit.stacksOfZen, 5) or 0
 
-		lf.FireCallback(LIBCOMBAT_LOG_EVENT_EFFECT, timeMs, unitId, abilityIdZen, changeType, effectType, stacks, sourceType, effectSlot)	-- stack count is 1 to 6, with 1 meaning 0% bonus, and 6 meaning 5% bonus from Z'en
-		logger:Verbose(table.concat({timeMs, unitId, abilityIdZen, changeType, effectType, stacks, sourceType, effectSlot}, ", "))
+		lf.FireCallback(
+			LIBCOMBAT_LOG_EVENT_EFFECT,
+			timeMs,
+			unitId,
+			abilityIdZen,
+			changeType,
+			effectType,
+			stacks,
+			sourceType,
+			effectSlot
+		) -- stack count is 1 to 6, with 1 meaning 0% bonus, and 6 meaning 5% bonus from Z'en
+		logger:Verbose(
+			table.concat({ timeMs, unitId, abilityIdZen, changeType, effectType, stacks, sourceType, effectSlot }, ", ")
+		)
 		unit.zenEffectSlot = (isActive and effectSlot) or nil
 	else
 		if changeType == EFFECT_RESULT_GAINED then
 			unit.stacksOfZen = unit.stacksOfZen + 1
 		elseif changeType == EFFECT_RESULT_FADED then
-			if unit.stacksOfZen - 1 < 0 and libint.debug then logger:Info("Encountered negative Z'en stacks: %s (%d)", lib.GetFormattedAbilityName(abilityId), abilityId) end
+			if unit.stacksOfZen - 1 < 0 and libint.debug then
+				logger:Info(
+					"Encountered negative Z'en stacks: %s (%d)",
+					lib.GetFormattedAbilityName(abilityId),
+					abilityId
+				)
+			end
 			unit.stacksOfZen = zo_max(0, unit.stacksOfZen - 1)
 		end
 
 		if unit.zenEffectSlot then
 			local stacks = zo_min(unit.stacksOfZen, 5)
-			lf.FireCallback(LIBCOMBAT_LOG_EVENT_EFFECT, timeMs, unitId, abilityIdZen, EFFECT_RESULT_UPDATED, effectType, stacks, sourceType, unit.zenEffectSlot)
+			lf.FireCallback(
+				LIBCOMBAT_LOG_EVENT_EFFECT,
+				timeMs,
+				unitId,
+				abilityIdZen,
+				EFFECT_RESULT_UPDATED,
+				effectType,
+				stacks,
+				sourceType,
+				unit.zenEffectSlot
+			)
 		end
 	end
 end
@@ -340,7 +420,13 @@ end
 function UpdateForceOfNatureData(timeMs, unitId, abilityId, changeType, _, _, _, _)
 	local unit = unitData[unitId] or InitLocalUnitData(unitId)
 	local fight = libint.currentFight
-	if libint.StatusEffectIds[abilityId] == nil or fight.CP[1]["slotted"] == nil or fight.CP[1]["slotted"][276] ~= true then return end
+	if
+		libint.StatusEffectIds[abilityId] == nil
+		or fight.CP[1]["slotted"] == nil
+		or fight.CP[1]["slotted"][276] ~= true
+	then
+		return
+	end
 
 	local forceOfNatureChangeType = EFFECT_RESULT_UPDATED
 	local debugChangeType = "o"
@@ -350,51 +436,138 @@ function UpdateForceOfNatureData(timeMs, unitId, abilityId, changeType, _, _, _,
 		unit.forceOfNatureStacks = unit.forceOfNatureStacks + 1
 		debugChangeType = "+"
 
-		if unit.forceOfNatureStacks == 1 then forceOfNatureChangeType = EFFECT_RESULT_GAINED end
-		if unit.forceOfNatureStacks > 8 then logger:Warn("Encountered too many Force of Nature stacks (%d): %s (%d)", unit.forceOfNatureStacks, lib.GetFormattedAbilityName(abilityId), abilityId) end
+		if unit.forceOfNatureStacks == 1 then
+			forceOfNatureChangeType = EFFECT_RESULT_GAINED
+		end
+		if unit.forceOfNatureStacks > 8 then
+			logger:Warn(
+				"Encountered too many Force of Nature stacks (%d): %s (%d)",
+				unit.forceOfNatureStacks,
+				lib.GetFormattedAbilityName(abilityId),
+				abilityId
+			)
+		end
 	elseif changeType == EFFECT_RESULT_FADED and unit.forceOfNature[abilityId] == true then
 		unit.forceOfNature[abilityId] = nil
 		debugChangeType = "-"
 
-		if unit.forceOfNatureStacks == 0 then forceOfNatureChangeType = EFFECT_RESULT_FADED end
-		if unit.forceOfNatureStacks - 1 < 0 then logger:Warn("Encountered negative Force of Nature stacks: %s (%d)", lib.GetFormattedAbilityName(abilityId), abilityId) end
+		if unit.forceOfNatureStacks == 0 then
+			forceOfNatureChangeType = EFFECT_RESULT_FADED
+		end
+		if unit.forceOfNatureStacks - 1 < 0 then
+			logger:Warn(
+				"Encountered negative Force of Nature stacks: %s (%d)",
+				lib.GetFormattedAbilityName(abilityId),
+				abilityId
+			)
+		end
 
 		unit.forceOfNatureStacks = zo_max(0, unit.forceOfNatureStacks - 1)
 	end
 
 	local stacks = zo_min(unit.forceOfNatureStacks, 8)
-	lf.FireCallback(LIBCOMBAT_LOG_EVENT_EFFECT, timeMs, unitId, abilityIdForceOfNature, forceOfNatureChangeType, BUFF_EFFECT_TYPE_DEBUFF, stacks, COMBAT_UNIT_TYPE_PLAYER, 0)
-	logger:Verbose("Force of Nature: %s (%d) x%d, %s%s", unit.name, unit.unitId, stacks, lib.GetFormattedAbilityName(abilityId), debugChangeType)
+	lf.FireCallback(
+		LIBCOMBAT_LOG_EVENT_EFFECT,
+		timeMs,
+		unitId,
+		abilityIdForceOfNature,
+		forceOfNatureChangeType,
+		BUFF_EFFECT_TYPE_DEBUFF,
+		stacks,
+		COMBAT_UNIT_TYPE_PLAYER,
+		0
+	)
+	logger:Verbose(
+		"Force of Nature: %s (%d) x%d, %s%s",
+		unit.name,
+		unit.unitId,
+		stacks,
+		lib.GetFormattedAbilityName(abilityId),
+		debugChangeType
+	)
 end
 
 -- TODO: use units module to get the unit directly
 local function isDuplicateUnit(unitTag)
-	if unitTag and zo_strsub(unitTag, 1, 5) == "group" and AreUnitsEqual(unitTag, "player") then return true end
+	if unitTag and zo_strsub(unitTag, 1, 5) == "group" and AreUnitsEqual(unitTag, "player") then
+		return true
+	end
 	if unitTag and zo_strsub(unitTag, 1, 11) ~= "reticleover" then
-		if AreUnitsEqual(unitTag, "reticleover") then return true end	-- TODO: maybe ignore those unitTags instead? 
-		if AreUnitsEqual(unitTag, "reticleoverplayer") then return true end
-		if AreUnitsEqual(unitTag, "reticleovertarget") then return true end
+		if AreUnitsEqual(unitTag, "reticleover") then
+			return true
+		end -- TODO: maybe ignore those unitTags instead?
+		if AreUnitsEqual(unitTag, "reticleoverplayer") then
+			return true
+		end
+		if AreUnitsEqual(unitTag, "reticleovertarget") then
+			return true
+		end
 	end
 	return false
 end
 
 local function validateBuffEventValues(changeType, stackCount)
-	if changeType == EFFECT_RESULT_GAINED then return true end
-	if changeType == EFFECT_RESULT_FADED then return true end
-	if changeType == EFFECT_RESULT_UPDATED and stackCount > 1 then return true end
+	if changeType == EFFECT_RESULT_GAINED then
+		return true
+	end
+	if changeType == EFFECT_RESULT_FADED then
+		return true
+	end
+	if changeType == EFFECT_RESULT_UPDATED and stackCount > 1 then
+		return true
+	end
 	return false
 end
 
-local function BuffEventHandler(isspecial, changeType, effectSlot, _, unitTag, _, endTime, stackCount, _, _, effectType, abilityType, _, unitName, unitId, abilityId, sourceType)
-	if unitName == "Offline" or unitId == nil then return end -- TODO: Use unit module here? 
-	if not validateBuffEventValues(changeType, stackCount) then return end
-	if libint.badAbility[abilityId] == true then return end
-	if isDuplicateUnit(unitTag) then return end
-	if libint.sourceBuggedBuffs[abilityId] then sourceType = COMBAT_UNIT_TYPE_GROUP end
+local function BuffEventHandler(
+	isspecial,
+	changeType,
+	effectSlot,
+	_,
+	unitTag,
+	_,
+	endTime,
+	stackCount,
+	_,
+	_,
+	effectType,
+	abilityType,
+	_,
+	unitName,
+	unitId,
+	abilityId,
+	sourceType
+)
+	if unitName == "Offline" or unitId == nil then
+		return
+	end -- TODO: Use unit module here?
+	if not validateBuffEventValues(changeType, stackCount) then
+		return
+	end
+	if libint.badAbility[abilityId] == true then
+		return
+	end
+	if isDuplicateUnit(unitTag) then
+		return
+	end
+	if libint.sourceBuggedBuffs[abilityId] then
+		sourceType = COMBAT_UNIT_TYPE_GROUP
+	end
 
 	local timeMs = GetGameTimeMilliseconds()
 	local stacks = zo_max(1, stackCount)
-	logger:Verbose("%s %d the %s %dx %s (%d, AT: %d, %s, %d)", unitName, changeType, effectType == BUFF_EFFECT_TYPE_BUFF and "buff" or "debuff", stackCount, lib.GetFormattedAbilityName(abilityId), abilityId, abilityType, unitTag or "", sourceType)
+	logger:Verbose(
+		"%s %d the %s %dx %s (%d, AT: %d, %s, %d)",
+		unitName,
+		changeType,
+		effectType == BUFF_EFFECT_TYPE_BUFF and "buff" or "debuff",
+		stackCount,
+		lib.GetFormattedAbilityName(abilityId),
+		abilityId,
+		abilityType,
+		unitTag or "",
+		sourceType
+	)
 
 	-- if lib.IsPlayerUnitId(unitId) then libint.currentFight:QueueStatUpdate(timeMs) end -- TODO: move to stats
 
@@ -403,18 +576,35 @@ local function BuffEventHandler(isspecial, changeType, effectSlot, _, unitTag, _
 	end
 
 	if libint.StatusEffectIds[abilityId] then
-		if (sourceType == COMBAT_UNIT_TYPE_PLAYER or (unitName == "" and unitData[unitId] and unitData[unitId].forceOfNature[abilityId] and libint.SpecialDebuffs[abilityId])) then
+		if
+			sourceType == COMBAT_UNIT_TYPE_PLAYER
+			or (
+				unitName == ""
+				and unitData[unitId]
+				and unitData[unitId].forceOfNature[abilityId]
+				and libint.SpecialDebuffs[abilityId]
+			)
+		then
 			UpdateForceOfNatureData(timeMs, unitId, abilityId, changeType, effectType, stacks, sourceType, effectSlot)
 		end
 	end
 
-	lf.FireCallback(LIBCOMBAT_LOG_EVENT_EFFECT, timeMs, unitId, abilityId, changeType, effectType, stacks, sourceType, effectSlot)
+	lf.FireCallback(
+		LIBCOMBAT_LOG_EVENT_EFFECT,
+		timeMs,
+		unitId,
+		abilityId,
+		changeType,
+		effectType,
+		stacks,
+		sourceType,
+		effectSlot
+	)
 end
 
 local function onEffectChanged(_, ...)
-	BuffEventHandler(false, ...)		-- (isspecial, groupeffect, ...)
+	BuffEventHandler(false, ...) -- (isspecial, groupeffect, ...)
 end
-
 
 local resultToChangeType = {
 	[ACTION_RESULT_EFFECT_GAINED_DURATION] = EFFECT_RESULT_GAINED,
@@ -423,11 +613,31 @@ local resultToChangeType = {
 }
 
 local DurationCache = {}
-local function SpecialBuffEventHandler(isdebuff, result, _, _, _, _, _, sourceType, targetName, _, hitValue, _, _, _, _, targetUnitId, abilityId)
+local function SpecialBuffEventHandler(
+	isdebuff,
+	result,
+	_,
+	_,
+	_,
+	_,
+	_,
+	sourceType,
+	targetName,
+	_,
+	hitValue,
+	_,
+	_,
+	_,
+	_,
+	targetUnitId,
+	abilityId
+)
 	--(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
 	local now = GetGameTimeSeconds()
 
-	if libint.badAbility[abilityId] == true or (result == ACTION_RESULT_EFFECT_GAINED and hitValue < 2) then return end
+	if libint.badAbility[abilityId] == true or (result == ACTION_RESULT_EFFECT_GAINED and hitValue < 2) then
+		return
+	end
 
 	if result == ACTION_RESULT_EFFECT_GAINED_DURATION then
 		DurationCache[abilityId] = hitValue
@@ -442,7 +652,9 @@ local function SpecialBuffEventHandler(isdebuff, result, _, _, _, _, _, sourceTy
 		if DurationCache[abilityId] then
 			duration = DurationCache[abilityId]
 			stackCount = hitValue
-		else return end
+		else
+			return
+		end
 	end
 
 	-- if unitName ~= ld.units.rawPlayername then return end
@@ -451,48 +663,101 @@ local function SpecialBuffEventHandler(isdebuff, result, _, _, _, _, _, sourceTy
 	-- logger:Debug("%s (%d): %d (%d)", GetFormattedAbilityName(abilityId), abilityId, changeType, result)
 
 	local effectType = isdebuff and BUFF_EFFECT_TYPE_DEBUFF or BUFF_EFFECT_TYPE_BUFF
-	local endTime = now + duration/1000
-	local unitTag = libint.currentFight.units and libint.currentFight.units[targetUnitId] and libint.currentFight.units[targetUnitId].unitTag or nil
+	local endTime = now + duration / 1000
+	local unitTag = libint.currentFight.units
+			and libint.currentFight.units[targetUnitId]
+			and libint.currentFight.units[targetUnitId].unitTag
+		or nil
 
-	BuffEventHandler(true, changeType, targetUnitId, _, unitTag, _, endTime, stackCount, _, _, effectType, ABILITY_TYPE_BONUS, _, targetName, targetUnitId, abilityId, sourceType)
+	BuffEventHandler(
+		true,
+		changeType,
+		targetUnitId,
+		_,
+		unitTag,
+		_,
+		endTime,
+		stackCount,
+		_,
+		_,
+		effectType,
+		ABILITY_TYPE_BONUS,
+		_,
+		targetName,
+		targetUnitId,
+		abilityId,
+		sourceType
+	)
 end
 
 local function onSpecialBuffEvent(_, ...)
-	SpecialBuffEventHandler(false, ...)		-- (isdebuff, ...)
+	SpecialBuffEventHandler(false, ...) -- (isdebuff, ...)
 end
 
 local function onSpecialDebuffEvent(_, ...)
-	SpecialBuffEventHandler(true, ...)		-- (isdebuff, ...)
+	SpecialBuffEventHandler(true, ...) -- (isdebuff, ...)
 end
 
+libint.Events.Effects = libint.EventHandler:New({ LIBCOMBAT_LOG_EVENT_EFFECT }, function(self)
+	self:RegisterEvent(EVENT_EFFECT_CHANGED, onEffectChanged, REGISTER_FILTER_IS_ERROR, false)
 
-
-libint.Events.Effects = libint.EventHandler:New(
-	{LIBCOMBAT_LOG_EVENT_EFFECT},
-	function (self)
-		self:RegisterEvent(EVENT_EFFECT_CHANGED, onEffectChanged, REGISTER_FILTER_IS_ERROR, false)
-
-		for i=1,#libint.SpecialBuffs do
-			self:RegisterEvent(EVENT_COMBAT_EVENT, onSpecialBuffEvent, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_GAINED_DURATION, REGISTER_FILTER_ABILITY_ID, libint.SpecialBuffs[i], REGISTER_FILTER_IS_ERROR, false)
-			self:RegisterEvent(EVENT_COMBAT_EVENT, onSpecialBuffEvent, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_FADED, REGISTER_FILTER_ABILITY_ID, libint.SpecialBuffs[i], REGISTER_FILTER_IS_ERROR, false)
-		end
-
-		for i=1,#libint.SpecialDebuffs do
-			self:RegisterEvent(EVENT_COMBAT_EVENT, onSpecialDebuffEvent, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_GAINED_DURATION, REGISTER_FILTER_ABILITY_ID, libint.SpecialDebuffs[i], REGISTER_FILTER_IS_ERROR, false)
-			self:RegisterEvent(EVENT_COMBAT_EVENT, onSpecialDebuffEvent, REGISTER_FILTER_COMBAT_RESULT, ACTION_RESULT_EFFECT_FADED, REGISTER_FILTER_ABILITY_ID, libint.SpecialDebuffs[i], REGISTER_FILTER_IS_ERROR, false)
-		end
-
-		self.active = true
+	for i = 1, #libint.SpecialBuffs do
+		self:RegisterEvent(
+			EVENT_COMBAT_EVENT,
+			onSpecialBuffEvent,
+			REGISTER_FILTER_COMBAT_RESULT,
+			ACTION_RESULT_EFFECT_GAINED_DURATION,
+			REGISTER_FILTER_ABILITY_ID,
+			libint.SpecialBuffs[i],
+			REGISTER_FILTER_IS_ERROR,
+			false
+		)
+		self:RegisterEvent(
+			EVENT_COMBAT_EVENT,
+			onSpecialBuffEvent,
+			REGISTER_FILTER_COMBAT_RESULT,
+			ACTION_RESULT_EFFECT_FADED,
+			REGISTER_FILTER_ABILITY_ID,
+			libint.SpecialBuffs[i],
+			REGISTER_FILTER_IS_ERROR,
+			false
+		)
 	end
-)
 
+	for i = 1, #libint.SpecialDebuffs do
+		self:RegisterEvent(
+			EVENT_COMBAT_EVENT,
+			onSpecialDebuffEvent,
+			REGISTER_FILTER_COMBAT_RESULT,
+			ACTION_RESULT_EFFECT_GAINED_DURATION,
+			REGISTER_FILTER_ABILITY_ID,
+			libint.SpecialDebuffs[i],
+			REGISTER_FILTER_IS_ERROR,
+			false
+		)
+		self:RegisterEvent(
+			EVENT_COMBAT_EVENT,
+			onSpecialDebuffEvent,
+			REGISTER_FILTER_COMBAT_RESULT,
+			ACTION_RESULT_EFFECT_FADED,
+			REGISTER_FILTER_ABILITY_ID,
+			libint.SpecialDebuffs[i],
+			REGISTER_FILTER_IS_ERROR,
+			false
+		)
+	end
+
+	self.active = true
+end)
 
 local isFileInitialized = false
 
 function libint.InitializeEffects()
-	if isFileInitialized == true then return false end
+	if isFileInitialized == true then
+		return false
+	end
 	logger = lf.initSublogger("effects")
 
-    isFileInitialized = true
+	isFileInitialized = true
 	return true
 end

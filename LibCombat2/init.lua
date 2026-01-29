@@ -1,24 +1,35 @@
--- This file contains the initialziation code 
+-- This file contains the initialziation code
 
+---@class LibCombat2
 LibCombat2 = LibCombat2 or {}
+---@class LibCombat2
 local lib = LibCombat2
-if LibCombat == nil then LibCombat = lib end
+if LibCombat == nil then
+	LibCombat = lib
+end
 
 -- Basic values
 lib.name = "LibCombat2"
 lib.version = 8
 
+---@class LCint
 lib.internal = {}
+---@class LCint
 local libint = lib.internal
 libint.debug = false or GetDisplayName() == "@Solinur"
+
+---@class LCfunc
 libint.functions = {}
+---@class LCData
 libint.data = {}
 libint.logger = {}
+---@class LCfunc
 local lf = libint.functions
 
 -- Logger
 
 if LibDebugLogger and libint.debug then
+	---@type Logger
 	libint.logger.main = LibDebugLogger.Create(lib.name)
 else
 	local internalLogger = {}
@@ -36,7 +47,9 @@ end
 
 function lf.initSublogger(name)
 	local mainlogger = libint.logger.main
-	if mainlogger.Create == nil or name == nil or name == "" then return mainlogger end
+	if mainlogger.Create == nil or name == nil or name == "" then
+		return mainlogger
+	end
 	if libint.logger[name] ~= nil then
 		libint.logger.main:Warn("Sublogger %s already exists!", name)
 		return libint.logger[name]
@@ -48,28 +61,38 @@ function lf.initSublogger(name)
 	return sublogger
 end
 
-local function spairs(t, order) -- from https://stackoverflow.com/questions/15706270/sort-a-table-in-lua
-    local keys = {}
-    for k in pairs(t) do keys[#keys+1] = k end
+---from https://stackoverflow.com/questions/15706270/sort-a-table-in-lua
+---@param t table
+---@param order? fun(t: table, a, b):boolean
+---@return function
+local function spairs(t, order)
+	local keys = {}
+	for k in pairs(t) do
+		keys[#keys + 1] = k
+	end
 
-    if order then
-        table.sort(keys, function(a,b) return order(t, a, b) end)
-    else
-        table.sort(keys)
-    end
+	if order then
+		table.sort(keys, function(a, b)
+			return order(t, a, b)
+		end)
+	else
+		table.sort(keys)
+	end
 
-    local i = 0
-    return function()
-        i = i + 1
-        if keys[i] then
-            return keys[i], t[keys[i]]
-        end
-    end
+	local i = 0
+	return function()
+		i = i + 1
+		if keys[i] then
+			return keys[i], t[keys[i]]
+		end
+	end
 end
 lf.spairs = spairs
 
 local function Initialize(eventId, addon)
-	if addon ~= lib.name then return end
+	if addon ~= lib.name then
+		return
+	end
 
 	assert(libint.InitializeGlobals(), "Initialization of globals module failed")
 	assert(libint.InitializeUtility(), "Initialization of utility module failed")
@@ -84,6 +107,7 @@ local function Initialize(eventId, addon)
 	-- assert(libint.InitializePerformance(), "Initialization of performance module failed")
 	-- assert(libint.InitializeDeaths(), "Initialization of deaths module failed")
 	assert(libint.InitializeFights(), "Initialization of fights module failed")
+	assert(libint.InitializeFightStatUtils(), "Initialization of fight stat utils module failed")
 	assert(libint.InitializeAPI(), "Initialization of api module failed")
 
 	EVENT_MANAGER:UnregisterForEvent("LibCombat_Initialize", EVENT_ADD_ON_LOADED)

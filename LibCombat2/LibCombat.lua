@@ -12,7 +12,9 @@ Add more debug Functions
 
 ]]
 
+---@class LibCombat2
 local lib = LibCombat2
+---@class LCint
 local libint = lib.internal
 
 --aliases
@@ -54,7 +56,9 @@ local logger
 local isFileInitialized = false
 
 function libint.InitializeMain()
-	if isFileInitialized == true then return false end
+	if isFileInitialized == true then
+		return false
+	end
 	logger = libint.logger.main
 	logger:Debug("Initialize")
 

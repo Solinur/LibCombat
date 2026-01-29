@@ -32,4 +32,5 @@ effects.lua
 ; performance.lua
 ; deaths.lua
 fights.lua
+fightstatutils.lua
 api.lua
