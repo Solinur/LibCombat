@@ -1,8 +1,8 @@
-﻿85 DL: 
-[*] Fixed missing formatting of ability names in GetFormattedAbilityName
-[*] Added workaround for issues in fight separation while dueling due to in combat bug.
-[*] Fix sprint detection (Resources)
-
+﻿85 DL 4,750,750 (28.01.2026) 21:51 
+[*] Fixed missing formatting of ability names in GetFormattedAbilityName (thx Baertram for the report)
+[*] Improved fight separation for dueling (thx wjtk4444 for the report) .
+[*] Fix sprint detection for Resources tracking
+[*] Fix detection of Arcanist passive for status effecct bonus (thx GdeMoiKrendelki for the report)
 
 84 DL: 4,649,287 (24.10.2025) 23:49
 [*] Fixed an issue where incorrect fight recap group numbers were given for the callback in rare cases.
