@@ -41,11 +41,11 @@ function lib.IsCurrentFightBossFight()
 end
 
 ---Returns the time since the player went into combat in seconds
----@return number combatDuration 
+---@return number combatDuration
 function lib.GetCurrentFightDuration()
 	local fight = libint.currentFight
 	if fight and fight.info and fight.info.combatStart then
-		return (GetGameTimeMilliseconds() - fight.info.combatStart)/1000
+		return (GetGameTimeMilliseconds() - fight.info.combatStart) / 1000
 	end
 	return 0
 end
@@ -79,7 +79,9 @@ function lib.GetCurrentTotalDamageDone()
 
 	local unitIds = {}
 	for unitId, unit in pairs(fight.units) do
-		if unit.isFriendly == false then unitIds[unitId] = true end
+		if unit.isFriendly == false then
+			unitIds[unitId] = true
+		end
 	end
 
 	return fight:GetDamageToUnits(unitIds)
@@ -96,7 +98,9 @@ function lib.GetCurrentTotalDamageReceived()
 
 	local unitIds = {}
 	for unitId, unit in pairs(fight.units) do
-		if unit.isFriendly == true then unitIds[unitId] = true end
+		if unit.isFriendly == true then
+			unitIds[unitId] = true
+		end
 	end
 
 	return fight:GetDamageToUnits(unitIds)
@@ -110,7 +114,9 @@ end
 function lib.RegisterForLogableCombatEvents(name, callback)
 	for i = LIBCOMBAT_LOG_EVENT_MIN, LIBCOMBAT_LOG_EVENT_MAX do
 		local isRegistered = lib.RegisterForCombatEvent(name, i, callback)
-		if not isRegistered then logger:Warn("Could not register event type %d for %s", i, name) end
+		if not isRegistered then
+			logger:Warn("Could not register event type %d for %s", i, name)
+		end
 	end
 end
 
@@ -119,7 +125,9 @@ end
 function lib.UnregisterForLogableCombatEvents(name)
 	for i = LIBCOMBAT_LOG_EVENT_MIN, LIBCOMBAT_LOG_EVENT_MAX do
 		local isUnregistered = lib.UnregisterForCombatEvent(name, i)
-		if not isUnregistered then logger:Warn("Could not unregister event type %d for %s", i, name) end
+		if not isUnregistered then
+			logger:Warn("Could not unregister event type %d for %s", i, name)
+		end
 	end
 end
 
@@ -129,7 +137,9 @@ end
 ---@param callback function
 function lib.RegisterForCombatEvent(name, callbackKey, callback)
 	local isRegistered = lf.UpdateResources(name, callbackKey, callback)
-	if isRegistered then lf.RegisterCallback(callbackKey, callback) end
+	if isRegistered then
+		lf.RegisterCallback(callbackKey, callback)
+	end
 
 	return isRegistered
 end
@@ -167,18 +177,18 @@ function lib:UnregisterCallbackType(callbacktype, callback, name)
 	lib.UnregisterForCombatEvent(name, callbacktype)
 end
 
-
 -- function lib:GetCurrentFight()
 -- 	if libint.currentFight.dpsstart ~= nil then
 -- 		return ZO_DeepTableCopy(libint.currentFight)
 -- 	end
 -- end
 
-
 function libint.InitializeAPI()
-	if isFileInitialized == true then return false end
+	if isFileInitialized == true then
+		return false
+	end
 	logger = lf.initSublogger("api")
 
-    isFileInitialized = true
+	isFileInitialized = true
 	return true
 end

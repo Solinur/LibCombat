@@ -56,7 +56,9 @@ local logger
 local isFileInitialized = false
 
 function libint.InitializeMain()
-	if isFileInitialized == true then return false end
+	if isFileInitialized == true then
+		return false
+	end
 	logger = libint.logger.main
 	logger:Debug("Initialize")
 
