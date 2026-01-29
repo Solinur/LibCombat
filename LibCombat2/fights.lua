@@ -327,6 +327,18 @@ function FightHandler:CheckUnit(unitId)
 	end
 end
 
+function FightHandler:GetEnemyUnits()
+	local unitIds = {}
+
+	for unitId, unit in pairs(self.units) do
+		if not unit.isFriendly then
+			unitIds[#unitIds + 1] = unitId
+		end
+	end
+
+	return unitIds
+end
+
 local lastGetNewStatsCall = 0
 ---@param timeMs integer?
 function FightHandler:QueueStatUpdate(timeMs)
