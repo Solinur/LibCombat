@@ -54,6 +54,7 @@ ld.DamageShields = DamageShields
 local HealAbsorbs = lf.CreateQueue()
 ld.HealAbsorbs = HealAbsorbs
 
+---@class LogProcessorCombat: LogProcessingHandler
 local LogProcessorCombat = lf.LogProcessingHandler:New("combat", AllowedLogTypes)
 
 ---@class Fight
@@ -162,10 +163,12 @@ local function GetUnitDamageData(fight, sourceUnitId, targetUnitId, timeMs)
 end
 
 ---@param timeMs integer
----@param damageType DamageType
+---@param damageType DamageType?
 ---@return DamageAbilityData
 local function InitDamageAbilityData(timeMs, damageType)
 	---@class DamageAbilityData
+	---@field max integer?
+	---@field min integer?
 	local abilityData = {
 		totalAmount = 0,
 		normalAmount = 0,
@@ -296,6 +299,8 @@ end
 
 local function InitHealAbilityData(timeMs, powerType)
 	---@class HealAbilityData
+	---@field max integer?
+	---@field min integer?
 	local abilityData = {
 		totalAmount = 0,
 		normalAmount = 0,
@@ -458,7 +463,7 @@ local function onCombatEventDamage(
 	end
 
 	if libint.currentFight.prepared ~= true and isGroupInvolved() then
-		libint.currentFight:OnCombatStart()
+		libint.currentFight:PrepareFight()
 	end
 	if absorb > 0 then
 		lf.FireCallback(

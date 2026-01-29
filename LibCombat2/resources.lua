@@ -1,3 +1,6 @@
+-- TODO: enable diagnostics when file is used
+---@diagnostic disable
+
 ---@class LibCombat2
 local lib = LibCombat2
 ---@class LCint
@@ -10,7 +13,6 @@ local libunits = ld.units
 local lf = libint.functions
 ---@class Logger
 local logger
-
 local GetFormattedAbilityName = lib.GetFormattedAbilityName
 
 local powerTypeCache = {}

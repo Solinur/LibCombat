@@ -1,4 +1,6 @@
 -- This file provides info on player and group member deaths and resurrection
+---@diagnostic disable
+--- TODO: enable diagnostic when code is used
 
 ---@class LibCombat2
 local lib = LibCombat2
@@ -41,10 +43,9 @@ function lf.ClearUnitCaches()
 end
 
 ---@class UnitDeathCacheHandler
----@field New fun(unitId: integer): UnitDeathCacheHandler
+---@field New fun(self:UnitDeathCacheHandler, unitId: integer): UnitDeathCacheHandler
 local UnitDeathCacheHandler = ZO_Object:Subclass() -- holds all recent events + info to send on death
 
----@diagnostic disable-next-line: duplicate-set-field
 function UnitDeathCacheHandler:New(...)
 	local object = ZO_Object.New(self)
 	object:Initialize(...)

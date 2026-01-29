@@ -13,6 +13,7 @@ lib.name = "LibCombat2"
 lib.version = 8
 
 ---@class LCint
+---@field cm ZO_CallbackObjectMixin
 lib.internal = {}
 ---@class LCint
 local libint = lib.internal

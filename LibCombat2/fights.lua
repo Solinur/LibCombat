@@ -229,12 +229,13 @@ function FightHandler:GetMetaData(timeMs)
 	self.CP = GetCurrentCP()
 end
 
-local function InitUnitPower() -- TODO: Move to resources
-	ld.resources[COMBAT_MECHANIC_FLAGS_HEALTH] = GetUnitPower("player", COMBAT_MECHANIC_FLAGS_HEALTH)
-	ld.resources[COMBAT_MECHANIC_FLAGS_MAGICKA] = GetUnitPower("player", COMBAT_MECHANIC_FLAGS_MAGICKA)
-	ld.resources[COMBAT_MECHANIC_FLAGS_STAMINA] = GetUnitPower("player", COMBAT_MECHANIC_FLAGS_STAMINA)
-	ld.resources[COMBAT_MECHANIC_FLAGS_ULTIMATE] = GetUnitPower("player", COMBAT_MECHANIC_FLAGS_ULTIMATE)
-end
+-- TODO: Move to resources
+-- local function InitUnitPower()
+-- 	ld.resources[COMBAT_MECHANIC_FLAGS_HEALTH] = GetUnitPower("player", COMBAT_MECHANIC_FLAGS_HEALTH)
+-- 	ld.resources[COMBAT_MECHANIC_FLAGS_MAGICKA] = GetUnitPower("player", COMBAT_MECHANIC_FLAGS_MAGICKA)
+-- 	ld.resources[COMBAT_MECHANIC_FLAGS_STAMINA] = GetUnitPower("player", COMBAT_MECHANIC_FLAGS_STAMINA)
+-- 	ld.resources[COMBAT_MECHANIC_FLAGS_ULTIMATE] = GetUnitPower("player", COMBAT_MECHANIC_FLAGS_ULTIMATE)
+-- end
 
 function FightHandler:PrepareFight()
 	local timeMs = GetGameTimeMilliseconds()
@@ -488,7 +489,7 @@ function FightHandler:GetHealingDone()
 			startTime = zo_min(startTime, unitData.startTime)
 			endTime = zo_max(endTime, unitData.endTime)
 			totalHealing = totalHealing + unitData.totalAmount
-			totalOverflowHealing = totalOverflowHealing + unitData.totalOverflowHealing
+			totalOverflowHealing = totalOverflowHealing + unitData.overflowAmount
 		end
 	end
 

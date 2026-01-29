@@ -23,7 +23,7 @@ libint.LogProcessors = {}
 lf.LogTypeProcessors = {}
 
 ---@class LogProcessingHandler
----@field New fun(): LogProcessingHandler
+---@field New fun(self: LogProcessingHandler, name: string, AllowedLogTypes: number|[number]): LogProcessingHandler
 local LogProcessingHandler = ZO_InitializingObject:Subclass() -- object to store log proccessing routines
 lf.LogProcessingHandler = LogProcessingHandler
 
@@ -98,6 +98,7 @@ function LogProcessingHandler:Deactivate()
 	end
 end
 
+---@class LogProcessingQueue: Queue
 local LogProcessingQueue = lf.CreateQueue()
 LogProcessingQueue.active = false
 
@@ -217,6 +218,9 @@ function lf.AddLogLine(...)
 	end
 end
 
+---@class Fight
+---@field processors table<string, boolean>
+---@param fight Fight
 function lf.ProcessorsInitilizeFight(fight)
 	fight.processors = {}
 	local inCombat = ld.inCombat

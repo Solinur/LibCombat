@@ -28,7 +28,7 @@ end
 
 function Queue:Pop()
 	if self:IsEmpty() then
-		logger:error("Queue is empty")
+		logger:Error("Queue is empty")
 	end
 	local first = self.first
 	local value = self[first]
@@ -39,7 +39,7 @@ end
 
 function Queue:Delete(index)
 	if self:IsEmpty() then
-		logger:error("Queue is empty")
+		logger:Error("Queue is empty")
 	end
 	if index == self.first then
 		return self:Pop()
@@ -60,7 +60,7 @@ end
 -- Cache formatted Ability Names and Icons. Makes sure they stay consistent, since some addons like to meddle with them.
 
 -- Callback Manager
----@type ZO_CallbackObject
+---@class ZO_CallbackObjectMixin
 local cm = ZO_CallbackObject:New()
 lib.internal.cm = cm
 
