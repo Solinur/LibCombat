@@ -18,7 +18,7 @@ local isFileInitialized = false
 ---@param fight Fight
 ---@return {[integer]: boolean} unitIds
 function lib.GetFriendlyUnits(fight)
-	unitIds = {}
+	local unitIds = {}
 
 	for unitId, unit in pairs(fight.units) do
 		---@cast unit UnitData
@@ -32,7 +32,7 @@ end
 ---@param fight Fight
 ---@return {[integer]: boolean} unitIds
 function lib.GetEnemyUnits(fight)
-	unitIds = {}
+	local unitIds = {}
 
 	for unitId, unit in pairs(fight.units) do
 		---@cast unit UnitData
