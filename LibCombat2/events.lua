@@ -18,7 +18,7 @@ local Events = {}
 libint.Events = Events
 
 ---@class EventHandler
----@field New fun(callbacktypes: integer[], regfunc: fun): EventHandler
+---@field New fun(self: EventHandler, callbacktypes: integer[], regfunc: fun(...: any)): EventHandler
 local EventHandler = ZO_Object:Subclass()
 libint.EventHandler = EventHandler
 

@@ -102,6 +102,8 @@ libunits.GroupUnitTags = GroupUnitTags
 
 ---@type table<integer,string>
 local BossUnitTags = {} -- preassemble unit tags
+
+---@diagnostic disable-next-line: undefined-global
 for i = 1, BOSS_RANK_ITERATION_END do
 	BossUnitTags[i] = ZO_CachedStrFormat("boss<<1>>", i)
 end
@@ -136,6 +138,7 @@ local function onBossesChanged(_) -- Detect Bosses
 	---@type [string]
 	local bossTagByName = {} -- holds only bosses discovered in this round
 
+	---@diagnostic disable-next-line: undefined-global
 	for i = 1, BOSS_RANK_ITERATION_END do
 		local unitTag = BossUnitTags[i]
 
@@ -359,7 +362,7 @@ local function onTrialDummy(_, _, _, _, _, _, _, _, _, _, _, _, _, _, sourceUnit
 end
 
 ---@class UnitCacheData
----@field New fun(): UnitCacheData
+---@field New fun(self: UnitCacheData,rawName: string, unitId:integer, unitType: CombatUnitType, unitTag: string?): UnitCacheData
 ---@field unitTags { [string]: string }
 UnitHandler = ZO_InitializingObject:Subclass() -- internal object to store everything about a unit
 
@@ -464,7 +467,7 @@ function UnitHandler:Update(rawName, unitType, unitTag)
 	end
 
 	if unitType and self.unitType ~= unitType then
-		logger.Debug("unitType changed: %d -> %d %s (%d)", self.unitType, unitType, self.name, self.unitId)
+		logger:Debug("unitType changed: %d -> %d %s (%d)", self.unitType, unitType, self.name, self.unitId)
 		self.unitType = unitType
 		self:UpdateFriendlyStatus()
 	end
@@ -603,7 +606,7 @@ end
 -- Unit object for exporting info
 
 ---@class UnitAPIHandler
----@field New fun(integer):UnitAPIHandler
+---@field New fun(self:UnitAPIHandler, unitId:integer):UnitAPIHandler
 local UnitAPIHandler = ZO_InitializingObject:Subclass() -- object to expose data about units
 
 ---@param unitId integer
@@ -666,7 +669,7 @@ function UnitAPIHandler:GetUnitRawName()
 	end
 end
 
----@return CombatUnitType
+---@return CombatUnitType?
 function UnitAPIHandler:GetUnitType()
 	if self:IsValid() then
 		return UnitCache[self.unitId].unitType
@@ -691,7 +694,7 @@ function UnitAPIHandler:IsFriendly()
 	end
 end
 
----@return number
+---@return number?
 function UnitAPIHandler:GetMaxHealth()
 	if self:IsValid() then
 		return UnitCache[self.unitId].maxHealth
@@ -778,6 +781,8 @@ local function InitDebugPanel()
 
 	tlw:SetMouseEnabled(true)
 	tlw:SetMovable(true)
+
+	---@diagnostic disable-next-line: missing-parameter
 	tlw:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, 0, 0)
 	tlw:SetDimensions(500, 1000)
 

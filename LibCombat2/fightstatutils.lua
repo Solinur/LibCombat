@@ -18,7 +18,7 @@ local isFileInitialized = false
 ---@param fight Fight
 ---@return {[integer]: boolean} unitIds
 function lib.GetFriendlyUnits(fight)
-	unitIds = {}
+	local unitIds = {}
 
 	for unitId, unit in pairs(fight.units) do
 		---@cast unit UnitData
@@ -32,7 +32,7 @@ end
 ---@param fight Fight
 ---@return {[integer]: boolean} unitIds
 function lib.GetEnemyUnits(fight)
-	unitIds = {}
+	local unitIds = {}
 
 	for unitId, unit in pairs(fight.units) do
 		---@cast unit UnitData
@@ -68,8 +68,8 @@ end
 --- Returns aggregated data of damage done by a unit to specified target units with specified abilities
 ---@param fight Fight
 ---@param sourceUnitId integer
----@param targetUnitIds {[integer]: bool} | nil -- if nil, all enemy units
----@param abilityIds {[integer]: bool} | nil -- if nil, all abilities
+---@param targetUnitIds {[integer]: boolean} | nil -- if nil, all enemy units
+---@param abilityIds {[integer]: boolean} | nil -- if nil, all abilities
 ---@param dataOut DamageAbilityData | nil -- if provided, will be used to store the result
 ---@return DamageAbilityData | nil
 local function GetUnitDamageDoneToUnits(fight, sourceUnitId, targetUnitIds, abilityIds, dataOut)
@@ -102,8 +102,8 @@ end
 
 --- Returns aggregated data of damage done by the player to specified target units with specified abilities
 ---@param fight Fight
----@param targetUnitIds {[integer]: bool} | nil -- if nil, all enemy units
----@param abilityIds {[integer]: bool} | nil -- if nil, all abilities
+---@param targetUnitIds {[integer]: boolean} | nil -- if nil, all enemy units
+---@param abilityIds {[integer]: boolean} | nil -- if nil, all abilities
 ---@return DamageAbilityData | nil
 function lib.GetPlayerDamageDoneToUnits(fight, targetUnitIds, abilityIds)
 	local playerId = fight.unitIds.player
@@ -112,8 +112,8 @@ end
 
 --- Returns aggregated data of damage done by all units to specified target units with specified abilities
 ---@param fight Fight
----@param targetUnitIds {[integer]: bool} | nil -- if nil, all enemy units
----@param abilityIds {[integer]: bool} | nil -- if nil, all abilities
+---@param targetUnitIds {[integer]: boolean} | nil -- if nil, all enemy units
+---@param abilityIds {[integer]: boolean} | nil -- if nil, all abilities
 ---@return DamageAbilityData | nil
 function lib.GetAllDamageDoneToUnits(fight, targetUnitIds, abilityIds)
 	local data = fight.damageDone
@@ -129,8 +129,8 @@ end
 --- Returns aggregated data of damage received by a unit from specified source units with specified abilities
 ---@param fight Fight
 ---@param targetUnitId integer
----@param sourceUnitIds {[integer]: bool} | nil -- if nil, all enemy units
----@param abilityIds {[integer]: bool} | nil -- if nil, all abilities
+---@param sourceUnitIds {[integer]: boolean} | nil -- if nil, all enemy units
+---@param abilityIds {[integer]: boolean} | nil -- if nil, all abilities
 ---@param dataOut DamageAbilityData | nil -- if provided, will be used to store the result
 ---@return DamageAbilityData | nil
 local function GetUnitDamageReceivedByUnits(fight, targetUnitId, sourceUnitIds, abilityIds, dataOut)
@@ -164,8 +164,8 @@ end
 
 --- Returns aggregated data of damage received by the player from specified source units with specified abilities
 ---@param fight Fight
----@param sourceUnitIds {[integer]: bool} | nil -- if nil, all enemy units
----@param abilityIds {[integer]: bool} | nil -- if nil, all abilities
+---@param sourceUnitIds {[integer]: boolean} | nil -- if nil, all enemy units
+---@param abilityIds {[integer]: boolean} | nil -- if nil, all abilities
 ---@return DamageAbilityData | nil
 function lib.GetPlayerDamageReceivedByUnits(fight, sourceUnitIds, abilityIds)
 	local playerId = fight.unitIds.player
@@ -174,8 +174,8 @@ end
 
 --- Returns aggregated data of damage received by all units from specified source units with specified abilities
 ---@param fight Fight
----@param sourceUnitIds {[integer]: bool} | nil -- if nil, all enemy units
----@param abilityIds {[integer]: bool} | nil -- if nil, all abilities
+---@param sourceUnitIds {[integer]: boolean} | nil -- if nil, all enemy units
+---@param abilityIds {[integer]: boolean} | nil -- if nil, all abilities
 ---@return DamageAbilityData | nil
 function lib.GetAllDamageReceivedByUnits(fight, sourceUnitIds, abilityIds)
 	local data = fight.damageReceived
@@ -212,8 +212,8 @@ end
 ---
 ---@param fight Fight
 ---@param sourceUnitId integer
----@param targetUnitIds {[integer]: bool} | nil -- if nil, all friendly units
----@param abilityIds {[integer]: bool} | nil -- if nil, all abilities
+---@param targetUnitIds {[integer]: boolean} | nil -- if nil, all friendly units
+---@param abilityIds {[integer]: boolean} | nil -- if nil, all abilities
 ---@param dataOut HealAbilityData | nil -- if provided, will be used to store the result
 ---@return HealAbilityData | nil
 function lib.GetUnitHealingDoneToUnits(fight, sourceUnitId, targetUnitIds, abilityIds, dataOut)
@@ -247,8 +247,8 @@ end
 
 --- Returns aggregated data of healing done by the player to specified target units with specified abilities
 ---@param fight Fight
----@param targetUnitIds {[integer]: bool} | nil -- if nil, all friendly units
----@param abilityIds {[integer]: bool} | nil -- if nil, all abilities
+---@param targetUnitIds {[integer]: boolean} | nil -- if nil, all friendly units
+---@param abilityIds {[integer]: boolean} | nil -- if nil, all abilities
 ---@return HealAbilityData | nil
 function lib.GetPlayerHealingDoneToUnits(fight, targetUnitIds, abilityIds)
 	local playerId = fight.unitIds.player
@@ -256,8 +256,8 @@ function lib.GetPlayerHealingDoneToUnits(fight, targetUnitIds, abilityIds)
 end
 
 ---@param fight Fight
----@param targetUnitIds {[integer]: bool} | nil -- if nil, all friendly units
----@param abilityIds {[integer]: bool} | nil -- if nil, all abilities
+---@param targetUnitIds {[integer]: boolean} | nil -- if nil, all friendly units
+---@param abilityIds {[integer]: boolean} | nil -- if nil, all abilities
 ---@return HealAbilityData | nil
 function lib.GetAllHealingDoneToUnits(fight, targetUnitIds, abilityIds)
 	local data = fight.healingDone
@@ -272,8 +272,8 @@ end
 --- Returns aggregated data of healing received by a unit from specified source units with specified abilities
 ---@param fight Fight
 ---@param targetUnitId integer
----@param sourceUnitIds {[integer]: bool} | nil -- if nil, all friendly units
----@param abilityIds {[integer]: bool} | nil -- if nil, all abilities
+---@param sourceUnitIds {[integer]: boolean} | nil -- if nil, all friendly units
+---@param abilityIds {[integer]: boolean} | nil -- if nil, all abilities
 ---@return HealAbilityData | nil
 function lib.GetUnitHealingReceivedByUnits(fight, targetUnitId, sourceUnitIds, abilityIds, dataOut)
 	local data = fight.healingReceived[targetUnitId]
@@ -306,8 +306,8 @@ end
 
 --- Returns aggregated data of healing received by the player from specified source units with specified abilities
 ---@param fight Fight
----@param sourceUnitIds {[integer]: bool} | nil -- if nil, all friendly units
----@param abilityIds {[integer]: bool} | nil -- if nil, all abilities
+---@param sourceUnitIds {[integer]: boolean} | nil -- if nil, all friendly units
+---@param abilityIds {[integer]: boolean} | nil -- if nil, all abilities
 ---@return HealAbilityData | nil
 function lib.GetPlayerHealingReceivedByUnits(fight, sourceUnitIds, abilityIds)
 	local playerId = fight.unitIds.player
@@ -315,8 +315,8 @@ function lib.GetPlayerHealingReceivedByUnits(fight, sourceUnitIds, abilityIds)
 end
 --- Returns aggregated data of healing received by all units from specified source units with specified abilities
 ---@param fight Fight
----@param sourceUnitIds {[integer]: bool} | nil -- if nil, all friendly units
----@param abilityIds {[integer]: bool} | nil -- if nil, all abilities
+---@param sourceUnitIds {[integer]: boolean} | nil -- if nil, all friendly units
+---@param abilityIds {[integer]: boolean} | nil -- if nil, all abilities
 ---@return HealAbilityData | nil
 function lib.GetAllHealingReceivedByUnits(fight, sourceUnitIds, abilityIds)
 	local data = fight.healingReceived

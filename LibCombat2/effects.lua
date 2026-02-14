@@ -84,6 +84,7 @@ local function GetUnitData(fight, unitId)
 end
 
 local function InitEffectdata(unitData, abilityId, effectType)
+	---@class EffectData
 	local effectData = {
 		name = lib.GetFormattedAbilityName(abilityId),
 		iconId = abilityId,
@@ -131,8 +132,11 @@ local function GetEffectData(fight, unitId, abilityId, effectType)
 end
 
 -- Log Handling --
+---@class LogProcessorEffects: LogProcessingHandler
 local LogProcessorEffects = lf.LogProcessingHandler:New("effects", LIBCOMBAT_LOG_EVENT_EFFECT)
 
+---@class Fight
+---@field effects {[integer]: EffectData}  -- levels: [sourceUnitId][targetUnitId][abilityId]
 function LogProcessorEffects:onInitilizeFight(fight)
 	if self.active ~= true then
 		return
@@ -664,10 +668,18 @@ local function SpecialBuffEventHandler(
 
 	local effectType = isdebuff and BUFF_EFFECT_TYPE_DEBUFF or BUFF_EFFECT_TYPE_BUFF
 	local endTime = now + duration / 1000
-	local unitTag = libint.currentFight.units
+	local unitTags = libint.currentFight.units
 			and libint.currentFight.units[targetUnitId]
-			and libint.currentFight.units[targetUnitId].unitTag
+			and libint.currentFight.units[targetUnitId].unitTags
 		or nil
+
+	local unitTag
+	if unitTags ~= nil then
+		for _, tag in pairs(unitTags) do
+			unitTag = tag
+			break
+		end
+	end
 
 	BuffEventHandler(
 		true,
