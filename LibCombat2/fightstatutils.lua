@@ -79,8 +79,7 @@ local function GetUnitDamageDoneToUnits(fight, sourceUnitId, targetUnitIds, abil
 		return
 	end
 
-	targetUnitIds = targetUnitIds or lib.GetEnemyUnits(fight)
-	if NonContiguousCount(targetUnitIds) == 0 then
+	if targetUnitIds == nil or NonContiguousCount(targetUnitIds) == 0 then
 		return
 	end
 
@@ -107,6 +106,7 @@ end
 ---@return DamageAbilityData | nil
 function lib.GetPlayerDamageDoneToUnits(fight, targetUnitIds, abilityIds)
 	local playerId = fight.unitIds.player
+	targetUnitIds = targetUnitIds or lib.GetEnemyUnits(fight)
 	return GetUnitDamageDoneToUnits(fight, playerId, targetUnitIds, abilityIds)
 end
 
@@ -115,15 +115,48 @@ end
 ---@param targetUnitIds {[integer]: boolean} | nil -- if nil, all enemy units
 ---@param abilityIds {[integer]: boolean} | nil -- if nil, all abilities
 ---@return DamageAbilityData | nil
-function lib.GetAllDamageDoneToUnits(fight, targetUnitIds, abilityIds)
+function lib.GetDamageDoneToUnits(fight, targetUnitIds, abilityIds)
 	local data = fight.damageDone
 	local dataOut = lf.InitDamageAbilityData(0)
+	targetUnitIds = targetUnitIds or lib.GetEnemyUnits(fight)
 
 	for sourceUnitId, sourceData in pairs(data) do
 		GetUnitDamageDoneToUnits(fight, sourceUnitId, targetUnitIds, abilityIds, dataOut)
 	end
 
 	return dataOut
+end
+
+---Returns data of damage done by the player
+---@param fight Fight
+---@param unitId integer
+---@return UnitDamageData
+function lib.GetUnitDamageDone(fight, unitId)
+	return fight.damageDone[unitId]
+end
+
+---Returns data of damage received by the player
+---@param fight Fight
+---@param unitId integer
+---@return UnitDamageData
+function lib.GetUnitDamageReceived(fight, unitId)
+	return fight.damageReceived[unitId]
+end
+
+---Returns data of healing done by the player
+---@param fight Fight
+---@param unitId integer
+---@return UnitHealData
+function lib.GetUnitHealingDone(fight, unitId)
+	return fight.healingDone[unitId]
+end
+
+---Returns data of healing received by the player
+---@param fight Fight
+---@param unitId integer
+---@return UnitHealData
+function lib.GetUnitHealingReceived(fight, unitId)
+	return fight.healingDone[unitId]
 end
 
 --- Returns aggregated data of damage received by a unit from specified source units with specified abilities
@@ -140,8 +173,7 @@ local function GetUnitDamageReceivedByUnits(fight, targetUnitId, sourceUnitIds, 
 		return dataOut
 	end
 
-	sourceUnitIds = sourceUnitIds or lib.GetEnemyUnits(fight)
-	if NonContiguousCount(sourceUnitIds) == 0 then
+	if sourceUnitIds == nil or NonContiguousCount(sourceUnitIds) == 0 then
 		return dataOut
 	end
 
@@ -169,6 +201,8 @@ end
 ---@return DamageAbilityData | nil
 function lib.GetPlayerDamageReceivedByUnits(fight, sourceUnitIds, abilityIds)
 	local playerId = fight.unitIds.player
+	sourceUnitIds = sourceUnitIds or lib.GetEnemyUnits(fight)
+
 	return GetUnitDamageReceivedByUnits(fight, playerId, sourceUnitIds, abilityIds)
 end
 
@@ -177,9 +211,10 @@ end
 ---@param sourceUnitIds {[integer]: boolean} | nil -- if nil, all enemy units
 ---@param abilityIds {[integer]: boolean} | nil -- if nil, all abilities
 ---@return DamageAbilityData | nil
-function lib.GetAllDamageReceivedByUnits(fight, sourceUnitIds, abilityIds)
+function lib.GetDamageReceivedByUnits(fight, sourceUnitIds, abilityIds)
 	local data = fight.damageReceived
 	local dataOut = lf.InitDamageAbilityData(0)
+	sourceUnitIds = sourceUnitIds or lib.GetEnemyUnits(fight)
 
 	for sourceUnitId, sourceData in pairs(data) do
 		GetUnitDamageReceivedByUnits(fight, sourceUnitId, sourceUnitIds, abilityIds, dataOut)
@@ -223,8 +258,7 @@ function lib.GetUnitHealingDoneToUnits(fight, sourceUnitId, targetUnitIds, abili
 		return
 	end
 
-	targetUnitIds = targetUnitIds or lib.GetFriendlyUnits(fight)
-	if NonContiguousCount(targetUnitIds) == 0 then
+	if targetUnitIds == nil or NonContiguousCount(targetUnitIds) == 0 then
 		return
 	end
 
@@ -252,6 +286,8 @@ end
 ---@return HealAbilityData | nil
 function lib.GetPlayerHealingDoneToUnits(fight, targetUnitIds, abilityIds)
 	local playerId = fight.unitIds.player
+	targetUnitIds = targetUnitIds or lib.GetFriendlyUnits(fight)
+
 	return lib.GetUnitHealingDoneToUnits(fight, playerId, targetUnitIds, abilityIds)
 end
 
@@ -259,9 +295,10 @@ end
 ---@param targetUnitIds {[integer]: boolean} | nil -- if nil, all friendly units
 ---@param abilityIds {[integer]: boolean} | nil -- if nil, all abilities
 ---@return HealAbilityData | nil
-function lib.GetAllHealingDoneToUnits(fight, targetUnitIds, abilityIds)
+function lib.GetHealingDoneToUnits(fight, targetUnitIds, abilityIds)
 	local data = fight.healingDone
 	local dataOut = lf.InitHealAbilityData(0)
+	targetUnitIds = targetUnitIds or lib.GetFriendlyUnits(fight)
 
 	for sourceUnitId, sourceData in pairs(data) do
 		lib.GetUnitHealingDoneToUnits(fight, sourceUnitId, targetUnitIds, abilityIds, dataOut)
@@ -282,8 +319,7 @@ function lib.GetUnitHealingReceivedByUnits(fight, targetUnitId, sourceUnitIds, a
 		return
 	end
 
-	sourceUnitIds = sourceUnitIds or lib.GetFriendlyUnits(fight)
-	if NonContiguousCount(sourceUnitIds) == 0 then
+	if sourceUnitIds == nil or NonContiguousCount(sourceUnitIds) == 0 then
 		return
 	end
 
@@ -311,6 +347,8 @@ end
 ---@return HealAbilityData | nil
 function lib.GetPlayerHealingReceivedByUnits(fight, sourceUnitIds, abilityIds)
 	local playerId = fight.unitIds.player
+	sourceUnitIds = sourceUnitIds or lib.GetFriendlyUnits(fight)
+
 	return lib.GetUnitHealingReceivedByUnits(fight, playerId, sourceUnitIds, abilityIds)
 end
 --- Returns aggregated data of healing received by all units from specified source units with specified abilities
@@ -318,9 +356,10 @@ end
 ---@param sourceUnitIds {[integer]: boolean} | nil -- if nil, all friendly units
 ---@param abilityIds {[integer]: boolean} | nil -- if nil, all abilities
 ---@return HealAbilityData | nil
-function lib.GetAllHealingReceivedByUnits(fight, sourceUnitIds, abilityIds)
+function lib.GetHealingReceivedByUnits(fight, sourceUnitIds, abilityIds)
 	local data = fight.healingReceived
 	local dataOut = lf.InitHealAbilityData(0)
+	sourceUnitIds = sourceUnitIds or lib.GetFriendlyUnits(fight)
 
 	for sourceUnitId, sourceData in pairs(data) do
 		lib.GetUnitHealingReceivedByUnits(fight, sourceUnitId, sourceUnitIds, abilityIds, dataOut)
