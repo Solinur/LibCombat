@@ -1500,6 +1500,10 @@ function FightHandler:PrepareFight()
 		charData.level = GetUnitLevel("player")
 		charData.roleId = GetSelectedLFGRole()
 		charData.CPtotal = GetUnitChampionPoints("player")
+		charData.APHealth = GetAttributeSpentPoints(ATTRIBUTE_HEALTH)
+		charData.APMagicka = GetAttributeSpentPoints(ATTRIBUTE_MAGICKA)
+		charData.APStam = GetAttributeSpentPoints(ATTRIBUTE_STAMINA)
+		charData.Curse = GetPlayerCurseType()
 
 		self.CP = GetCurrentCP()
 
@@ -4630,69 +4634,66 @@ Events.General = EventHandler:New(GetAllCallbackTypes(), function(self)
 	self.active = true
 end)
 
-Events.DmgOut = EventHandler:New(
-	{
-		LIBCOMBAT_EVENT_FIGHTRECAP,
-		LIBCOMBAT_EVENT_FIGHTSUMMARY,
-		LIBCOMBAT_EVENT_DAMAGE_OUT,
-		LIBCOMBAT_EVENT_DAMAGE_SELF,
-	},
-	function(self)
-		self:RegisterEvent(EVENT_BOSSES_CHANGED, onBossesChanged)
-		local filters = {
-			ACTION_RESULT_DAMAGE,
-			ACTION_RESULT_DOT_TICK,
-			ACTION_RESULT_BLOCKED_DAMAGE,
-			ACTION_RESULT_CRITICAL_DAMAGE,
-			ACTION_RESULT_DOT_TICK_CRITICAL,
-		}
-		for i = 1, #filters do
-			self:RegisterEvent(
-				EVENT_COMBAT_EVENT,
-				onCombatEventDmg,
-				REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE,
-				COMBAT_UNIT_TYPE_PLAYER,
-				REGISTER_FILTER_COMBAT_RESULT,
-				filters[i],
-				REGISTER_FILTER_IS_ERROR,
-				false
-			)
-			self:RegisterEvent(
-				EVENT_COMBAT_EVENT,
-				onCombatEventDmg,
-				REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE,
-				COMBAT_UNIT_TYPE_PLAYER_PET,
-				REGISTER_FILTER_COMBAT_RESULT,
-				filters[i],
-				REGISTER_FILTER_IS_ERROR,
-				false
-			)
-		end
-
+Events.DmgOut = EventHandler:New({
+	LIBCOMBAT_EVENT_FIGHTRECAP,
+	LIBCOMBAT_EVENT_FIGHTSUMMARY,
+	LIBCOMBAT_EVENT_DAMAGE_OUT,
+	LIBCOMBAT_EVENT_DAMAGE_SELF,
+}, function(self)
+	self:RegisterEvent(EVENT_BOSSES_CHANGED, onBossesChanged)
+	local filters = {
+		ACTION_RESULT_DAMAGE,
+		ACTION_RESULT_DOT_TICK,
+		ACTION_RESULT_BLOCKED_DAMAGE,
+		ACTION_RESULT_CRITICAL_DAMAGE,
+		ACTION_RESULT_DOT_TICK_CRITICAL,
+	}
+	for i = 1, #filters do
 		self:RegisterEvent(
 			EVENT_COMBAT_EVENT,
-			onCombatEventShield,
+			onCombatEventDmg,
 			REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE,
 			COMBAT_UNIT_TYPE_PLAYER,
 			REGISTER_FILTER_COMBAT_RESULT,
-			ACTION_RESULT_DAMAGE_SHIELDED,
+			filters[i],
 			REGISTER_FILTER_IS_ERROR,
 			false
 		)
 		self:RegisterEvent(
 			EVENT_COMBAT_EVENT,
-			onCombatEventShield,
+			onCombatEventDmg,
 			REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE,
 			COMBAT_UNIT_TYPE_PLAYER_PET,
 			REGISTER_FILTER_COMBAT_RESULT,
-			ACTION_RESULT_DAMAGE_SHIELDED,
+			filters[i],
 			REGISTER_FILTER_IS_ERROR,
 			false
 		)
-
-		self.active = true
 	end
-)
+
+	self:RegisterEvent(
+		EVENT_COMBAT_EVENT,
+		onCombatEventShield,
+		REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE,
+		COMBAT_UNIT_TYPE_PLAYER,
+		REGISTER_FILTER_COMBAT_RESULT,
+		ACTION_RESULT_DAMAGE_SHIELDED,
+		REGISTER_FILTER_IS_ERROR,
+		false
+	)
+	self:RegisterEvent(
+		EVENT_COMBAT_EVENT,
+		onCombatEventShield,
+		REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE,
+		COMBAT_UNIT_TYPE_PLAYER_PET,
+		REGISTER_FILTER_COMBAT_RESULT,
+		ACTION_RESULT_DAMAGE_SHIELDED,
+		REGISTER_FILTER_IS_ERROR,
+		false
+	)
+
+	self.active = true
+end)
 
 Events.DmgIn = EventHandler:New(
 	{ LIBCOMBAT_EVENT_FIGHTRECAP, LIBCOMBAT_EVENT_FIGHTSUMMARY, LIBCOMBAT_EVENT_DAMAGE_IN },
@@ -4861,150 +4862,147 @@ Events.CombatGrp = EventHandler:New({ LIBCOMBAT_EVENT_FIGHTRECAP, LIBCOMBAT_EVEN
 	self.active = true
 end)
 
-Events.Effects = EventHandler:New(
-	{
-		LIBCOMBAT_EVENT_EFFECTS_IN,
-		LIBCOMBAT_EVENT_EFFECTS_OUT,
-		LIBCOMBAT_EVENT_GROUPEFFECTS_IN,
-		LIBCOMBAT_EVENT_GROUPEFFECTS_OUT,
-	},
-	function(self)
-		self:RegisterEvent(
-			EVENT_EFFECT_CHANGED,
-			onEffectChanged,
-			REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE,
-			COMBAT_UNIT_TYPE_PLAYER
-		)
-		self:RegisterEvent(
-			EVENT_EFFECT_CHANGED,
-			onEffectChanged,
-			REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE,
-			COMBAT_UNIT_TYPE_PLAYER_PET
-		)
-		self:RegisterEvent(
-			EVENT_EFFECT_CHANGED,
-			onEffectChanged,
-			REGISTER_FILTER_UNIT_TAG,
-			"player",
-			REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE,
-			COMBAT_UNIT_TYPE_NONE
-		)
-		self:RegisterEvent(
-			EVENT_EFFECT_CHANGED,
-			onEffectChanged,
-			REGISTER_FILTER_UNIT_TAG,
-			"player",
-			REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE,
-			COMBAT_UNIT_TYPE_GROUP
-		)
-		self:RegisterEvent(
-			EVENT_EFFECT_CHANGED,
-			onEffectChanged,
-			REGISTER_FILTER_UNIT_TAG,
-			"player",
-			REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE,
-			COMBAT_UNIT_TYPE_TARGET_DUMMY
-		)
-		self:RegisterEvent(
-			EVENT_EFFECT_CHANGED,
-			onEffectChanged,
-			REGISTER_FILTER_UNIT_TAG,
-			"player",
-			REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE,
-			COMBAT_UNIT_TYPE_OTHER
-		)
+Events.Effects = EventHandler:New({
+	LIBCOMBAT_EVENT_EFFECTS_IN,
+	LIBCOMBAT_EVENT_EFFECTS_OUT,
+	LIBCOMBAT_EVENT_GROUPEFFECTS_IN,
+	LIBCOMBAT_EVENT_GROUPEFFECTS_OUT,
+}, function(self)
+	self:RegisterEvent(
+		EVENT_EFFECT_CHANGED,
+		onEffectChanged,
+		REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE,
+		COMBAT_UNIT_TYPE_PLAYER
+	)
+	self:RegisterEvent(
+		EVENT_EFFECT_CHANGED,
+		onEffectChanged,
+		REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE,
+		COMBAT_UNIT_TYPE_PLAYER_PET
+	)
+	self:RegisterEvent(
+		EVENT_EFFECT_CHANGED,
+		onEffectChanged,
+		REGISTER_FILTER_UNIT_TAG,
+		"player",
+		REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE,
+		COMBAT_UNIT_TYPE_NONE
+	)
+	self:RegisterEvent(
+		EVENT_EFFECT_CHANGED,
+		onEffectChanged,
+		REGISTER_FILTER_UNIT_TAG,
+		"player",
+		REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE,
+		COMBAT_UNIT_TYPE_GROUP
+	)
+	self:RegisterEvent(
+		EVENT_EFFECT_CHANGED,
+		onEffectChanged,
+		REGISTER_FILTER_UNIT_TAG,
+		"player",
+		REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE,
+		COMBAT_UNIT_TYPE_TARGET_DUMMY
+	)
+	self:RegisterEvent(
+		EVENT_EFFECT_CHANGED,
+		onEffectChanged,
+		REGISTER_FILTER_UNIT_TAG,
+		"player",
+		REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE,
+		COMBAT_UNIT_TYPE_OTHER
+	)
 
-		for i = 1, #SpecialBuffs do
-			self:RegisterEvent(
-				EVENT_COMBAT_EVENT,
-				onSpecialBuffEvent,
-				REGISTER_FILTER_COMBAT_RESULT,
-				ACTION_RESULT_EFFECT_GAINED_DURATION,
-				REGISTER_FILTER_ABILITY_ID,
-				SpecialBuffs[i],
-				REGISTER_FILTER_IS_ERROR,
-				false
-			)
-			self:RegisterEvent(
-				EVENT_COMBAT_EVENT,
-				onSpecialBuffEvent,
-				REGISTER_FILTER_COMBAT_RESULT,
-				ACTION_RESULT_EFFECT_FADED,
-				REGISTER_FILTER_ABILITY_ID,
-				SpecialBuffs[i],
-				REGISTER_FILTER_IS_ERROR,
-				false
-			)
-			self:RegisterEvent(
-				EVENT_COMBAT_EVENT,
-				onSpecialBuffEvent,
-				REGISTER_FILTER_COMBAT_RESULT,
-				ACTION_RESULT_EFFECT_GAINED,
-				REGISTER_FILTER_ABILITY_ID,
-				SpecialBuffs[i],
-				REGISTER_FILTER_IS_ERROR,
-				false
-			)
-		end
-
-		for i = 1, #SpecialDebuffs do
-			self:RegisterEvent(
-				EVENT_COMBAT_EVENT,
-				onSpecialDebuffEvent,
-				REGISTER_FILTER_COMBAT_RESULT,
-				ACTION_RESULT_EFFECT_GAINED_DURATION,
-				REGISTER_FILTER_ABILITY_ID,
-				SpecialDebuffs[i],
-				REGISTER_FILTER_IS_ERROR,
-				false
-			)
-			self:RegisterEvent(
-				EVENT_COMBAT_EVENT,
-				onSpecialDebuffEvent,
-				REGISTER_FILTER_COMBAT_RESULT,
-				ACTION_RESULT_EFFECT_FADED,
-				REGISTER_FILTER_ABILITY_ID,
-				SpecialDebuffs[i],
-				REGISTER_FILTER_IS_ERROR,
-				false
-			)
-			self:RegisterEvent(
-				EVENT_COMBAT_EVENT,
-				onSpecialDebuffEvent,
-				REGISTER_FILTER_COMBAT_RESULT,
-				ACTION_RESULT_EFFECT_GAINED,
-				REGISTER_FILTER_ABILITY_ID,
-				SpecialDebuffs[i],
-				REGISTER_FILTER_IS_ERROR,
-				false
-			)
-		end
-
-		for i = 1, #SourceBuggedBuffs do
-			self:RegisterEvent(
-				EVENT_EFFECT_CHANGED,
-				onSourceBuggedEffectChanged,
-				REGISTER_FILTER_ABILITY_ID,
-				SourceBuggedBuffs[i]
-			)
-		end
-
+	for i = 1, #SpecialBuffs do
 		self:RegisterEvent(
 			EVENT_COMBAT_EVENT,
-			onTrialDummy,
-			REGISTER_FILTER_ABILITY_ID,
-			120024,
+			onSpecialBuffEvent,
 			REGISTER_FILTER_COMBAT_RESULT,
-			ACTION_RESULT_EFFECT_GAINED,
-			REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE,
-			COMBAT_UNIT_TYPE_TARGET_DUMMY,
+			ACTION_RESULT_EFFECT_GAINED_DURATION,
+			REGISTER_FILTER_ABILITY_ID,
+			SpecialBuffs[i],
 			REGISTER_FILTER_IS_ERROR,
 			false
 		)
-
-		self.active = true
+		self:RegisterEvent(
+			EVENT_COMBAT_EVENT,
+			onSpecialBuffEvent,
+			REGISTER_FILTER_COMBAT_RESULT,
+			ACTION_RESULT_EFFECT_FADED,
+			REGISTER_FILTER_ABILITY_ID,
+			SpecialBuffs[i],
+			REGISTER_FILTER_IS_ERROR,
+			false
+		)
+		self:RegisterEvent(
+			EVENT_COMBAT_EVENT,
+			onSpecialBuffEvent,
+			REGISTER_FILTER_COMBAT_RESULT,
+			ACTION_RESULT_EFFECT_GAINED,
+			REGISTER_FILTER_ABILITY_ID,
+			SpecialBuffs[i],
+			REGISTER_FILTER_IS_ERROR,
+			false
+		)
 	end
-)
+
+	for i = 1, #SpecialDebuffs do
+		self:RegisterEvent(
+			EVENT_COMBAT_EVENT,
+			onSpecialDebuffEvent,
+			REGISTER_FILTER_COMBAT_RESULT,
+			ACTION_RESULT_EFFECT_GAINED_DURATION,
+			REGISTER_FILTER_ABILITY_ID,
+			SpecialDebuffs[i],
+			REGISTER_FILTER_IS_ERROR,
+			false
+		)
+		self:RegisterEvent(
+			EVENT_COMBAT_EVENT,
+			onSpecialDebuffEvent,
+			REGISTER_FILTER_COMBAT_RESULT,
+			ACTION_RESULT_EFFECT_FADED,
+			REGISTER_FILTER_ABILITY_ID,
+			SpecialDebuffs[i],
+			REGISTER_FILTER_IS_ERROR,
+			false
+		)
+		self:RegisterEvent(
+			EVENT_COMBAT_EVENT,
+			onSpecialDebuffEvent,
+			REGISTER_FILTER_COMBAT_RESULT,
+			ACTION_RESULT_EFFECT_GAINED,
+			REGISTER_FILTER_ABILITY_ID,
+			SpecialDebuffs[i],
+			REGISTER_FILTER_IS_ERROR,
+			false
+		)
+	end
+
+	for i = 1, #SourceBuggedBuffs do
+		self:RegisterEvent(
+			EVENT_EFFECT_CHANGED,
+			onSourceBuggedEffectChanged,
+			REGISTER_FILTER_ABILITY_ID,
+			SourceBuggedBuffs[i]
+		)
+	end
+
+	self:RegisterEvent(
+		EVENT_COMBAT_EVENT,
+		onTrialDummy,
+		REGISTER_FILTER_ABILITY_ID,
+		120024,
+		REGISTER_FILTER_COMBAT_RESULT,
+		ACTION_RESULT_EFFECT_GAINED,
+		REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE,
+		COMBAT_UNIT_TYPE_TARGET_DUMMY,
+		REGISTER_FILTER_IS_ERROR,
+		false
+	)
+
+	self.active = true
+end)
 
 Events.GroupEffectsIn = EventHandler:New({ LIBCOMBAT_EVENT_GROUPEFFECTS_IN }, function(self)
 	self:RegisterEvent(
