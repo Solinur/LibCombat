@@ -1504,6 +1504,12 @@ function FightHandler:PrepareFight()
 		charData.APMagicka = GetAttributeSpentPoints(ATTRIBUTE_MAGICKA)
 		charData.APStam = GetAttributeSpentPoints(ATTRIBUTE_STAMINA)
 		charData.Curse = GetPlayerCurseType()
+		charData.SkillLines = {}
+
+		local subClassingLines = SKILLS_DATA_MANAGER.activeClassSkillLineDataList
+		for i = 1, 3 do
+			charData.SkillLines[i] = subClassingLines[i].id
+		end
 
 		self.CP = GetCurrentCP()
 
@@ -1561,6 +1567,25 @@ local function GetEquip()
 	return equip
 end
 
+function GetPassiveSkills()
+	local passiveSkills = {}
+	if SKILLS_DATA_MANAGER == nil or SKILLS_DATA_MANAGER.passiveSkillObjectPool == nil then
+		return passiveSkills
+	end
+	local passives = SKILLS_DATA_MANAGER.passiveSkillObjectPool:GetActiveObjects()
+
+	for _, passiveData in pairs(passives) do
+		local skillType = passiveData.skillLineData.skillTypeData.skillType
+
+		if skillType < 8 and passiveData.isPurchased then
+			local rank = passiveData.currentRank
+			local abilityId = passiveData.skillProgressions[rank].abilityId
+			table.insert(passiveSkills, abilityId)
+		end
+	end
+	return passiveSkills
+end
+
 function FightHandler:FinishFight()
 	Log("fight", LOG_LEVEL_DEBUG, "Finish fight")
 
@@ -1572,6 +1597,7 @@ function FightHandler:FinishFight()
 
 	charData.skillBars = ZO_DeepTableCopy(data.skillBars)
 	charData.scribedSkills = ZO_DeepTableCopy(data.scribedSkills)
+	charData.passiveSkills = GetPassiveSkills()
 	charData.equip = GetEquip()
 
 	local timems = GetGameTimeMilliseconds()
