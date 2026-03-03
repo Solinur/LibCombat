@@ -1,4 +1,4 @@
-﻿86 DL 
+﻿86 DL 4,811,729 (03.03.2026) 13:12
 [*] Added additional info to charData to support CMX build export
 
 85 DL 4,750,750 (28.01.2026) 21:51 
