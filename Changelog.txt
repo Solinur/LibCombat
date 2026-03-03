@@ -1,4 +1,7 @@
-﻿85 DL 4,750,750 (28.01.2026) 21:51 
+﻿86 DL 4,811,729 (03.03.2026) 13:12
+[*] Added additional info to charData to support CMX build export
+
+85 DL 4,750,750 (28.01.2026) 21:51 
 [*] Fixed missing formatting of ability names in GetFormattedAbilityName (thx Baertram for the report)
 [*] Improved fight separation for dueling (thx wjtk4444 for the report) .
 [*] Fix sprint detection for Resources tracking
