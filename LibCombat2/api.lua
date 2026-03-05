@@ -69,7 +69,6 @@ function lib.GetCurrentMainTargetDamageDone()
 end
 
 ---Returns player and total damage done to the all non-friendly targets as well as the durations during which the damage occured.
----
 ---@return number playerTime
 ---@return integer playerDamage
 ---@return number totalTime
@@ -88,7 +87,6 @@ function lib.GetCurrentTotalDamageDone()
 end
 
 ---Returns player and group damage received as well as the durations during which the damage occured.
----
 ---@return number playerTime
 ---@return integer playerDamage
 ---@return number totalTime
@@ -104,6 +102,33 @@ function lib.GetCurrentTotalDamageReceived()
 	end
 
 	return fight:GetDamageToUnits(unitIds)
+end
+
+---Returns player and group healing done as well as the durations during which the healing occured.
+---@param overheal boolean
+---@return number playerTime
+---@return integer playerHealingOut
+---@return number groupTime
+---@return integer groupHealingOut
+function lib.GetCurrentHealingDone(overheal)
+	local fight = libint.currentFight
+	local playerTime, playerHealingOut, playerHealingOutOverflow, groupTime, groupHealingOut, groupHealingOutOverflow =
+		fight:GetHealingDone()
+
+	if overheal then
+		local playerHealingAbsolute = playerHealingOut + playerHealingOutOverflow
+		local groupHealingAbsolute = groupHealingOut + groupHealingOutOverflow
+		return playerTime, playerHealingAbsolute, groupTime, groupHealingAbsolute
+	end
+
+	return playerTime, playerHealingOut, groupTime, groupHealingOut
+end
+
+---Returns player healing received as well as the duration during which the healing occured.
+---@return number playerTime
+---@return integer playerHealingReceived
+function lib.GetCurrentPlayerHealingReceived()
+	return libint.currentFight:GetPlayerHealingReceived()
 end
 
 --- Callbacks
