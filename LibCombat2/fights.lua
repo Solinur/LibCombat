@@ -14,8 +14,7 @@ local lf = libint.functions
 local logger
 
 local isFileInitialized = false
-local reset = false
-local timeout = 800
+local OUT_OF_COMBAT_TIMEOUT = 800
 local _
 
 local function GetCurrentCP()
@@ -189,16 +188,16 @@ function FightHandler:Initialize()
 	self.CP = GetCurrentCP()
 end
 
-function FightHandler:ResetFight()
+function FightHandler:ForceReset()
 	logger:Debug("Reset Fight")
 
 	if ld.inCombat ~= true then
 		return
 	end
-	reset = true
 
 	self:FinishFight()
-	self:onUpdate()
+	self:Update()
+	self:Reset()
 
 	libint.currentFight:PrepareFight()
 	libint.onCombatState(EVENT_PLAYER_COMBAT_STATE, IsUnitInCombat("player"))
@@ -267,7 +266,7 @@ function FightHandler:PrepareFight()
 	end
 
 	EVENT_MANAGER:RegisterForUpdate("LibCombat_update", 500, function()
-		self:onUpdate()
+		self:Update()
 	end)
 end
 
@@ -511,7 +510,7 @@ end
 ---@return number time
 ---@return integer playerHealingReceived
 function FightHandler:GetPlayerHealingReceived()
-	local playerUnitData = self.healingReceived and self.healingDone[self.unitIds.player] or nil
+	local playerUnitData = self.healingReceived and self.healingReceived[self.unitIds.player] or nil
 	if playerUnitData == nil then
 		return 0, 0
 	end
@@ -558,33 +557,36 @@ local function PrintCombatStats()
 	logger:Info("MT: %.0f, %.3fs / %.0f, %.3fs", playerDPSOut, playerDPSTime, groupDPSOut, groupDPSTime)
 end
 
-function FightHandler:onUpdate()
+function FightHandler:CheckReset()
+	local combatEnd = self.info.combatEnd
+	local timeNow = GetGameTimeMilliseconds()
+	local isTimeout = combatEnd ~= nil and timeNow > (combatEnd + OUT_OF_COMBAT_TIMEOUT)
+
+	if ld.inCombat == false and isTimeout then
+		self:Reset()
+	end
+end
+
+function FightHandler:Update()
 	libint.onCombatState(EVENT_PLAYER_COMBAT_STATE, IsUnitInCombat("player"))
 	UpdateStats()
 
-	--reset data
-	if
-		reset == true
-		or (
-			ld.inCombat == false
-			and self.info.combatEnd ~= nil
-			and (GetGameTimeMilliseconds() > (self.info.combatEnd + timeout))
-		)
-	then
-		lf.FireCallback(LIBCOMBAT_EVENT_FIGHTSUMMARY, self)
-		EVENT_MANAGER:UnregisterForUpdate("LibCombat_update")
-		logger:Debug("resetting...")
-		reset = false
+	self:CheckReset() --TODO: Trigger on combat event, discard reset if neccessary.
+end
 
+function FightHandler:Reset()
+	EVENT_MANAGER:UnregisterForUpdate("LibCombat_update")
+	logger:Debug("resetting...")
+
+	if self.info.combatStart and self.info.combatEnd then
 		PrintCombatStats()
-
-		libint.lastFight = libint.currentFight
-		LibCombat2_Save = libint.currentFight
-
-		local newFight = FightHandler:New()
-		libint.currentFight = newFight
-		libint.LogProcessingQueue:SetFight(newFight)
+		lf.FireCallback(LIBCOMBAT_EVENT_FIGHTSUMMARY, self)
+		libint.lastFight = self
 	end
+
+	local newFight = FightHandler:New()
+	libint.currentFight = newFight
+	libint.LogProcessingQueue:SetFight(newFight)
 end
 
 function lf.onPlayerActivated()
@@ -656,7 +658,7 @@ local function onPortalWorld(_, changeType)
 end
 
 local function onMageExplode()
-	libint.currentFight:ResetFight() -- special tracking for The Mage in Aetherian Archives. It will reset the fight when the mage encounter starts.
+	libint.currentFight:ForceReset() -- special tracking for The Mage in Aetherian Archives. It will reset the fight when the mage encounter starts.
 end
 
 -- Events

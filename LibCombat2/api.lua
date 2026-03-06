@@ -17,7 +17,7 @@ local isFileInitialized = false
 
 --- Ends the current fight and immediately starts a new one.
 function lib.ResetFight()
-	libint.currentFight:ResetFight()
+	libint.currentFight:ForceReset()
 end
 
 ---Returns if the unitId is the one from the player
