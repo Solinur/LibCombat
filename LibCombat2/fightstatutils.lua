@@ -21,7 +21,6 @@ function lib.GetFriendlyUnits(fight)
 	local unitIds = {}
 
 	for unitId, unit in pairs(fight.units) do
-		---@cast unit UnitData
 		if unit.isFriendly == true then
 			unitIds[#unitIds + 1] = unitId
 		end
@@ -35,7 +34,6 @@ function lib.GetEnemyUnits(fight)
 	local unitIds = {}
 
 	for unitId, unit in pairs(fight.units) do
-		---@cast unit UnitData
 		if unit.isFriendly == false then
 			unitIds[#unitIds + 1] = unitId
 		end

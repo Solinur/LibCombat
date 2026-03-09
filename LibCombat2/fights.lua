@@ -17,6 +17,14 @@ local isFileInitialized = false
 local OUT_OF_COMBAT_TIMEOUT = 800
 local _
 
+local FIGHT_STATE_INITIALIZED = 0
+local FIGHT_STATE_STARTED = 1
+local FIGHT_STATE_TERMINATED = 2
+---@alias FightState integer
+--- | `FIGHT_STATE_INITIALIZED` # 0
+--- | `FIGHT_STATE_STARTED` # 1
+--- | `FIGHT_STATE_TERMINATED` # 2
+
 local function GetCurrentCP()
 	local CP = {}
 	CP.version = 2
@@ -80,15 +88,15 @@ local lastUpdateStats = {}
 local function UpdateStats()
 	local fight = libint.currentFight
 
-	if fight.prepared ~= true then
+	if fight.state < FIGHT_STATE_STARTED then
 		return
 	end
 
-	local playerBossTime, playerBossDamage, groupBossTime, groupBossDamage = lib.GetCurrentMainTargetDamageDone()
+	local playerBossTime, playerBossDamage, groupBossTime, groupBossDamage = lib.GetLatestMainTargetDamageDone()
 	local playerBossDPSOut = get_per_second_value(playerBossDamage, playerBossTime)
 	local groupBossDPSOut = get_per_second_value(groupBossDamage, groupBossTime)
 
-	local playerDPSTime, playerDamageOut, groupDPSTime, groupDamageOut = lib.GetCurrentTotalDamageDone()
+	local playerDPSTime, playerDamageOut, groupDPSTime, groupDamageOut = lib.GetLatestTotalDamageDone()
 	local playerDPSOut = get_per_second_value(playerDamageOut, playerDPSTime)
 	local groupDPSOut = get_per_second_value(groupDamageOut, groupDPSTime)
 
@@ -99,7 +107,7 @@ local function UpdateStats()
 	local groupHPSOut = get_per_second_value(groupHealingOut, groupHPSTime)
 	local groupOHPSOut = get_per_second_value(groupHealingOutOverflow, groupHPSTime)
 
-	local playerDPSInTime, playerDamageIn, groupDPSInTime, groupDamageIn = lib.GetCurrentTotalDamageReceived()
+	local playerDPSInTime, playerDamageIn, groupDPSInTime, groupDamageIn = lib.GetLatestTotalDamageReceived()
 	local playerDPSIn = get_per_second_value(playerDamageIn, playerDPSInTime)
 	local groupDPSIn = get_per_second_value(groupDamageIn, groupDPSInTime)
 
@@ -177,6 +185,7 @@ end
 ---@class Fight
 ---@field New fun(): Fight
 ---@field processors table<string, boolean>
+---@field state FightState
 local FightHandler = ZO_InitializingObject:Subclass()
 
 function FightHandler:Initialize()
@@ -187,6 +196,15 @@ function FightHandler:Initialize()
 	self.units = {}
 	self.unitIds = { bosses = {}, group = {}, player = libunits.playerId }
 	self.CP = GetCurrentCP()
+	self.state = FIGHT_STATE_INITIALIZED
+end
+
+function FightHandler:IsOngoing()
+	return self.state == FIGHT_STATE_STARTED
+end
+
+function FightHandler:HasStarted()
+	return self.state >= FIGHT_STATE_STARTED
 end
 
 function FightHandler:ForceReset()
@@ -240,7 +258,7 @@ end
 function FightHandler:PrepareFight()
 	local timeMs = GetGameTimeMilliseconds()
 
-	if self.prepared ~= true then
+	if self.state < FIGHT_STATE_STARTED then
 		logger:Debug("PrepareFight")
 		libint.LogProcessingQueue:SetCombatState(true)
 
@@ -260,7 +278,7 @@ function FightHandler:PrepareFight()
 		-- libint.usedCastTimeAbility = {}
 
 		self.isWipe = false
-		self.prepared = true
+		self.state = FIGHT_STATE_STARTED
 
 		-- self:QueueStatUpdate(timeMs) -- TODO: Move to stats processor
 		-- lf.GetCurrentSkillBars()  -- TODO: Move to skills processor
@@ -328,16 +346,12 @@ function FightHandler:CheckUnit(unitId)
 	end
 end
 
+function FightHandler:GetFriendlyUnits()
+	return lib.GetFriendlyUnits(self)
+end
+
 function FightHandler:GetEnemyUnits()
-	local unitIds = {}
-
-	for unitId, unit in pairs(self.units) do
-		if not unit.isFriendly then
-			unitIds[#unitIds + 1] = unitId
-		end
-	end
-
-	return unitIds
+	return lib.GetEnemyUnits(self)
 end
 
 local lastGetNewStatsCall = 0
@@ -544,11 +558,11 @@ local function PrintCombatStats()
 		return
 	end
 
-	local playerBossTime, playerBossDamage, groupBossTime, groupBossDamage = lib.GetCurrentMainTargetDamageDone()
+	local playerBossTime, playerBossDamage, groupBossTime, groupBossDamage = lib.GetLatestMainTargetDamageDone()
 	local playerBossDPSOut = get_per_second_value(playerBossDamage, playerBossTime)
 	local groupBossDPSOut = get_per_second_value(groupBossDamage, groupBossTime)
 
-	local playerDPSTime, playerDamageOut, groupDPSTime, groupDamageOut = lib.GetCurrentTotalDamageDone()
+	local playerDPSTime, playerDamageOut, groupDPSTime, groupDamageOut = lib.GetLatestTotalDamageDone()
 	local playerDPSOut = get_per_second_value(playerDamageOut, playerDPSTime)
 	local groupDPSOut = get_per_second_value(groupDamageOut, groupDPSTime)
 
@@ -592,6 +606,7 @@ function FightHandler:Reset()
 
 	if self.info.combatStart and self.info.combatEnd then
 		PrintCombatStats()
+		self.state = FIGHT_STATE_TERMINATED
 		lf.FireCallback(LIBCOMBAT_EVENT_FIGHTSUMMARY, self)
 		libint.lastFight = self
 	end

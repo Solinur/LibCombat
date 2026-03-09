@@ -420,7 +420,7 @@ local function GroupCombatEventHandler(
 
 	local timeMs = GetGameTimeMilliseconds()
 
-	if libint.currentFight.prepared ~= true then
+	if not libint.currentFight:IsOngoing() then
 		libint.currentFight:PrepareFight()
 	end -- get stats before the damage event
 
