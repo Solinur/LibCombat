@@ -64,6 +64,7 @@ function lib.GetCurrentMainTargetDamageDone()
 		return fight:GetDamageToUnits(fight.unitIds.bosses)
 	else
 		local unitId = fight:GetMainUnit()
+
 		return fight:GetDamageToUnit(unitId)
 	end
 end

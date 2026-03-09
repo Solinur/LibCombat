@@ -176,6 +176,7 @@ end
 
 ---@class Fight
 ---@field New fun(): Fight
+---@field processors table<string, boolean>
 local FightHandler = ZO_InitializingObject:Subclass()
 
 function FightHandler:Initialize()
@@ -442,19 +443,25 @@ function FightHandler:GetMainUnit()
 
 	local maxHealth = 0
 	local targetUnitId
+	local enemies = self:GetEnemyUnits()
 
-	for unitId, unit in pairs(self.units) do
-		if unit.maxHealth > maxHealth then
-			targetUnitId = unitId
-			maxHealth = unit.maxHealth
-		end
+	for _, unitId in pairs(enemies) do
 		local unitData = damageData[unitId]
+
 		if unitData ~= nil and unitData.totalAmount > maxHealth then
 			targetUnitId = unitId
 			maxHealth = unitData.totalAmount
 		end
+
+		-- TODO: Decide on how to figure out main unit. Setting ?
+		-- local unit = self.units[unitId]
+		-- if unit.maxHealth > maxHealth and unitData.totalAmount > 0 then
+		-- 	targetUnitId = unitId
+		-- 	maxHealth = unit.maxHealth
+		-- end
 	end
 
+	logger:Debug("Main unit: %s (%d)", self.units[targetUnitId].name, targetUnitId)
 	return targetUnitId
 end
 
@@ -498,6 +505,11 @@ function FightHandler:GetHealingDone()
 		playerEndTime = playerUnitData.endTime
 		playerHealing = playerUnitData.totalAmount
 		playerOverflowHealing = playerUnitData.overflowAmount
+
+		startTime = zo_min(startTime, playerStartTime)
+		endTime = zo_max(endTime, playerEndTime)
+		totalHealing = totalHealing + playerHealing
+		totalOverflowHealing = totalOverflowHealing + playerOverflowHealing
 	end
 
 	local unitTime = endTime == 0 and 0 or (endTime - startTime) / 1000
