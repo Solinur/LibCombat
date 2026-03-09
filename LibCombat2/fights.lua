@@ -475,7 +475,9 @@ function FightHandler:GetMainUnit()
 		-- end
 	end
 
-	logger:Debug("Main unit: %s (%d)", self.units[targetUnitId].name, targetUnitId)
+	if targetUnitId then
+		logger:Debug("Main unit: %s (%d)", self.units[targetUnitId].name, targetUnitId)
+	end
 	return targetUnitId
 end
 

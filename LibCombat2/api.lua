@@ -41,8 +41,8 @@ local function GetLatestFight()
 		return currentFight
 	end
 
-	local previousFight = libint.currentFight
-	if previousFight:HasStarted() then
+	local previousFight = libint.lastFight
+	if previousFight and previousFight:HasStarted() then
 		return previousFight
 	end
 
@@ -61,7 +61,8 @@ end
 function lib.GetLatestFightDuration()
 	local fight = GetLatestFight()
 	if fight and fight.info and fight.info.combatStart then
-		return (GetGameTimeMilliseconds() - fight.info.combatStart) / 1000
+		local endTime = fight.info.combatEnd or GetGameTimeMilliseconds()
+		return (endTime - fight.info.combatStart) / 1000
 	end
 	return 0
 end

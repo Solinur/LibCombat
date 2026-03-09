@@ -465,7 +465,7 @@ local function onCombatEventDamage(
 		return
 	end
 
-	if libint.currentFight.prepared ~= true and isGroupInvolved() then
+	if libint.currentFight.state ~= true and isGroupInvolved() then
 		libint.currentFight:PrepareFight()
 	end
 	if absorb > 0 then
