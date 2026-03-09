@@ -137,6 +137,7 @@ local LogProcessorEffects = lf.LogProcessingHandler:New("effects", LIBCOMBAT_LOG
 
 ---@class Fight
 ---@field effects {[integer]: EffectData}  -- levels: [sourceUnitId][targetUnitId][abilityId]
+---@param fight Fight
 function LogProcessorEffects:onInitilizeFight(fight)
 	if self.active ~= true then
 		return
@@ -144,7 +145,7 @@ function LogProcessorEffects:onInitilizeFight(fight)
 
 	fight.effects = {}
 	--TODO: Import handover effects, refresh group member buffs using unitTag?
-	self:GetPlayerBuffs(fight)
+	self:GetPlayerBuffs(fight) -- Check if this is needed here or only at combat start
 end
 
 function LogProcessorEffects:GetPlayerBuffs(fight)
@@ -152,7 +153,7 @@ function LogProcessorEffects:GetPlayerBuffs(fight)
 		return
 	end
 	local timeMs = GetGameTimeMilliseconds()
-	local playerId = fight.unitIds.player or libunits.playerId
+	local playerId = fight.unitIds.player or libunits.playerId -- TODO: fix error
 	if playerId == nil then
 		return
 	end
@@ -249,7 +250,7 @@ local sourceTypeStr = {
 
 function LogProcessorEffects:ProcessLogLine(
 	fight,
-	logType,
+	_,
 	timeMs,
 	unitId,
 	abilityId,
@@ -280,13 +281,11 @@ function LogProcessorEffects:ProcessLogLine(
 	-- logger:Info("[%.3f] %s -> U:%d, A:%d, %s %s, x%d, Slot: %d ", timeMs/1000, sourceTypeStr[sourceType], unitId, abilityId, changeTypeStr[changeType], effectTypeStr[effectType], stacks or 0, slotId or -1)
 
 	if (changeType == EFFECT_RESULT_GAINED or changeType == EFFECT_RESULT_UPDATED) and timeMs <= combatEnd then
-		local starttime = zo_max(timeMs, combatStart)
-
 		if slotcount == 0 and isPlayerSource then
-			effectData.firstStartTime = starttime
+			effectData.firstStartTime = timeMs
 		end
 		if groupSlotCount == 0 then
-			effectData.firstGroupStartTime = starttime
+			effectData.firstGroupStartTime = timeMs
 		end
 
 		if slotdata == nil then
@@ -298,7 +297,7 @@ function LogProcessorEffects:ProcessLogLine(
 			local slotStartTime = slotdata[stacks]
 
 			if slotStartTime == nil and stacks <= currentstacks then
-				slotdata[stacks] = starttime
+				slotdata[stacks] = timeMs
 			elseif slotStartTime and stacks > currentstacks then
 				local stackData = GetStackData(effectData, stacks)
 				local duration = timeMs - slotStartTime
@@ -339,14 +338,16 @@ function LogProcessorEffects:ProcessLogLine(
 			end
 
 			if slotcount == 0 and effectData.firstStartTime then
-				local duration = endTime - effectData.firstStartTime
+				local starttime = zo_max(effectData.firstStartTime, combatStart)
+				local duration = endTime - starttime
 				effectData.uptime = effectData.uptime + duration
 				effectData.count = effectData.count + 1
 				effectData.firstStartTime = nil
 			end
 
 			if groupSlotCount == 0 and effectData.firstGroupStartTime then
-				local duration = endTime - effectData.firstGroupStartTime
+				local starttime = zo_max(effectData.firstGroupStartTime, combatStart)
+				local duration = endTime - starttime
 				effectData.groupUptime = effectData.groupUptime + duration
 				effectData.groupCount = effectData.groupCount + 1
 				effectData.firstGroupStartTime = nil

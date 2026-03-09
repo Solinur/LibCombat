@@ -218,8 +218,6 @@ function lf.AddLogLine(...)
 	end
 end
 
----@class Fight
----@field processors table<string, boolean>
 ---@param fight Fight
 function lf.ProcessorsInitilizeFight(fight)
 	fight.processors = {}
@@ -229,8 +227,10 @@ function lf.ProcessorsInitilizeFight(fight)
 			fight.processors[processor.name] = true
 			processor:onInitilizeFight(fight)
 			if inCombat then
-				processor:onCombatStart()
+				processor:onCombatStart(fight)
 			end
+		else
+			fight.processors[processor.name] = false
 		end
 	end
 end
