@@ -322,19 +322,23 @@ function LogProcessorEffects:ProcessLogLine(
 			groupSlotCount = groupSlotCount - 1
 
 			local endTime = zo_min(timeMs, combatEnd)
+			local slotStartTime --TODO: review this!
 
-			for stacks = minStacks, maxStacks do
+			for stacks = maxStacks, minStacks, -1 do
 				local stackData = GetStackData(effectData, stacks)
-				local slotStartTime = slotdata[stacks]
-				local duration = endTime - slotStartTime
+				slotStartTime = slotdata[stacks] or slotStartTime
 
-				if isPlayerSource then
-					stackData.uptime = stackData.uptime + duration
-					stackData.count = stackData.count + 1
+				if slotStartTime then
+					local duration = endTime - slotStartTime
+
+					if isPlayerSource then
+						stackData.uptime = stackData.uptime + duration
+						stackData.count = stackData.count + 1
+					end
+
+					stackData.groupUptime = stackData.groupUptime + duration
+					stackData.groupCount = stackData.groupCount + 1
 				end
-
-				stackData.groupUptime = stackData.groupUptime + duration
-				stackData.groupCount = stackData.groupCount + 1
 			end
 
 			if slotcount == 0 and effectData.firstStartTime then
