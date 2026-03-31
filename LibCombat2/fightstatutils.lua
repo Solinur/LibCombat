@@ -125,7 +125,7 @@ function lib.GetDamageDoneToUnits(fight, targetUnitIds, abilityIds)
 	return dataOut
 end
 
----Returns data of damage done by the player
+---Returns data of damage done by a unit
 ---@param fight Fight
 ---@param unitId integer
 ---@return UnitDamageData
@@ -133,7 +133,7 @@ function lib.GetUnitDamageDone(fight, unitId)
 	return fight.damageDone[unitId]
 end
 
----Returns data of damage received by the player
+---Returns data of damage received by a unit
 ---@param fight Fight
 ---@param unitId integer
 ---@return UnitDamageData
@@ -141,7 +141,7 @@ function lib.GetUnitDamageReceived(fight, unitId)
 	return fight.damageReceived[unitId]
 end
 
----Returns data of healing done by the player
+---Returns data of healing done by a unit
 ---@param fight Fight
 ---@param unitId integer
 ---@return UnitHealData
@@ -149,7 +149,7 @@ function lib.GetUnitHealingDone(fight, unitId)
 	return fight.healingDone[unitId]
 end
 
----Returns data of healing received by the player
+---Returns data of healing received by a unit
 ---@param fight Fight
 ---@param unitId integer
 ---@return UnitHealData
