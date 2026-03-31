@@ -136,7 +136,6 @@ local function UpdateStats()
 
 	local data = {
 		["bossfight"] = fight.bossFight == true,
-		["bossFight"] = fight.bossFight == true,
 		["group"] = fight.group,
 
 		["bossDamageTotal"] = playerBossDamage,
