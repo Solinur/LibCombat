@@ -70,19 +70,30 @@ libint.sourceBuggedBuffs = { -- buffs where ZOS messed up the source, causing CM
 	88401, -- Minor Magickasteal
 }
 
+---@param fight Fight
+---@param unitId integer
+---@return table<integer, EffectData>
 local function InitUnitData(fight, unitId)
 	fight:CheckUnit(unitId)
 
+	---@type table<integer, EffectData>
 	local unitData = {}
 	fight.effects[unitId] = unitData
 
 	return unitData
 end
 
+---@param fight Fight
+---@param unitId integer
+---@return table<integer, EffectData>
 local function GetUnitData(fight, unitId)
 	return fight.effects[unitId] or InitUnitData(fight, unitId)
 end
 
+---@param unitData table<integer, EffectData>
+---@param abilityId integer
+---@param effectType BuffEffectType
+---@return EffectData
 local function InitEffectdata(unitData, abilityId, effectType)
 	---@class EffectData
 	local effectData = {
@@ -94,10 +105,13 @@ local function InitEffectdata(unitData, abilityId, effectType)
 		groupCount = 0, -- count of effect applications caused by the whole group
 		effectType = effectType, -- buff or debuff
 		maxStacks = 0, -- stacks = 0 if the effect wasn't tracked trough EVENT_EFFECT_CHANGED
-		stacks = {}, -- tracking applied stacks
-
 		firstStartTime = nil, -- temp variable to track when uptime for a buff initially started
 		firstGroupStartTime = nil, -- temp variable to track when uptime for a buff from the group initially started
+
+		---@type table<integer, EffectStackData>
+		stacks = {}, -- tracking applied stacks
+
+		---@type table<integer, EffectSlotData>
 		slots = {}, -- slotid is unique for each application, this is the temporary place to track them
 	}
 
@@ -105,6 +119,10 @@ local function InitEffectdata(unitData, abilityId, effectType)
 	return effectData
 end
 
+---comment
+---@param effectData EffectData
+---@param stacks integer
+---@return EffectStackData
 local function GetStackData(effectData, stacks)
 	local stacksData = effectData.stacks
 	local data = stacksData[stacks]
@@ -113,6 +131,7 @@ local function GetStackData(effectData, stacks)
 		return data
 	end
 
+	---@class EffectStackData
 	local data = {
 		uptime = 0, -- uptime of effect caused by player
 		count = 0, -- count of effect applications caused by player
@@ -136,7 +155,7 @@ end
 local LogProcessorEffects = lf.LogProcessingHandler:New("effects", LIBCOMBAT_LOG_EVENT_EFFECT)
 
 ---@class Fight
----@field effects {[integer]: EffectData}  -- levels: [sourceUnitId][targetUnitId][abilityId]
+---@field effects table<integer, table<integer, EffectData>>  -- levels: [unitId][abilityId]
 ---@param fight Fight
 function LogProcessorEffects:onInitilizeFight(fight)
 	if self.active ~= true then
@@ -210,6 +229,9 @@ function LogProcessorEffects:onCombatEnd()
 	-- TODO: remove temp data
 end
 
+---@param slots table
+---@return integer
+---@return integer
 local function CountSlots(slots)
 	local slotcount = 0
 	local groupSlotCount = 0
@@ -289,6 +311,7 @@ function LogProcessorEffects:ProcessLogLine(
 		end
 
 		if slotdata == nil then
+			---@class EffectSlotData
 			slotdata = { isPlayerSource = isPlayerSource, abilityId = abilityId }
 			slots[slotId] = slotdata
 		end
