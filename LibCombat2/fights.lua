@@ -505,7 +505,7 @@ function FightHandler:GetHealingDone()
 
 	local groupUnitIds = self.unitIds.group -- TODO: consider which targets to take into account for this stat (group vs. all freindly, pets? companions?)
 
-	for i, unitId in ipairs(groupUnitIds) do
+	for i, unitId in pairs(groupUnitIds) do
 		local unitData = healingData[unitId]
 		if unitData then
 			startTime = zo_min(startTime, unitData.startTime)
