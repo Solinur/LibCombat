@@ -17,7 +17,7 @@ local isFileInitialized = false
 
 --- Ends the current fight and immediately starts a new one.
 function lib.ResetFight()
-	libint.currentFight:ResetFight()
+	libint.currentFight:ForceReset()
 end
 
 ---Returns if the unitId is the one from the player
@@ -33,19 +33,36 @@ function lib.IsPlayerUnitId(unitId)
 	return unitId == libunits.playerId
 end
 
+---Returns the last fight that has data. If none is found, returns the current one.
+---@return Fight
+local function GetLatestFight()
+	local currentFight = libint.currentFight
+	if currentFight:HasStarted() then
+		return currentFight
+	end
+
+	local previousFight = libint.lastFight
+	if previousFight and previousFight:HasStarted() then
+		return previousFight
+	end
+
+	return currentFight
+end
+
 ---Returns if the current fight is a boss fight
----@return boolean isBossFight
-function lib.IsCurrentFightBossFight()
-	local fight = libint.currentFight
-	return fight.bossFight
+---@return boolean? isBossFight
+function lib.IsLatestFightBossFight()
+	local fight = GetLatestFight()
+	return fight and fight.bossFight or nil
 end
 
 ---Returns the time since the player went into combat in seconds
 ---@return number combatDuration
-function lib.GetCurrentFightDuration()
-	local fight = libint.currentFight
+function lib.GetLatestFightDuration()
+	local fight = GetLatestFight()
 	if fight and fight.info and fight.info.combatStart then
-		return (GetGameTimeMilliseconds() - fight.info.combatStart) / 1000
+		local endTime = fight.info.combatEnd or GetGameTimeMilliseconds()
+		return (endTime - fight.info.combatStart) / 1000
 	end
 	return 0
 end
@@ -57,25 +74,25 @@ end
 ---@return integer playerDamage
 ---@return number totalTime
 ---@return integer totalDamage
-function lib.GetCurrentMainTargetDamageDone()
-	local fight = libint.currentFight
+function lib.GetLatestMainTargetDamageDone()
+	local fight = GetLatestFight() or libint.currentFight
 
 	if fight.bossFight then
 		return fight:GetDamageToUnits(fight.unitIds.bosses)
 	else
 		local unitId = fight:GetMainUnit()
+
 		return fight:GetDamageToUnit(unitId)
 	end
 end
 
 ---Returns player and total damage done to the all non-friendly targets as well as the durations during which the damage occured.
----
 ---@return number playerTime
 ---@return integer playerDamage
 ---@return number totalTime
 ---@return integer totalDamage
-function lib.GetCurrentTotalDamageDone()
-	local fight = libint.currentFight
+function lib.GetLatestTotalDamageDone()
+	local fight = GetLatestFight() or libint.currentFight
 
 	local unitIds = {}
 	for unitId, unit in pairs(fight.units) do
@@ -88,13 +105,12 @@ function lib.GetCurrentTotalDamageDone()
 end
 
 ---Returns player and group damage received as well as the durations during which the damage occured.
----
 ---@return number playerTime
 ---@return integer playerDamage
 ---@return number totalTime
 ---@return integer totalDamage
-function lib.GetCurrentTotalDamageReceived()
-	local fight = libint.currentFight
+function lib.GetLatestTotalDamageReceived()
+	local fight = GetLatestFight() or libint.currentFight
 
 	local unitIds = {}
 	for unitId, unit in pairs(fight.units) do
@@ -104,6 +120,34 @@ function lib.GetCurrentTotalDamageReceived()
 	end
 
 	return fight:GetDamageToUnits(unitIds)
+end
+
+---Returns player and group healing done as well as the durations during which the healing occured.
+---@param overheal boolean
+---@return number playerTime
+---@return integer playerHealingOut
+---@return number groupTime
+---@return integer groupHealingOut
+function lib.GetLatestHealingDone(overheal)
+	local fight = GetLatestFight() or libint.currentFight
+	local playerTime, playerHealingOut, playerHealingOutOverflow, groupTime, groupHealingOut, groupHealingOutOverflow =
+		fight:GetHealingDone()
+
+	if overheal then
+		local playerHealingAbsolute = playerHealingOut + playerHealingOutOverflow
+		local groupHealingAbsolute = groupHealingOut + groupHealingOutOverflow
+		return playerTime, playerHealingAbsolute, groupTime, groupHealingAbsolute
+	end
+
+	return playerTime, playerHealingOut, groupTime, groupHealingOut
+end
+
+---Returns player healing received as well as the duration during which the healing occured.
+---@return number playerTime
+---@return integer playerHealingReceived
+function lib.GetLatestPlayerHealingReceived()
+	local fight = GetLatestFight() or libint.currentFight
+	return fight:GetPlayerHealingReceived()
 end
 
 --- Callbacks

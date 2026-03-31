@@ -162,7 +162,7 @@ local function GetUnitDamageData(fight, sourceUnitId, targetUnitId, timeMs)
 	return targetData, unitData, sourceDataDone
 end
 
----@param timeMs integer
+---@param timeMs integer?
 ---@param damageType DamageType?
 ---@return DamageAbilityData
 local function InitDamageAbilityData(timeMs, damageType)
@@ -181,8 +181,8 @@ local function InitDamageAbilityData(timeMs, damageType)
 		blockedCount = 0,
 		absorbedCount = 0,
 		damageType = damageType,
-		startTime = timeMs,
-		endTime = timeMs,
+		startTime = timeMs or 0,
+		endTime = timeMs or 0,
 	}
 
 	return abilityData
@@ -297,6 +297,9 @@ local function GetUnitHealingData(fight, sourceUnitId, targetUnitId, timeMs)
 	return targetData, unitData, sourceDataDone
 end
 
+---@param timeMs? integer
+---@param powerType? CombatMechanicFlags
+---@return HealAbilityData
 local function InitHealAbilityData(timeMs, powerType)
 	---@class HealAbilityData
 	---@field max integer?
@@ -313,8 +316,8 @@ local function InitHealAbilityData(timeMs, powerType)
 		overflowCount = 0,
 		absorbedCount = 0,
 		powerType = powerType,
-		startTime = timeMs,
-		endTime = timeMs,
+		startTime = timeMs or 0,
+		endTime = timeMs or 0,
 	}
 
 	return abilityData
@@ -462,9 +465,10 @@ local function onCombatEventDamage(
 		return
 	end
 
-	if libint.currentFight.prepared ~= true and isGroupInvolved() then
+	if not libint.currentFight:HasStarted() and isGroupInvolved(hitValue, sourceUnitId, targetUnitId) then
 		libint.currentFight:PrepareFight()
 	end
+
 	if absorb > 0 then
 		lf.FireCallback(
 			LIBCOMBAT_LOG_EVENT_DAMAGE,

@@ -337,7 +337,7 @@ local zoDerivedStatIds = {
 }
 
 local function GetSingleStat(statId)
-	if not libint.currentFight.prepared then
+	if not libint.currentFight:IsOngoing() then -- TODO: check if this is correct
 		libint.currentFight:PrepareFight()
 	end
 	return statSourceFunctions[statId](zoDerivedStatIds[statId])
@@ -421,7 +421,7 @@ local function onShadowMundus(_, changeType, effectSlot)
 		ld.critBonusMundus = 0
 	end
 
-	if libint.currentFight.prepared == true then
+	if libint.currentFight:IsOngoing() then
 		libint.currentFight:QueueStatUpdate()
 	end
 end

@@ -2,7 +2,7 @@
 This lib is supposed to act as a interface between the API of Eso and potential addons that want to display Combat Data (e.g. dps)
 I extracted it from Combat Metrics, for which most of the functions are designed. I believe however that it's possible that others can use it.
 
-Todo:
+TODO:
 Falling Damage (also save routine!!)
 Check what events fire on death
 Implement tracking when players are resurrecting

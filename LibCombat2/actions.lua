@@ -706,8 +706,7 @@ local function onWeaponSwap(_, isHotbarSwap)
 	ld.bar = newbar
 	lf.GetCurrentSkillBars()
 
-	local inCombat = libint.currentFight.prepared
-	if inCombat == true then
+	if libint.currentFight:IsOngoing() then
 		local timeMs = GetGameTimeMilliseconds()
 		lf.FireCallback(LIBCOMBAT_LOG_EVENT_COMBATSTATE, timeMs, LIBCOMBAT_MESSAGE_WEAPONSWAP, ld.bar)
 
