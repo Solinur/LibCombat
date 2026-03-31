@@ -465,9 +465,10 @@ local function onCombatEventDamage(
 		return
 	end
 
-	if libint.currentFight.state < libint.fightStates.FIGHT_STATE_STARTED and isGroupInvolved() then
+	if not libint.currentFight:HasStarted() and isGroupInvolved(hitValue, sourceUnitId, targetUnitId) then
 		libint.currentFight:PrepareFight()
 	end
+
 	if absorb > 0 then
 		lf.FireCallback(
 			LIBCOMBAT_LOG_EVENT_DAMAGE,
