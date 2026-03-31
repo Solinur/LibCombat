@@ -162,17 +162,23 @@ function LogProcessorEffects:onInitilizeFight(fight)
 		return
 	end
 
+	ZO_ClearTable(localUnitData)
 	fight.effects = {}
+
 	--TODO: Import handover effects, refresh group member buffs using unitTag?
+
 	self:GetPlayerBuffs(fight) -- Check if this is needed here or only at combat start
 end
 
 function LogProcessorEffects:GetPlayerBuffs(fight)
-	if libint.Events.Effects.active == false then
+	if libint.Events.Effects.active == false then -- TODO: Is this check still required?
+		logger:Error("Effects event is not active but effects are being processed")
 		return
 	end
+
 	local timeMs = GetGameTimeMilliseconds()
-	local playerId = fight.unitIds.player or libunits.playerId -- TODO: fix error
+	local playerId = fight.unitIds.player or libunits.playerId
+
 	if playerId == nil then
 		return
 	end
