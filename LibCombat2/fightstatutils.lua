@@ -73,11 +73,7 @@ end
 local function GetUnitDamageDoneToUnits(fight, sourceUnitId, targetUnitIds, abilityIds, dataOut)
 	local data = fight.damageDone[sourceUnitId]
 
-	if data == nil then
-		return
-	end
-
-	if targetUnitIds == nil or NonContiguousCount(targetUnitIds) == 0 then
+	if data == nil or ZO_IsTableEmpty(targetUnitIds) then -- Thanks to Baertram for the tip with ZO_IsTableEmpty!
 		return
 	end
 
@@ -252,11 +248,7 @@ end
 function lib.GetUnitHealingDoneToUnits(fight, sourceUnitId, targetUnitIds, abilityIds, dataOut)
 	local data = fight.healingDone[sourceUnitId]
 
-	if data == nil then
-		return
-	end
-
-	if targetUnitIds == nil or NonContiguousCount(targetUnitIds) == 0 then
+	if data == nil or ZO_IsTableEmpty(targetUnitIds) then -- Thanks to Baertram for the tip with ZO_IsTableEmpty!
 		return
 	end
 
