@@ -194,7 +194,16 @@ function FightHandler:Initialize()
 	self.dataVersion = 3
 	---@type {[integer]: UnitData}
 	self.units = {}
-	self.unitIds = { bosses = {}, group = {}, player = libunits.playerId }
+
+	self.unitIds = {}
+
+	---@type table<integer, boolean>
+	self.unitIds.bosses = {}
+
+	---@type table<integer, boolean>
+	self.unitIds.group = {}
+
+	self.unitIds.player = libunits.playerId
 	self.CP = GetCurrentCP()
 	self.state = FIGHT_STATE_INITIALIZED
 end
@@ -505,7 +514,7 @@ function FightHandler:GetHealingDone()
 
 	local groupUnitIds = self.unitIds.group -- TODO: consider which targets to take into account for this stat (group vs. all freindly, pets? companions?)
 
-	for i, unitId in pairs(groupUnitIds) do
+	for unitId, _ in pairs(groupUnitIds) do
 		local unitData = healingData[unitId]
 		if unitData then
 			startTime = zo_min(startTime, unitData.startTime)
