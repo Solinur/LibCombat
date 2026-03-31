@@ -13,7 +13,7 @@ local lf = libint.functions
 ---@class Logger
 local logger
 
-local unitData = {}
+local localUnitData = {}
 local abilityIdZen = libint.abilityIdZen
 local abilityIdForceOfNature = libint.abilityIdForceOfNature
 
@@ -392,12 +392,12 @@ local function InitLocalUnitData(unitId)
 		forceOfNatureStacks = 0,
 		forceOfNature = {},
 	}
-	unitData[unitId] = unit
+	localUnitData[unitId] = unit
 	return unit
 end
 
 local function UpdateZenData(timeMs, unitId, abilityId, changeType, effectType, sourceType, effectSlot)
-	local unit = unitData[unitId] or InitLocalUnitData(unitId)
+	local unit = localUnitData[unitId] or InitLocalUnitData(unitId)
 
 	if abilityId == abilityIdZen then
 		local isActive = changeType == EFFECT_RESULT_GAINED -- or (changeType == EFFECT_RESULT_UPDATED)
@@ -450,7 +450,7 @@ local function UpdateZenData(timeMs, unitId, abilityId, changeType, effectType, 
 end
 
 function UpdateForceOfNatureData(timeMs, unitId, abilityId, changeType, _, _, _, _)
-	local unit = unitData[unitId] or InitLocalUnitData(unitId)
+	local unit = localUnitData[unitId] or InitLocalUnitData(unitId)
 	local fight = libint.currentFight
 	if
 		libint.StatusEffectIds[abilityId] == nil
@@ -612,8 +612,8 @@ local function BuffEventHandler(
 			sourceType == COMBAT_UNIT_TYPE_PLAYER
 			or (
 				unitName == ""
-				and unitData[unitId]
-				and unitData[unitId].forceOfNature[abilityId]
+				and localUnitData[unitId]
+				and localUnitData[unitId].forceOfNature[abilityId]
 				and libint.SpecialDebuffs[abilityId]
 			)
 		then
