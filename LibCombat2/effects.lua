@@ -385,7 +385,7 @@ function LogProcessorEffects:ProcessLogLine(
 	-- unit:UpdateStats(fight, effectData, abilityId, hitValue) -- TODO: Setup when stats module works
 end
 
----[[ TODO: implement Z'en and FoN tracking on analysis side
+-- TODO: implement Z'en and FoN tracking on analysis side
 local function InitLocalUnitData(unitId)
 	local unit = {
 		stacksOfZen = 0,
