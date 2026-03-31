@@ -322,6 +322,15 @@ function LogProcessorEffects:ProcessLogLine(
 			slots[slotId] = slotdata
 		end
 
+		if slotdata.isPlayerSource ~= isPlayerSource then
+			logger:Error(
+				"Inconsistent source type for effect slot %d of ability %s (%d)",
+				slotId,
+				lib.GetFormattedAbilityName(abilityId, false),
+				abilityId
+			)
+		end
+
 		for stacks = minStacks, maxStacks do
 			local slotStartTime = slotdata[stacks]
 
@@ -331,7 +340,7 @@ function LogProcessorEffects:ProcessLogLine(
 				local stackData = GetStackData(effectData, stacks)
 				local duration = timeMs - slotStartTime
 
-				if isPlayerSource then
+				if slotdata.isPlayerSource then
 					stackData.uptime = stackData.uptime + duration
 					stackData.count = stackData.count + 1
 				end
@@ -360,7 +369,7 @@ function LogProcessorEffects:ProcessLogLine(
 				if slotStartTime then
 					local duration = endTime - slotStartTime
 
-					if isPlayerSource then
+					if slotdata.isPlayerSource then
 						stackData.uptime = stackData.uptime + duration
 						stackData.count = stackData.count + 1
 					end
@@ -613,18 +622,16 @@ local function BuffEventHandler(
 		UpdateZenData(timeMs, unitId, abilityId, changeType, effectType, sourceType, effectSlot)
 	end
 
-	if libint.StatusEffectIds[abilityId] then
-		if
-			sourceType == COMBAT_UNIT_TYPE_PLAYER
-			or (
-				unitName == ""
-				and localUnitData[unitId]
-				and localUnitData[unitId].forceOfNature[abilityId]
-				and libint.SpecialDebuffs[abilityId]
-			)
-		then
-			UpdateForceOfNatureData(timeMs, unitId, abilityId, changeType, effectType, stacks, sourceType, effectSlot)
-		end
+	if -- TODO: Figure out what this check is supposed to achieve.
+		sourceType == COMBAT_UNIT_TYPE_PLAYER
+		or (
+			unitName == ""
+			and localUnitData[unitId]
+			and localUnitData[unitId].forceOfNature[abilityId]
+			and libint.StatusEffectIds[abilityId]
+		)
+	then
+		UpdateForceOfNatureData(timeMs, unitId, abilityId, changeType, effectType, stacks, sourceType, effectSlot)
 	end
 
 	lf.FireCallback(
