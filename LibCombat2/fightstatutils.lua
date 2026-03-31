@@ -154,7 +154,7 @@ end
 ---@param unitId integer
 ---@return UnitHealData
 function lib.GetUnitHealingReceived(fight, unitId)
-	return fight.healingDone[unitId]
+	return fight.healingReceived[unitId]
 end
 
 --- Returns aggregated data of damage received by a unit from specified source units with specified abilities
