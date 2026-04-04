@@ -1983,7 +1983,10 @@ end
 
 function FightHandler:GetSingleTargetDamage() -- Gets highest Single Target Damage and counts enemy units.
 	if self.bossfight then
-		return self:GetBossTargetDamage()
+		local bossTime, totalBossDamage, totalBossGroupDamage = self:GetBossTargetDamage()
+		if totalBossDamage > 0 or totalBossGroupDamage > 0 then
+			return bossTime, totalBossDamage, totalBossGroupDamage, true
+		end
 	end
 
 	local damage, groupDamage, unittime = 0, 0, 0
@@ -1999,7 +2002,7 @@ function FightHandler:GetSingleTargetDamage() -- Gets highest Single Target Dama
 	end
 
 	unittime = unittime > 0 and unittime / 1000 or self.dpstime
-	return unittime, damage, groupDamage
+	return unittime, damage, groupDamage, false
 end
 
 function FightHandler:UpdateStats()
@@ -2016,7 +2019,7 @@ function FightHandler:UpdateStats()
 	self.hpstime = hpstime
 
 	self:UpdateGrpStats()
-	local bossTime, totalBossDamage, totalBossGroupDamage = self:GetSingleTargetDamage()
+	local bossTime, totalBossDamage, totalBossGroupDamage, isBossFight = self:GetSingleTargetDamage()
 
 	self.DPSOut = zo_floor(self.damageOutTotal / dpstime + 0.5)
 	self.HPSOut = zo_floor(self.healingOutTotal / hpstime + 0.5)
@@ -2043,8 +2046,8 @@ function FightHandler:UpdateStats()
 		["groupDPSIn"] = self.DPSIn,
 		["groupHPSOut"] = self.HPSOut,
 		["damageOutTotalGroup"] = self.damageOutTotal,
-		["bossfight"] = self.bossfight == true,
-		["bossFight"] = self.bossfight == true,
+		["bossfight"] = isBossFight,
+		["bossFight"] = isBossFight,
 		["bossDPSOut"] = bossDPSOut,
 		["bossDamageTotal"] = totalBossDamage,
 		["bossDPSOutGroup"] = bossDPSOut,
