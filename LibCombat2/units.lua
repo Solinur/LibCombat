@@ -549,10 +549,10 @@ function UnitHandler:RemoveUnitTag(unitTag)
 end
 
 function UnitHandler:Delete()
+	logger:Info("Deleting Unit: %s (%d)", self.name or "", self.unitId)
+
 	UnitCache[self.unitId] = nil
 	UnitExportCache[self.unitId] = nil
-
-	logger:Info("Deleting Unit: %s (%d)", self.name or "", self.unitId)
 
 	if self.unitTags then
 		for _, unitTag in pairs(self.unitTags) do
@@ -616,7 +616,7 @@ function UnitAPIHandler:Initialize(unitId)
 		return
 	end
 	if UnitCache[unitId] == nil and libint.debug then
-		logger:Info("Unit %d is not known!", unitId)
+		logger:Warn("Unit %d is not known!", unitId)
 		return
 	end
 	self.unitId = unitId
