@@ -167,7 +167,7 @@ local function GetUnitDamageReceivedByUnits(fight, targetUnitId, sourceUnitIds, 
 		return dataOut
 	end
 
-	if sourceUnitIds == nil or NonContiguousCount(sourceUnitIds) == 0 then
+	if ZO_IsTableEmpty(sourceUnitIds) then
 		return dataOut
 	end
 
@@ -309,7 +309,7 @@ function lib.GetUnitHealingReceivedByUnits(fight, targetUnitId, sourceUnitIds, a
 		return
 	end
 
-	if sourceUnitIds == nil or NonContiguousCount(sourceUnitIds) == 0 then
+	if ZO_IsTableEmpty(sourceUnitIds) then
 		return
 	end
 
