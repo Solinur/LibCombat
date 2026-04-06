@@ -250,6 +250,8 @@ local logColors = {
 	["resource"] = ZO_ColorDef:New("ffffff"),
 }
 
+---@param damageType DamageType
+---@return ZO_ColorDef
 function lib.GetDamageColor(damageType)
 	return logColors[damageType]
 end
