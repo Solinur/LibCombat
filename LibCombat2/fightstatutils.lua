@@ -44,17 +44,6 @@ end
 ---@param dataOut DamageAbilityData
 ---@param abilityData DamageAbilityData
 local function CombineDamageAbilityData(dataOut, abilityData)
-	if dataOut == nil then
-		dataOut = {}
-		for k, v in pairs(abilityData) do
-			if type(v) == "number" then
-				dataOut[k] = v
-			end
-		end
-
-		return dataOut
-	end
-
 	dataOut.normalAmount = dataOut.normalAmount + abilityData.normalAmount
 	dataOut.criticalAmount = dataOut.criticalAmount + abilityData.criticalAmount
 	dataOut.blockedAmount = dataOut.blockedAmount + abilityData.blockedAmount
@@ -72,6 +61,10 @@ local function CombineDamageAbilityData(dataOut, abilityData)
 	end
 
 	dataOut.endTime = zo_max(dataOut.endTime, abilityData.endTime)
+	dataOut.damageType = dataOut.damageType or abilityData.damageType or nil
+
+	dataOut.max = zo_max(dataOut.max or abilityData.max, abilityData.max)
+	dataOut.min = zo_min(dataOut.min or abilityData.min, abilityData.min)
 end
 
 --- Returns aggregated data of damage done by a unit to specified target units with specified abilities
@@ -87,6 +80,8 @@ local function GetUnitDamageDoneToUnits(fight, sourceUnitId, targetUnitIds, abil
 	if data == nil or ZO_IsTableEmpty(targetUnitIds) then -- Thanks to Baertram for the tip with ZO_IsTableEmpty!
 		return
 	end
+
+	dataOut = dataOut or lf.InitDamageAbilityData()
 
 	for _, unitId in pairs(targetUnitIds) do
 		local unitData = data[unitId]
@@ -124,6 +119,10 @@ local function GetUnitDamageDoneToUnitsByAbility(fight, sourceUnitId, targetUnit
 		if unitData ~= nil then
 			for abilityId, abilityData in pairs(unitData) do
 				if type(abilityId) == "number" and (abilityIds == nil or abilityIds[abilityId]) then
+					if dataOut[abilityId] == nil then
+						dataOut[abilityId] = lf.InitDamageAbilityData()
+					end
+
 					CombineDamageAbilityData(dataOut[abilityId], abilityData)
 				end
 			end
@@ -225,6 +224,10 @@ local function GetUnitDamageReceivedByUnitsByAbility(fight, targetUnitId, source
 		if unitData ~= nil then
 			for abilityId, abilityData in pairs(unitData) do
 				if type(abilityId) == "number" and (abilityIds == nil or abilityIds[abilityId]) then
+					if dataOut[abilityId] == nil then
+						dataOut[abilityId] = lf.InitDamageAbilityData()
+					end
+
 					CombineDamageAbilityData(dataOut[abilityId], abilityData)
 				end
 			end
@@ -292,6 +295,10 @@ local function CombineHealAbilityData(dataOut, abilityData)
 	end
 
 	dataOut.endTime = zo_max(dataOut.endTime, abilityData.endTime)
+	dataOut.powerType = dataOut.powerType or abilityData.powerType or nil
+
+	dataOut.max = zo_max(dataOut.max or abilityData.max, abilityData.max)
+	dataOut.min = zo_min(dataOut.min or abilityData.min, abilityData.min)
 end
 
 ---
@@ -348,6 +355,10 @@ local function GetUnitHealingDoneToUnitsByAbility(fight, targetUnitId, sourceUni
 		if unitData ~= nil then
 			for abilityId, abilityData in pairs(unitData) do
 				if type(abilityId) == "number" and (abilityIds == nil or abilityIds[abilityId]) then
+					if dataOut[abilityId] == nil then
+						dataOut[abilityId] = lf.InitHealAbilityData()
+					end
+
 					CombineHealAbilityData(dataOut[abilityId], abilityData)
 				end
 			end
@@ -448,6 +459,10 @@ local function GetUnitHealingReceivedByUnitsByAbility(fight, targetUnitId, sourc
 		if unitData ~= nil then
 			for abilityId, abilityData in pairs(unitData) do
 				if type(abilityId) == "number" and (abilityIds == nil or abilityIds[abilityId]) then
+					if dataOut[abilityId] == nil then
+						dataOut[abilityId] = lf.InitHealAbilityData()
+					end
+
 					CombineHealAbilityData(dataOut[abilityId], abilityData)
 				end
 			end
