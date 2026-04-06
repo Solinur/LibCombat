@@ -611,25 +611,11 @@ local UnitAPIHandler = ZO_InitializingObject:Subclass() -- object to expose data
 
 ---@param unitId integer
 function UnitAPIHandler:Initialize(unitId)
-	if unitId == nil then
-		logger:Error("No unit Id!")
-		return
-	end
-	if UnitCache[unitId] == nil and libint.debug then
-		logger:Warn("Unit %d is not known!", unitId)
-		return
-	end
 	self.unitId = unitId
-
 	UnitExportCache[unitId] = self
 end
 
 function UnitAPIHandler:GetFullUnitData()
-	-- if self.unitId == nil then return end
-	if not self:IsValid() then
-		return
-	end
-
 	---@class UnitData
 	local unitData = {
 		unitId = self.unitId,
@@ -645,78 +631,68 @@ function UnitAPIHandler:GetFullUnitData()
 	return unitData
 end
 
-function UnitAPIHandler:IsValid()
-	if type(self.unitId) ~= "number" and libint.debug then
-		logger:Info("Invalid Unit: %s", tostring(self.unitId))
-	end
-
-	if UnitCache[self.unitId] == nil and libint.debug then
-		logger:Info("Invalid Unit: %s. No Unit Cache!", tostring(self.unitId))
-	end
-
-	return type(self.unitId) == "number" and UnitCache[self.unitId] ~= nil
-end
-
 function UnitAPIHandler:GetUnitName()
-	if self:IsValid() then
-		return UnitCache[self.unitId].name
-	end
+	return UnitCache[self.unitId].name
 end
 
 function UnitAPIHandler:GetUnitRawName()
-	if self:IsValid() then
-		return UnitCache[self.unitId].rawName
-	end
+	return UnitCache[self.unitId].rawName
 end
 
 ---@return CombatUnitType?
 function UnitAPIHandler:GetUnitType()
-	if self:IsValid() then
-		return UnitCache[self.unitId].unitType
-	end
+	return UnitCache[self.unitId].unitType
 end
 
 function UnitAPIHandler:GetUnitTags()
-	if self:IsValid() then
-		return UnitCache[self.unitId].unitTags
-	end
+	return UnitCache[self.unitId].unitTags
 end
 
 function UnitAPIHandler:IsBoss()
-	if self:IsValid() then
-		return UnitCache[self.unitId].isBoss
-	end
+	return UnitCache[self.unitId].isBoss
 end
 
 function UnitAPIHandler:IsFriendly()
-	if self:IsValid() then
-		return UnitCache[self.unitId].isFriendly
-	end
+	return UnitCache[self.unitId].isFriendly
 end
 
 ---@return number?
 function UnitAPIHandler:GetMaxHealth()
-	if self:IsValid() then
-		return UnitCache[self.unitId].maxHealth
-	end
+	return UnitCache[self.unitId].maxHealth
 end
 
 local function GetExportUnit(unitId)
+	if unitId == nil then
+		logger:Error("No unit Id!")
+		return
+	end
+
+	if UnitCache[unitId] == nil and libint.debug then
+		logger:Warn("Unit %d is not known!", unitId)
+		return
+	end
+
 	return UnitExportCache[unitId] or UnitAPIHandler:New(unitId)
 end
 
 -- API
 
+---@param unitTag string
+---@return integer?
 function lib.GetUnitIdByTag(unitTag)
 	return libunits.unitIdsByTag[unitTag]
 end
 
+---@param unitTag string
+---@return UnitAPIHandler?
 function lib.GetUnitByTag(unitTag)
 	local unitId = lib.GetUnitIdByTag(unitTag)
 
 	return GetExportUnit(unitId)
 end
 
+---@param unitName string
+---@return UnitAPIHandler ...
 function lib.GetUnitsByName(unitName)
 	local unitIds = libunits.unitIdsByName[unitName]
 
@@ -729,12 +705,16 @@ function lib.GetUnitsByName(unitName)
 	return unpack(units)
 end
 
+---@param unitName string
+---@return integer ...
 function lib.GetUnitIdsByName(unitName)
 	return unpack(libunits.unitIdsByName[unitName])
 end
 
-function lib.GetUnitsByRawName(unitName)
-	local unitIds = libunits.unitIdsByRawName[unitName]
+---@param unitRawName string
+---@return UnitAPIHandler ...
+function lib.GetUnitsByRawName(unitRawName)
+	local unitIds = libunits.unitIdsByRawName[unitRawName]
 
 	local units = {}
 	for i, unitId in ipairs(unitIds) do
@@ -744,12 +724,14 @@ function lib.GetUnitsByRawName(unitName)
 	return unpack(units)
 end
 
-function lib.GetUnitIdsByRawName(unitName)
-	return unpack(libunits.unitIdsByRawName[unitName])
+---@param unitRawName string
+---@return integer ...
+function lib.GetUnitIdsByRawName(unitRawName)
+	return unpack(libunits.unitIdsByRawName[unitRawName])
 end
 
 ---@param unitId integer
----@return UnitAPIHandler
+---@return UnitAPIHandler?
 function lib.GetUnitById(unitId)
 	return GetExportUnit(unitId)
 end
