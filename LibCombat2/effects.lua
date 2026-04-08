@@ -323,6 +323,7 @@ function LogProcessorEffects:ProcessLogLine(
 		end
 
 		if slotdata.isPlayerSource ~= isPlayerSource then
+			-- TODO: This error is thrown often ...
 			logger:Error(
 				"Inconsistent source type for effect slot %d of ability %s (%d)",
 				slotId,
