@@ -667,8 +667,10 @@ local function GetExportUnit(unitId)
 		return
 	end
 
-	if UnitCache[unitId] == nil and libint.debug then
-		logger:Warn("Unit %d is not known!", unitId)
+	if UnitCache[unitId] == nil then
+		if libint.debug then
+			logger:Debug("Unit %d is not known!", unitId)
+		end
 		return
 	end
 
@@ -695,6 +697,9 @@ end
 ---@return UnitAPIHandler ...
 function lib.GetUnitsByName(unitName)
 	local unitIds = libunits.unitIdsByName[unitName]
+	if unitIds == nil then
+		return
+	end
 
 	local units = {}
 
@@ -708,13 +713,20 @@ end
 ---@param unitName string
 ---@return integer ...
 function lib.GetUnitIdsByName(unitName)
-	return unpack(libunits.unitIdsByName[unitName])
+	local unitIds = libunits.unitIdsByName[unitName]
+	if unitIds == nil then
+		return
+	end
+	return unpack(unitIds)
 end
 
 ---@param unitRawName string
 ---@return UnitAPIHandler ...
 function lib.GetUnitsByRawName(unitRawName)
 	local unitIds = libunits.unitIdsByRawName[unitRawName]
+	if unitIds == nil then
+		return
+	end
 
 	local units = {}
 	for i, unitId in ipairs(unitIds) do
@@ -727,7 +739,11 @@ end
 ---@param unitRawName string
 ---@return integer ...
 function lib.GetUnitIdsByRawName(unitRawName)
-	return unpack(libunits.unitIdsByRawName[unitRawName])
+	local unitIds = libunits.unitIdsByRawName[unitRawName]
+	if unitIds == nil then
+		return
+	end
+	return unpack(unitIds)
 end
 
 ---@param unitId integer
