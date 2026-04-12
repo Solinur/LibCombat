@@ -74,7 +74,7 @@ function EventHandler:UpdateEvents()
 	local condition = false
 
 	for k, callbacktype in pairs(self.callbacktypes) do
-		if NonContiguousCount(libint.ActiveCallbackTypes[callbacktype]) > 0 then
+		if not ZO_IsTableEmpty(libint.ActiveCallbackTypes[callbacktype]) then
 			condition = true
 			break
 		end

@@ -231,28 +231,33 @@ local statStrings = {
 
 local logColors = {
 
-	[DAMAGE_TYPE_NONE] = "|cE6E6E6",
-	[DAMAGE_TYPE_GENERIC] = "|cE6E6E6",
-	[DAMAGE_TYPE_PHYSICAL] = "|cf4f2e8",
-	[DAMAGE_TYPE_FIRE] = "|cff6600",
-	[DAMAGE_TYPE_SHOCK] = "|cffff66",
-	[DAMAGE_TYPE_OBLIVION] = "|cd580ff",
-	[DAMAGE_TYPE_COLD] = "|cb3daff",
-	[DAMAGE_TYPE_EARTH] = "|cbfa57d",
-	[DAMAGE_TYPE_MAGIC] = "|c9999ff",
-	[DAMAGE_TYPE_DROWN] = "|ccccccc",
-	[DAMAGE_TYPE_DISEASE] = "|cc48a9f",
-	[DAMAGE_TYPE_POISON] = "|c9fb121",
-	[DAMAGE_TYPE_BLEED] = "|cc20a38",
-	["heal"] = "|c55ff55",
-	["buff"] = "|c00cc00",
-	["debuff"] = "|cff3333",
-	["resource"] = "|cffffff",
+	[DAMAGE_TYPE_NONE] = ZO_ColorDef:New("E6E6E6"),
+	[DAMAGE_TYPE_GENERIC] = ZO_ColorDef:New("E6E6E6"),
+	[DAMAGE_TYPE_PHYSICAL] = ZO_ColorDef:New("f4f2e8"),
+	[DAMAGE_TYPE_FIRE] = ZO_ColorDef:New("ff6600"),
+	[DAMAGE_TYPE_SHOCK] = ZO_ColorDef:New("ffff66"),
+	[DAMAGE_TYPE_OBLIVION] = ZO_ColorDef:New("d580ff"),
+	[DAMAGE_TYPE_COLD] = ZO_ColorDef:New("b3daff"),
+	[DAMAGE_TYPE_EARTH] = ZO_ColorDef:New("bfa57d"),
+	[DAMAGE_TYPE_MAGIC] = ZO_ColorDef:New("9999ff"),
+	[DAMAGE_TYPE_DROWN] = ZO_ColorDef:New("cccccc"),
+	[DAMAGE_TYPE_DISEASE] = ZO_ColorDef:New("c48a9f"),
+	[DAMAGE_TYPE_POISON] = ZO_ColorDef:New("9fb121"),
+	[DAMAGE_TYPE_BLEED] = ZO_ColorDef:New("c20a38"),
+	["heal"] = ZO_ColorDef:New("55ff55"),
+	["buff"] = ZO_ColorDef:New("00cc00"),
+	["debuff"] = ZO_ColorDef:New("ff3333"),
+	["resource"] = ZO_ColorDef:New("ffffff"),
 }
 
+---@param damageType DamageType
+---@return ZO_ColorDef
 function lib.GetDamageColor(damageType)
-	return logColors[damageType]
+	return logColors[damageType] or logColors[DAMAGE_TYPE_NONE]
 end
+
+local ZenAbilityFormat = "<<5[/$dx /$dx ]>><<1>> <<2>><<3>><<4[/ ($d)/ ($d)]>>|r"
+local DefaultFormat = "<<5[//$dx ]>><<1>> <<2>><<3>><<4[/ ($d)/ ($d)]>>|r"
 
 local function GetAbilityString(abilityId, damageType, fontsize, showIds, stacks)
 	local stacks = stacks or 0
@@ -260,10 +265,10 @@ local function GetAbilityString(abilityId, damageType, fontsize, showIds, stacks
 	local icon = zo_iconFormat(GetFormattedAbilityIcon(abilityId), fontsize, fontsize)
 	local name = GetFormattedAbilityName(abilityId)
 	local damageColor = lib.GetDamageColor(damageType)
+	local coloredName = damageColor:Colorize(name)
 
-	local format = abilityId == libint.abilityIdZen and "<<5[/$dx /$dx ]>><<1>> <<2>><<3>><<4[/ ($d)/ ($d)]>>|r"
-		or "<<5[//$dx ]>><<1>> <<2>><<3>><<4[/ ($d)/ ($d)]>>|r"
-	local abilityString = ZO_CachedStrFormat(format, icon, damageColor, name, showIds and abilityId or 0, stacks)
+	local format = abilityId == libint.abilityIdZen and ZenAbilityFormat or DefaultFormat
+	local abilityString = ZO_CachedStrFormat(format, icon, coloredName, showIds and abilityId or 0, stacks)
 
 	return abilityString
 end

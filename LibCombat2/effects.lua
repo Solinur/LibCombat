@@ -70,6 +70,11 @@ libint.sourceBuggedBuffs = { -- buffs where ZOS messed up the source, causing CM
 	88401, -- Minor Magickasteal
 }
 
+local isSpecialBuff = {}
+for _, abilityId in ipairs(libint.SpecialBuffs) do
+	isSpecialBuff[abilityId] = true
+end
+
 ---@param fight Fight
 ---@param unitId integer
 ---@return table<integer, EffectData>
@@ -322,7 +327,7 @@ function LogProcessorEffects:ProcessLogLine(
 			slots[slotId] = slotdata
 		end
 
-		if slotdata.isPlayerSource ~= isPlayerSource then
+		if slotdata.isPlayerSource ~= isPlayerSource and not isSpecialBuff[abilityId] and slotId > 0 then
 			logger:Error(
 				"Inconsistent source type for effect slot %d of ability %s (%d)",
 				slotId,

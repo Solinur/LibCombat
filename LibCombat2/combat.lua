@@ -125,14 +125,9 @@ function LogProcessorCombat:ProcessLogLine(fight, logType, ...)
 	logger:Error("Unsupported logtype %d for processor %s", logType, self.name)
 end
 
----@param fight Fight
----@param t table<integer, UnitDamageData>
----@param unitId integer
 ---@param timeMs integer
 ---@return UnitDamageData
-local function InitUnitDamageData(fight, t, unitId, timeMs)
-	fight:CheckUnit(unitId)
-
+local function InitUnitDamageData(timeMs)
 	---@class UnitDamageData
 	---@field [integer] UnitDamageData|DamageAbilityData
 	local unitData = {
@@ -140,20 +135,39 @@ local function InitUnitDamageData(fight, t, unitId, timeMs)
 		startTime = timeMs,
 		endTime = timeMs,
 	}
-	t[unitId] = unitData
 
 	return unitData
 end
 
 local function GetUnitDamageData(fight, sourceUnitId, targetUnitId, timeMs)
+	fight:CheckUnit(targetUnitId)
+
 	local targetData = fight.damageReceived[targetUnitId]
-		or InitUnitDamageData(fight, fight.damageReceived, targetUnitId, timeMs)
-	local unitData = targetData[sourceUnitId or 0] or InitUnitDamageData(fight, targetData, sourceUnitId, timeMs)
+
+	if targetData == nil then
+		fight.damageReceived[targetUnitId] = InitUnitDamageData(timeMs)
+		targetData = fight.damageReceived[targetUnitId]
+	end
+
+	sourceUnitId = sourceUnitId or 0
+
+	local unitData = targetData[sourceUnitId]
+	if unitData == nil then
+		targetData[sourceUnitId] = InitUnitDamageData(timeMs)
+		unitData = targetData[sourceUnitId]
+	end
 
 	local sourceDataDone
 	if sourceUnitId and sourceUnitId > 0 then
+		fight:CheckUnit(sourceUnitId)
+
 		sourceDataDone = fight.damageDone[sourceUnitId]
-			or InitUnitDamageData(fight, fight.damageDone, sourceUnitId, timeMs)
+
+		if sourceDataDone == nil then
+			fight.damageDone[sourceUnitId] = InitUnitDamageData(timeMs)
+			sourceDataDone = fight.damageDone[sourceUnitId]
+		end
+
 		if sourceDataDone[targetUnitId] == nil then
 			sourceDataDone[targetUnitId] = unitData
 		end
@@ -246,8 +260,10 @@ function LogProcessorCombat:ProcessLogLineDamage(
 
 	local targetData, unitData, sourceDataDone = GetUnitDamageData(fight, sourceUnitId, targetUnitId, timeMs)
 	local fullValue = hitValue + overflow
+
 	UpdateUnitDamageData(targetData, fullValue, timeMs)
 	UpdateUnitDamageData(unitData, fullValue, timeMs)
+
 	if sourceDataDone then
 		UpdateUnitDamageData(sourceDataDone, fullValue, timeMs)
 	end
@@ -258,9 +274,9 @@ function LogProcessorCombat:ProcessLogLineDamage(
 	UpdateDamageAbilityData(unitData[abilityId], timeMs, hitValue, overflow, result)
 end
 
-local function InitUnitHealingData(fight, t, unitId, timeMs)
-	fight:CheckUnit(unitId)
-
+---@param timeMs integer
+---@return UnitHealData
+local function InitUnitHealingData(timeMs)
 	---@class UnitHealData
 	---@field [integer] UnitHealData|HealAbilityData
 	local unitData = {
@@ -269,7 +285,6 @@ local function InitUnitHealingData(fight, t, unitId, timeMs)
 		startTime = timeMs,
 		endTime = timeMs,
 	}
-	t[unitId] = unitData
 
 	return unitData
 end
@@ -281,14 +296,34 @@ local function UpdateUnitHealingData(unitData, healing, overflow, timeMs)
 end
 
 local function GetUnitHealingData(fight, sourceUnitId, targetUnitId, timeMs)
+	fight:CheckUnit(targetUnitId)
+
 	local targetData = fight.healingReceived[targetUnitId]
-		or InitUnitHealingData(fight, fight.healingReceived, targetUnitId, timeMs)
-	local unitData = targetData[sourceUnitId or 0] or InitUnitHealingData(fight, targetData, sourceUnitId, timeMs)
+	if targetData == nil then
+		fight.healingReceived[targetUnitId] = InitUnitHealingData(timeMs)
+		targetData = fight.healingReceived[targetUnitId]
+	end
+
+	sourceUnitId = sourceUnitId or 0
+
+	local unitData = targetData[sourceUnitId]
+
+	if unitData == nil then
+		targetData[sourceUnitId] = InitUnitHealingData(timeMs)
+		unitData = targetData[sourceUnitId]
+	end
 
 	local sourceDataDone
 	if sourceUnitId and sourceUnitId > 0 then
+		fight:CheckUnit(sourceUnitId)
+
 		sourceDataDone = fight.healingDone[sourceUnitId]
-			or InitUnitHealingData(fight, fight.healingDone, sourceUnitId, timeMs)
+
+		if sourceDataDone == nil then
+			fight.healingDone[sourceUnitId] = InitUnitHealingData(timeMs)
+			sourceDataDone = fight.healingDone[sourceUnitId]
+		end
+
 		if sourceDataDone[targetUnitId] == nil then
 			sourceDataDone[targetUnitId] = unitData
 		end

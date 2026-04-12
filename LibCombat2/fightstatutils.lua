@@ -61,6 +61,10 @@ local function CombineDamageAbilityData(dataOut, abilityData)
 	end
 
 	dataOut.endTime = zo_max(dataOut.endTime, abilityData.endTime)
+	dataOut.damageType = dataOut.damageType or abilityData.damageType or nil
+
+	dataOut.max = zo_max(dataOut.max or abilityData.max, abilityData.max)
+	dataOut.min = zo_min(dataOut.min or abilityData.min, abilityData.min)
 end
 
 --- Returns aggregated data of damage done by a unit to specified target units with specified abilities
@@ -73,23 +77,53 @@ end
 local function GetUnitDamageDoneToUnits(fight, sourceUnitId, targetUnitIds, abilityIds, dataOut)
 	local data = fight.damageDone[sourceUnitId]
 
-	if data == nil then
-		return
-	end
-
-	if targetUnitIds == nil or NonContiguousCount(targetUnitIds) == 0 then
+	if data == nil or ZO_IsTableEmpty(targetUnitIds) then -- Thanks to Baertram for the tip with ZO_IsTableEmpty!
 		return
 	end
 
 	dataOut = dataOut or lf.InitDamageAbilityData()
 
 	for _, unitId in pairs(targetUnitIds) do
-		-- TODO: Validate?
 		local unitData = data[unitId]
 		if unitData ~= nil then
 			for abilityId, abilityData in pairs(unitData) do
 				if type(abilityId) == "number" and (abilityIds == nil or abilityIds[abilityId]) then
 					CombineDamageAbilityData(dataOut, abilityData)
+				end
+			end
+		end
+	end
+	return dataOut
+end
+
+--- Returns aggregated data of damage done by a unit to specified target units organized by ability
+---@param fight Fight
+---@param sourceUnitId integer
+---@param targetUnitIds? integer[] -- if nil or empty, the function does nothing
+---@param abilityIds? table<integer, boolean> -- if nil, all abilities
+---@param dataOut DamageAbilityData | nil -- if provided, will be used to store the result
+---@return table<integer, DamageAbilityData> | nil
+local function GetUnitDamageDoneToUnitsByAbility(fight, sourceUnitId, targetUnitIds, abilityIds, dataOut)
+	local data = fight.damageDone[sourceUnitId]
+
+	if data == nil or ZO_IsTableEmpty(targetUnitIds) then
+		return dataOut
+	end
+
+	---@type table<integer, DamageAbilityData>
+	dataOut = dataOut or {}
+
+	for _, unitId in pairs(targetUnitIds) do
+		local unitData = data[unitId]
+
+		if unitData ~= nil then
+			for abilityId, abilityData in pairs(unitData) do
+				if type(abilityId) == "number" and (abilityIds == nil or abilityIds[abilityId]) then
+					if dataOut[abilityId] == nil then
+						dataOut[abilityId] = lf.InitDamageAbilityData()
+					end
+
+					CombineDamageAbilityData(dataOut[abilityId], abilityData)
 				end
 			end
 		end
@@ -106,6 +140,17 @@ function lib.GetPlayerDamageDoneToUnits(fight, targetUnitIds, abilityIds)
 	local playerId = fight.unitIds.player
 	targetUnitIds = targetUnitIds or lib.GetEnemyUnits(fight)
 	return GetUnitDamageDoneToUnits(fight, playerId, targetUnitIds, abilityIds)
+end
+
+--- Returns aggregated data of damage done by the player to specified target units with specified abilities
+---@param fight Fight
+---@param targetUnitIds? integer[] -- if nil, all enemy units
+---@param abilityIds? table<integer, boolean> -- if nil, all abilities
+---@return table<integer, DamageAbilityData> | nil
+function lib.GetPlayerDamageDoneToUnitsByAbility(fight, targetUnitIds, abilityIds)
+	local playerId = fight.unitIds.player
+	targetUnitIds = targetUnitIds or lib.GetEnemyUnits(fight)
+	return GetUnitDamageDoneToUnitsByAbility(fight, playerId, targetUnitIds, abilityIds)
 end
 
 --- Returns aggregated data of damage done by all units to specified target units with specified abilities
@@ -125,38 +170,6 @@ function lib.GetDamageDoneToUnits(fight, targetUnitIds, abilityIds)
 	return dataOut
 end
 
----Returns data of damage done by a unit
----@param fight Fight
----@param unitId integer
----@return UnitDamageData
-function lib.GetUnitDamageDone(fight, unitId)
-	return fight.damageDone[unitId]
-end
-
----Returns data of damage received by a unit
----@param fight Fight
----@param unitId integer
----@return UnitDamageData
-function lib.GetUnitDamageReceived(fight, unitId)
-	return fight.damageReceived[unitId]
-end
-
----Returns data of healing done by a unit
----@param fight Fight
----@param unitId integer
----@return UnitHealData
-function lib.GetUnitHealingDone(fight, unitId)
-	return fight.healingDone[unitId]
-end
-
----Returns data of healing received by a unit
----@param fight Fight
----@param unitId integer
----@return UnitHealData
-function lib.GetUnitHealingReceived(fight, unitId)
-	return fight.healingReceived[unitId]
-end
-
 --- Returns aggregated data of damage received by a unit from specified source units with specified abilities
 ---@param fight Fight
 ---@param targetUnitId integer
@@ -167,11 +180,7 @@ end
 local function GetUnitDamageReceivedByUnits(fight, targetUnitId, sourceUnitIds, abilityIds, dataOut)
 	local data = fight.damageReceived[targetUnitId]
 
-	if data == nil then
-		return dataOut
-	end
-
-	if sourceUnitIds == nil or NonContiguousCount(sourceUnitIds) == 0 then
+	if data == nil or ZO_IsTableEmpty(sourceUnitIds) then
 		return dataOut
 	end
 
@@ -192,6 +201,41 @@ local function GetUnitDamageReceivedByUnits(fight, targetUnitId, sourceUnitIds, 
 	return dataOut
 end
 
+--- Returns aggregated data of damage done by a unit to specified target units organized by ability
+---@param fight Fight
+---@param targetUnitId integer
+---@param sourceUnitIds? integer[] -- if nil or empty, the function does nothing
+---@param abilityIds? table<integer, boolean> -- if nil, all abilities
+---@param dataOut DamageAbilityData | nil -- if provided, will be used to store the result
+---@return table<integer, DamageAbilityData> | nil
+local function GetUnitDamageReceivedByUnitsByAbility(fight, targetUnitId, sourceUnitIds, abilityIds, dataOut)
+	local data = fight.damageReceived[targetUnitId]
+
+	if data == nil or ZO_IsTableEmpty(sourceUnitIds) then
+		return dataOut
+	end
+
+	---@type table<integer, DamageAbilityData>
+	dataOut = dataOut or {}
+
+	for _, unitId in pairs(sourceUnitIds) do
+		local unitData = data[unitId]
+
+		if unitData ~= nil then
+			for abilityId, abilityData in pairs(unitData) do
+				if type(abilityId) == "number" and (abilityIds == nil or abilityIds[abilityId]) then
+					if dataOut[abilityId] == nil then
+						dataOut[abilityId] = lf.InitDamageAbilityData()
+					end
+
+					CombineDamageAbilityData(dataOut[abilityId], abilityData)
+				end
+			end
+		end
+	end
+	return dataOut
+end
+
 --- Returns aggregated data of damage received by the player from specified source units with specified abilities
 ---@param fight Fight
 ---@param sourceUnitIds? integer[] -- if nil, all enemy units
@@ -202,6 +246,17 @@ function lib.GetPlayerDamageReceivedByUnits(fight, sourceUnitIds, abilityIds)
 	sourceUnitIds = sourceUnitIds or lib.GetEnemyUnits(fight)
 
 	return GetUnitDamageReceivedByUnits(fight, playerId, sourceUnitIds, abilityIds)
+end
+
+--- Returns aggregated data of damage done by the player to specified target units with specified abilities
+---@param fight Fight
+---@param targetUnitIds? integer[] -- if nil, all enemy units
+---@param abilityIds? table<integer, boolean> -- if nil, all abilities
+---@return table<integer, DamageAbilityData> | nil
+function lib.GetPlayerDamageReceivedByUnitsByAbility(fight, targetUnitIds, abilityIds)
+	local playerId = fight.unitIds.player
+	targetUnitIds = targetUnitIds or lib.GetEnemyUnits(fight)
+	return GetUnitDamageReceivedByUnitsByAbility(fight, playerId, targetUnitIds, abilityIds)
 end
 
 --- Returns aggregated data of damage received by all units from specified source units with specified abilities
@@ -240,6 +295,10 @@ local function CombineHealAbilityData(dataOut, abilityData)
 	end
 
 	dataOut.endTime = zo_max(dataOut.endTime, abilityData.endTime)
+	dataOut.powerType = dataOut.powerType or abilityData.powerType or nil
+
+	dataOut.max = zo_max(dataOut.max or abilityData.max, abilityData.max)
+	dataOut.min = zo_min(dataOut.min or abilityData.min, abilityData.min)
 end
 
 ---
@@ -249,15 +308,11 @@ end
 ---@param abilityIds? table<integer, boolean> -- if nil, all abilities
 ---@param dataOut HealAbilityData | nil -- if provided, will be used to store the result
 ---@return HealAbilityData | nil
-function lib.GetUnitHealingDoneToUnits(fight, sourceUnitId, targetUnitIds, abilityIds, dataOut)
+local function GetUnitHealingDoneToUnits(fight, sourceUnitId, targetUnitIds, abilityIds, dataOut)
 	local data = fight.healingDone[sourceUnitId]
 
-	if data == nil then
-		return
-	end
-
-	if targetUnitIds == nil or NonContiguousCount(targetUnitIds) == 0 then
-		return
+	if data == nil or ZO_IsTableEmpty(targetUnitIds) then -- Thanks to Baertram for the tip with ZO_IsTableEmpty!
+		return dataOut
 	end
 
 	dataOut = dataOut or lf.InitHealAbilityData()
@@ -277,6 +332,41 @@ function lib.GetUnitHealingDoneToUnits(fight, sourceUnitId, targetUnitIds, abili
 	return dataOut
 end
 
+--- Returns aggregated data of damage done by a unit to specified target units organized by ability
+---@param fight Fight
+---@param targetUnitId integer
+---@param sourceUnitIds? integer[] -- if nil or empty, the function does nothing
+---@param abilityIds? table<integer, boolean> -- if nil, all abilities
+---@param dataOut HealAbilityData | nil  -- if provided, will be used to store the result
+---@return table<integer, HealAbilityData> | nil
+local function GetUnitHealingDoneToUnitsByAbility(fight, targetUnitId, sourceUnitIds, abilityIds, dataOut)
+	local data = fight.healingDone[targetUnitId]
+
+	if data == nil or ZO_IsTableEmpty(sourceUnitIds) then
+		return dataOut
+	end
+
+	---@type table<integer, HealAbilityData>
+	dataOut = dataOut or {}
+
+	for _, unitId in pairs(sourceUnitIds) do
+		local unitData = data[unitId]
+
+		if unitData ~= nil then
+			for abilityId, abilityData in pairs(unitData) do
+				if type(abilityId) == "number" and (abilityIds == nil or abilityIds[abilityId]) then
+					if dataOut[abilityId] == nil then
+						dataOut[abilityId] = lf.InitHealAbilityData()
+					end
+
+					CombineHealAbilityData(dataOut[abilityId], abilityData)
+				end
+			end
+		end
+	end
+	return dataOut
+end
+
 --- Returns aggregated data of healing done by the player to specified target units with specified abilities
 ---@param fight Fight
 ---@param targetUnitIds? integer[] -- if nil, all friendly units
@@ -286,7 +376,19 @@ function lib.GetPlayerHealingDoneToUnits(fight, targetUnitIds, abilityIds)
 	local playerId = fight.unitIds.player
 	targetUnitIds = targetUnitIds or lib.GetFriendlyUnits(fight)
 
-	return lib.GetUnitHealingDoneToUnits(fight, playerId, targetUnitIds, abilityIds)
+	return GetUnitHealingDoneToUnits(fight, playerId, targetUnitIds, abilityIds)
+end
+
+--- Returns aggregated data of healing done by the player to specified target units with specified abilities
+---@param fight Fight
+---@param targetUnitIds? integer[] -- if nil, all friendly units
+---@param abilityIds? table<integer, boolean> -- if nil, all abilities
+---@return table<integer, HealAbilityData> | nil
+function lib.GetPlayerHealingDoneToUnitsByAbility(fight, targetUnitIds, abilityIds)
+	local playerId = fight.unitIds.player
+	targetUnitIds = targetUnitIds or lib.GetFriendlyUnits(fight)
+
+	return GetUnitHealingDoneToUnitsByAbility(fight, playerId, targetUnitIds, abilityIds)
 end
 
 ---@param fight Fight
@@ -299,7 +401,7 @@ function lib.GetHealingDoneToUnits(fight, targetUnitIds, abilityIds)
 	targetUnitIds = targetUnitIds or lib.GetFriendlyUnits(fight)
 
 	for sourceUnitId, sourceData in pairs(data) do
-		lib.GetUnitHealingDoneToUnits(fight, sourceUnitId, targetUnitIds, abilityIds, dataOut)
+		GetUnitHealingDoneToUnits(fight, sourceUnitId, targetUnitIds, abilityIds, dataOut)
 	end
 	return dataOut
 end
@@ -313,12 +415,8 @@ end
 function lib.GetUnitHealingReceivedByUnits(fight, targetUnitId, sourceUnitIds, abilityIds, dataOut)
 	local data = fight.healingReceived[targetUnitId]
 
-	if data == nil then
-		return
-	end
-
-	if sourceUnitIds == nil or NonContiguousCount(sourceUnitIds) == 0 then
-		return
+	if data == nil or ZO_IsTableEmpty(sourceUnitIds) then
+		return dataOut
 	end
 
 	dataOut = dataOut or lf.InitHealAbilityData()
@@ -338,6 +436,40 @@ function lib.GetUnitHealingReceivedByUnits(fight, targetUnitId, sourceUnitIds, a
 	return dataOut
 end
 
+--- Returns aggregated data of damage done by a unit to specified target units organized by ability
+---@param fight Fight
+---@param targetUnitId integer
+---@param sourceUnitIds? integer[] -- if nil or empty, the function does nothing
+---@param abilityIds? table<integer, boolean> -- if nil, all abilities
+---@param dataOut HealAbilityData?  -- if provided, will be used to store the result
+---@return table<integer, HealAbilityData>?
+local function GetUnitHealingReceivedByUnitsByAbility(fight, targetUnitId, sourceUnitIds, abilityIds, dataOut)
+	local data = fight.healingReceived[targetUnitId]
+
+	if data == nil or ZO_IsTableEmpty(sourceUnitIds) then
+		return dataOut
+	end
+
+	---@type table<integer, HealAbilityData>
+	dataOut = dataOut or {}
+
+	for _, unitId in pairs(sourceUnitIds) do
+		local unitData = data[unitId]
+
+		if unitData ~= nil then
+			for abilityId, abilityData in pairs(unitData) do
+				if type(abilityId) == "number" and (abilityIds == nil or abilityIds[abilityId]) then
+					if dataOut[abilityId] == nil then
+						dataOut[abilityId] = lf.InitHealAbilityData()
+					end
+
+					CombineHealAbilityData(dataOut[abilityId], abilityData)
+				end
+			end
+		end
+	end
+	return dataOut
+end
 --- Returns aggregated data of healing received by the player from specified source units with specified abilities
 ---@param fight Fight
 ---@param sourceUnitIds? integer[] -- if nil, all friendly units
@@ -349,6 +481,19 @@ function lib.GetPlayerHealingReceivedByUnits(fight, sourceUnitIds, abilityIds)
 
 	return lib.GetUnitHealingReceivedByUnits(fight, playerId, sourceUnitIds, abilityIds)
 end
+
+--- Returns aggregated data of healing done by the player to specified target units with specified abilities
+---@param fight Fight
+---@param targetUnitIds? integer[] -- if nil, all friendly units
+---@param abilityIds? table<integer, boolean> -- if nil, all abilities
+---@return table<integer, HealAbilityData> | nil
+function lib.GetPlayerHealingReceivedByUnitsByAbility(fight, targetUnitIds, abilityIds)
+	local playerId = fight.unitIds.player
+	targetUnitIds = targetUnitIds or lib.GetFriendlyUnits(fight)
+
+	return GetUnitHealingReceivedByUnitsByAbility(fight, playerId, targetUnitIds, abilityIds)
+end
+
 --- Returns aggregated data of healing received by all units from specified source units with specified abilities
 ---@param fight Fight
 ---@param sourceUnitIds? integer[] -- if nil, all friendly units
@@ -363,6 +508,38 @@ function lib.GetHealingReceivedByUnits(fight, sourceUnitIds, abilityIds)
 		lib.GetUnitHealingReceivedByUnits(fight, sourceUnitId, sourceUnitIds, abilityIds, dataOut)
 	end
 	return dataOut
+end
+
+---Returns data of damage done by a unit
+---@param fight Fight
+---@param unitId integer
+---@return UnitDamageData
+function lib.GetUnitDamageDone(fight, unitId)
+	return fight.damageDone[unitId]
+end
+
+---Returns data of damage received by a unit
+---@param fight Fight
+---@param unitId integer
+---@return UnitDamageData
+function lib.GetUnitDamageReceived(fight, unitId)
+	return fight.damageReceived[unitId]
+end
+
+---Returns data of healing done by a unit
+---@param fight Fight
+---@param unitId integer
+---@return UnitHealData
+function lib.GetUnitHealingDone(fight, unitId)
+	return fight.healingDone[unitId]
+end
+
+---Returns data of healing received by a unit
+---@param fight Fight
+---@param unitId integer
+---@return UnitHealData
+function lib.GetUnitHealingReceived(fight, unitId)
+	return fight.healingReceived[unitId]
 end
 
 function libint.InitializeFightStatUtils()

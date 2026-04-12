@@ -136,7 +136,6 @@ local function UpdateStats()
 
 	local data = {
 		["bossfight"] = fight.bossFight == true,
-		["bossFight"] = fight.bossFight == true,
 		["group"] = fight.group,
 
 		["bossDamageTotal"] = playerBossDamage,
@@ -332,27 +331,29 @@ end
 
 ---@param unitId integer
 function FightHandler:CheckUnit(unitId)
-	if self.units[unitId] == nil then
-		---@type UnitData
-		local unit = lib.GetUnitById(unitId):GetFullUnitData()
-
-		if unit == nil then
-			return
-		end
-		self.units[unitId] = unit
-
-		if unit.unitType == COMBAT_UNIT_TYPE_PLAYER then
-			self.unitIds.player = unitId
-		end
-		if unit.isBoss then
-			self.bossFight = true
-			self.unitIds.bosses[unitId] = true
-		end
-		if unit.unitType == COMBAT_UNIT_TYPE_GROUP or unit.unitType == libint.COMBAT_UNIT_TYPE_GROUP_COMPANION then
-			self.unitIds.group[unitId] = true
-		end
-		-- TODO: Check if additional info is needed
+	if self.units[unitId] then
+		return
 	end
+
+	local unit = lib.GetUnitById(unitId)
+	if unit == nil then
+		return
+	end
+
+	local unitData = unit:GetFullUnitData()
+	self.units[unitId] = unitData
+
+	if unitData.unitType == COMBAT_UNIT_TYPE_PLAYER then
+		self.unitIds.player = unitId
+	end
+	if unitData.isBoss then
+		self.bossFight = true
+		self.unitIds.bosses[unitId] = true
+	end
+	if unitData.unitType == COMBAT_UNIT_TYPE_GROUP or unitData.unitType == libint.COMBAT_UNIT_TYPE_GROUP_COMPANION then
+		self.unitIds.group[unitId] = true
+	end
+	-- TODO: Check if additional info is needed
 end
 
 function FightHandler:GetFriendlyUnits()

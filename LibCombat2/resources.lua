@@ -59,7 +59,7 @@ local function onSlotUsed(_, slot)
 	local powerTypes = GetPowerTypes(abilityId)
 	local lastabilities = ld.lastabilities
 
-	if libint.Events.Resources.active and slot > 2 and NonContiguousCount(powerTypes) > 0 then
+	if libint.Events.Resources.active and slot > 2 and not ZO_IsTableEmpty(powerTypes) then
 		for powerType, cost in pairs(powerTypes) do
 			table.insert(lastabilities, { timeMs, abilityId, -cost, powerType })
 		end
