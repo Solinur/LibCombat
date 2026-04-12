@@ -47,7 +47,7 @@ Looking up and formatting icons and ability names is quite costly CPU-wise. Cach
 A function returning the typical colors for each damage type  (Used by Combat Metrics for years).
 
 ```lua
-    LibCombat.GetDamageColor(damageType)
+    LibCombat2.GetDamageColor(damageType)
 ```
 
 * parameters
