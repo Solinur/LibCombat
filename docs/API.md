@@ -31,7 +31,7 @@ LIBCOMBAT_EVENT_DEATHRECAP = 52    -- LIBCOMBAT_EVENT_DEATHRECAP, timeMs, {data}
 
 ## Utility Functions
 
-The following functions provide a cached way to lookup icon paths and ability names without language formatter appendixes (like "^F").
+The following functions provide a cached way to look up icon paths and ability names without language formatter appendixes (like "^F").
 Looking up and formatting icons and ability names is quite costly CPU-wise. Caching greatly reduces the required CPU time at the expense of a little memory.
 
 ```lua
