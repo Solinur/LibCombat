@@ -45,6 +45,8 @@ Looking up and formatting icons and ability names is quite costly CPU-wise. Cach
   * *string* `abilityName` or `iconPath`
 
 A function returning the typical colors for each damage type  (Used by Combat Metrics for years).
+Changed from v1: In LibCombat2, GetDamageColor now returns a ZO_ColorDef instance instead of a string.
+To get the hex string representation, call :ToHex() on the returned object, or use :Colorize(text) to colorize text directly.
 
 ```lua
     LibCombat2.GetDamageColor(damageType)
@@ -54,7 +56,5 @@ A function returning the typical colors for each damage type  (Used by Combat Me
   * *number* `damageType` - damageType as provided by combat and buff events
 * returns:
   * *ZO_ColorDef* `color` - returns the color as a `ZO_ColorDef` instance
-
-<!-- TODO: Return values? -->
 
 *Solinur (PC-EU)*
