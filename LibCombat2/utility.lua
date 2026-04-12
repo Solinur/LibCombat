@@ -248,13 +248,17 @@ local logColors = {
 	["buff"] = ZO_ColorDef:New("00cc00"),
 	["debuff"] = ZO_ColorDef:New("ff3333"),
 	["resource"] = ZO_ColorDef:New("ffffff"),
+	["default"] = ZO_ColorDef:New("E6E6E6"),
 }
 
 ---@param damageType DamageType
 ---@return ZO_ColorDef
 function lib.GetDamageColor(damageType)
-	return logColors[damageType]
+	return logColors[damageType] or logColors["default"]
 end
+
+local ZenAbilityFormat = "<<5[/$dx /$dx ]>><<1>> <<2>><<3>><<4[/ ($d)/ ($d)]>>|r"
+local DefaultFormat = "<<5[//$dx ]>><<1>> <<2>><<3>><<4[/ ($d)/ ($d)]>>|r"
 
 local function GetAbilityString(abilityId, damageType, fontsize, showIds, stacks)
 	local stacks = stacks or 0
@@ -262,10 +266,10 @@ local function GetAbilityString(abilityId, damageType, fontsize, showIds, stacks
 	local icon = zo_iconFormat(GetFormattedAbilityIcon(abilityId), fontsize, fontsize)
 	local name = GetFormattedAbilityName(abilityId)
 	local damageColor = lib.GetDamageColor(damageType)
+	local coloredName = damageColor:Colorize(name)
 
-	local format = abilityId == libint.abilityIdZen and "<<5[/$dx /$dx ]>><<1>> <<2>><<3>><<4[/ ($d)/ ($d)]>>|r"
-		or "<<5[//$dx ]>><<1>> <<2>><<3>><<4[/ ($d)/ ($d)]>>|r"
-	local abilityString = ZO_CachedStrFormat(format, icon, damageColor, name, showIds and abilityId or 0, stacks)
+	local format = abilityId == libint.abilityIdZen and ZenAbilityFormat or DefaultFormat
+	local abilityString = ZO_CachedStrFormat(format, icon, coloredName, showIds and abilityId or 0, stacks)
 
 	return abilityString
 end
