@@ -248,13 +248,12 @@ local logColors = {
 	["buff"] = ZO_ColorDef:New("00cc00"),
 	["debuff"] = ZO_ColorDef:New("ff3333"),
 	["resource"] = ZO_ColorDef:New("ffffff"),
-	["default"] = ZO_ColorDef:New("E6E6E6"),
 }
 
 ---@param damageType DamageType
 ---@return ZO_ColorDef
 function lib.GetDamageColor(damageType)
-	return logColors[damageType] or logColors["default"]
+	return logColors[damageType] or logColors[DAMAGE_TYPE_NONE]
 end
 
 local ZenAbilityFormat = "<<5[/$dx /$dx ]>><<1>> <<2>><<3>><<4[/ ($d)/ ($d)]>>|r"
