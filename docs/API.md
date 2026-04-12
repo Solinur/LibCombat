@@ -16,7 +16,7 @@ In order to receive combat events from the library one has to register a callbac
 
 * parameters
   * *number* `eventType` - one of the log types described below.
-  * *function* `callback` - callback function. When unregistering the underlying ZOS code actually compares this to the registered one. If it is not he same, the callback won't be removed.
+  * *function* `callback` - callback function. When unregistering the underlying ZOS code actually compares this to the registered one. If it is not the same, the callback won't be removed.
   * *string* `idString` - string used to identify the addon which requests the callback. I recommend using the addon name.
 
 ## Event Types
