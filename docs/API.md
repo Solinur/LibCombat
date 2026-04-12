@@ -57,4 +57,5 @@ To get the hex string representation, call :ToHex() on the returned object, or u
 * returns:
   * *ZO_ColorDef* `color` - returns the color as a `ZO_ColorDef` instance
 
-*Solinur (PC-EU)*
+<!-- markdownlint-disable-next-line MD036 -->
+**Solinur (PC-EU)**
