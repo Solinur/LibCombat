@@ -1,4 +1,8 @@
-﻿86 DL 4,811,729 (03.03.2026) 13:12
+﻿87 DL 4,902,419 (21.04.2026) 22:57
+[*] Fix a lua error occuring when no Subclassing is not available, e.g. Vengeance Campaign (thx Masteroshi430 for the report)
+[*] Improve boss fight detection (thx Charles for the report)
+
+86 DL 4,811,729 (03.03.2026) 13:12
 [*] Added additional info to charData to support CMX build export
 
 85 DL 4,750,750 (28.01.2026) 21:51 
