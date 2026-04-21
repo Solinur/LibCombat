@@ -1508,7 +1508,9 @@ function FightHandler:PrepareFight()
 
 		local subClassingLines = SKILLS_DATA_MANAGER.activeClassSkillLineDataList
 		for i = 1, 3 do
-			charData.SkillLines[i] = subClassingLines[i].id
+			if subClassingLines and subClassingLines[i] then
+				charData.SkillLines[i] = subClassingLines[i].id
+			end
 		end
 
 		self.CP = GetCurrentCP()
