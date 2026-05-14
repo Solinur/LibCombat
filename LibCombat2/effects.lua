@@ -46,9 +46,8 @@ libint.SpecialBuffs =
 
 libint.SpecialDebuffs =
 	{ -- debuffs that the API doesn't show via EVENT_EFFECT_CHANGED and need to be specially tracked via EVENT_COMBAT_EVENT
-		95136, -- Chilled (used for tracking Warden crit damage buff)
-		178118, -- Status Effect Magic (Overcharged)
 		95136, -- Status Effect Frost (Chill, used for tracking Warden crit damage buff)
+		178118, -- Status Effect Magic (Overcharged)
 		95134, -- Status Effect Lightning (Concussion)
 		178123, -- Status Effect Physical (Sundered)
 		178127, -- Status Effect Foulness (Diseased)
@@ -67,7 +66,7 @@ libint.StatusEffectIds = {
 }
 
 libint.sourceBuggedBuffs = { -- buffs where ZOS messed up the source, causing CMX to falsely not track them
-	88401, -- Minor Magickasteal
+	[88401] = true, -- Minor Magickasteal
 }
 
 local isSpecialBuff = {}
@@ -467,7 +466,7 @@ local function UpdateZenData(timeMs, unitId, abilityId, changeType, effectType, 
 	end
 end
 
-function UpdateForceOfNatureData(timeMs, unitId, abilityId, changeType, _, _, _, _)
+local function UpdateForceOfNatureData(timeMs, unitId, abilityId, changeType, _, _, _, _)
 	local unit = localUnitData[unitId] or InitLocalUnitData(unitId)
 	local fight = libint.currentFight
 	if
@@ -501,7 +500,7 @@ function UpdateForceOfNatureData(timeMs, unitId, abilityId, changeType, _, _, _,
 		unit.forceOfNature[abilityId] = nil
 		debugChangeType = "-"
 
-		if unit.forceOfNatureStacks == 0 then
+		if unit.forceOfNatureStacks == 1 then
 			forceOfNatureChangeType = EFFECT_RESULT_FADED
 		end
 		if unit.forceOfNatureStacks - 1 < 0 then
