@@ -65,6 +65,9 @@ local function IsValidUnitData(rawName, unitId, unitType)
 end
 
 local function UpdatePlayerId(newPlayerId)
+	if not IsValidUnitId(newPlayerId) then
+		return
+	end
 	if libunits.playerId == newPlayerId then
 		return
 	end -- check if it changed
@@ -562,11 +565,29 @@ function UnitHandler:Delete()
 		end
 	end
 
-	for i, unitId in ipairs(libunits.unitIdsByRawName) do
-		if unitId == self.unitId then
-			table.remove(libunits.unitIdsByRawName, i)
-			table.remove(libunits.unitIdsByName, i)
-			break
+	local rawNameList = libunits.unitIdsByRawName[self.rawName]
+	if rawNameList then
+		for i, unitId in ipairs(rawNameList) do
+			if unitId == self.unitId then
+				table.remove(rawNameList, i)
+				break
+			end
+		end
+		if #rawNameList == 0 then
+			libunits.unitIdsByRawName[self.rawName] = nil
+		end
+	end
+
+	local nameList = libunits.unitIdsByName[self.name]
+	if nameList then
+		for i, unitId in ipairs(nameList) do
+			if unitId == self.unitId then
+				table.remove(nameList, i)
+				break
+			end
+		end
+		if #nameList == 0 then
+			libunits.unitIdsByName[self.name] = nil
 		end
 	end
 
