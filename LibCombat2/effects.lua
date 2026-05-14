@@ -194,35 +194,33 @@ function LogProcessorEffects:GetPlayerBuffs(fight)
 			GetUnitBuffInfo("player", i)
 
 		local effectData = GetEffectData(fight, playerId, abilityId, effectType)
-		if effectData.slots[effectSlot] then
-			return
-		end
-
-		local sourceType = castByPlayer and COMBAT_UNIT_TYPE_PLAYER or COMBAT_UNIT_TYPE_NONE
-		local stacks = zo_max(stackCount, 1)
-		logger:Debug(
-			"player has the %s %d x %s (%d, AType: %d, self: %s)",
-			effectType == BUFF_EFFECT_TYPE_BUFF and "buff" or "debuff",
-			stackCount,
-			lib.GetFormattedAbilityName(abilityId),
-			abilityId,
-			abilityType,
-			tostring(castByPlayer)
-		)
-
-		if not libint.badAbility[abilityId] then
-			self:ProcessLogLine(
-				fight,
-				LIBCOMBAT_LOG_EVENT_EFFECT,
-				timeMs,
-				playerId,
+		if effectData.slots[effectSlot] == nil then
+			local sourceType = castByPlayer and COMBAT_UNIT_TYPE_PLAYER or COMBAT_UNIT_TYPE_NONE
+			local stacks = zo_max(stackCount, 1)
+			logger:Debug(
+				"player has the %s %d x %s (%d, AType: %d, self: %s)",
+				effectType == BUFF_EFFECT_TYPE_BUFF and "buff" or "debuff",
+				stackCount,
+				lib.GetFormattedAbilityName(abilityId),
 				abilityId,
-				EFFECT_RESULT_GAINED,
-				effectType,
-				stacks,
-				sourceType,
-				effectSlot
+				abilityType,
+				tostring(castByPlayer)
 			)
+
+			if not libint.badAbility[abilityId] then
+				self:ProcessLogLine(
+					fight,
+					LIBCOMBAT_LOG_EVENT_EFFECT,
+					timeMs,
+					playerId,
+					abilityId,
+					EFFECT_RESULT_GAINED,
+					effectType,
+					stacks,
+					sourceType,
+					effectSlot
+				)
+			end
 		end
 
 		-- TODO: activate once available
