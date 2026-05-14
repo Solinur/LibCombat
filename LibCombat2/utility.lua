@@ -45,8 +45,13 @@ function Queue:Delete(index)
 		return self:Pop()
 	end
 
+	local value = self[index]
+	for i = index, self.last - 1 do
+		self[i] = self[i + 1]
+	end
+	self[self.last] = nil
 	self.last = self.last - 1
-	return table.remove(self, index) -- TODO: This is a bit hacky. Maybe review
+	return value
 end
 
 function Queue:IsEmpty()
