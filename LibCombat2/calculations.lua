@@ -243,7 +243,7 @@ end
 
 function lf.DeactivateProcessors()
 	for _, processor in pairs(libint.LogProcessors) do
-		processor:Dectivate()
+		processor:Deactivate()
 	end
 end
 
