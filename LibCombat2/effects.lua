@@ -296,7 +296,7 @@ function LogProcessorEffects:ProcessLogLine(
 
 	local minStacks = abilityId == abilityIdZen and 0 or 1
 	local currentstacks = stacks or minStacks
-	local maxStacks = zo_max(stacks, effectData.maxStacks)
+	local maxStacks = zo_max(currentstacks, effectData.maxStacks)
 	effectData.maxStacks = maxStacks
 
 	local isPlayerSource = sourceType == COMBAT_UNIT_TYPE_PLAYER or sourceType == COMBAT_UNIT_TYPE_PLAYER_PET
