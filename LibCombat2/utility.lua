@@ -59,6 +59,10 @@ function Queue:IsEmpty()
 	return self.first > self.last
 end
 
+function Queue:Size()
+	return self.last - self.first + 1
+end
+
 ---@return Queue
 function lf.CreateQueue()
 	return Queue:New()
@@ -299,7 +303,7 @@ function lib:GetCombatLogString(fight, logline, fontsize, showIds)
 
 	local units = fight.units
 
-	if logtype == LIBCOMBAT_LOG_EVENT_DAMAGE then
+	if logtype == LIBCOMBAT_LOG_EVENT_DAMAGE then -- TODO: Fix duplicate branches (due to new constants)
 		local _, _, result, _, targetUnitId, abilityId, hitValue, damageType, overflow = unpack(logline)
 		overflow = overflow or 0
 

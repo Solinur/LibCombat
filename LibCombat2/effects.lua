@@ -527,9 +527,8 @@ local function UpdateForceOfNatureData(timeMs, unitId, abilityId, changeType, _,
 		0
 	)
 	logger:Verbose(
-		"Force of Nature: %s (%d) x%d, %s%s",
-		unit.name,
-		unit.unitId,
+		"Force of Nature: %d x%d, %s%s",
+		unitId,
 		stacks,
 		lib.GetFormattedAbilityName(abilityId),
 		debugChangeType
