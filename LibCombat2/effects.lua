@@ -14,6 +14,7 @@ local lf = libint.functions
 local logger
 
 local localUnitData = {}
+local buffEndTimes = {} -- [unitId][abilityId][effectSlot] = endTime (seconds), updated live from EVENT_EFFECT_CHANGED
 local abilityIdZen = libint.abilityIdZen
 local abilityIdForceOfNature = libint.abilityIdForceOfNature
 
@@ -158,6 +159,53 @@ end
 ---@class LogProcessorEffects: LogProcessingHandler
 local LogProcessorEffects = lf.LogProcessingHandler:New("effects", LIBCOMBAT_LOG_EVENT_EFFECT)
 
+function LogProcessorEffects:ApplyHandover(fight)
+	local handover = self.handover
+	if handover == nil or next(handover) == nil then
+		return
+	end
+	self.handover = nil
+
+	local playerId = fight.unitIds.player or libunits.playerId
+	local timeMs = GetGameTimeMilliseconds()
+	local now = GetGameTimeSeconds()
+
+	for unitId, unitHandover in pairs(handover) do
+		if unitId ~= playerId then
+			for abilityId, abilityHandover in pairs(unitHandover) do
+				if not libint.badAbility[abilityId] then
+					for slotId, slotHandover in pairs(abilityHandover.slots) do
+						if slotHandover.endTime == 0 or slotHandover.endTime > now then
+							local sourceType = slotHandover.isPlayerSource and COMBAT_UNIT_TYPE_PLAYER
+								or COMBAT_UNIT_TYPE_GROUP
+							logger:Debug(
+								"handover: unit %d still has %dx %s (%d) slot %d",
+								unitId,
+								slotHandover.stacks,
+								lib.GetFormattedAbilityName(abilityId),
+								abilityId,
+								slotId
+							)
+							self:ProcessLogLine(
+								fight,
+								LIBCOMBAT_LOG_EVENT_EFFECT,
+								timeMs,
+								unitId,
+								abilityId,
+								EFFECT_RESULT_GAINED,
+								abilityHandover.effectType,
+								slotHandover.stacks,
+								sourceType,
+								slotId
+							)
+						end
+					end
+				end
+			end
+		end
+	end
+end
+
 ---@class Fight
 ---@field effects table<integer, table<integer, EffectData>>  -- levels: [unitId][abilityId]
 ---@param fight Fight
@@ -169,8 +217,7 @@ function LogProcessorEffects:onInitilizeFight(fight)
 	ZO_ClearTable(localUnitData)
 	fight.effects = {}
 
-	--TODO: Import handover effects, refresh group member buffs using unitTag?
-
+	self:ApplyHandover(fight)
 	self:GetPlayerBuffs(fight) -- Check if this is needed here or only at combat start
 end
 
@@ -232,9 +279,36 @@ function LogProcessorEffects:onCombatStart(fight)
 	self:GetPlayerBuffs(fight)
 end
 
-function LogProcessorEffects:onCombatEnd()
-	-- TODO: Truncate and hand over running buffs.
-	-- TODO: remove temp data
+local function FinalizeStackUptimes(effectData, slotdata, minStacks, maxStacks, endTime)
+	local slotStartTime
+	for i = maxStacks, minStacks, -1 do
+		local stackData = GetStackData(effectData, i)
+		slotStartTime = slotdata[i] or slotStartTime
+		if slotStartTime then
+			local duration = endTime - slotStartTime
+			if slotdata.isPlayerSource then
+				stackData.uptime = stackData.uptime + duration
+				stackData.count = stackData.count + 1
+			end
+			stackData.groupUptime = stackData.groupUptime + duration
+			stackData.groupCount = stackData.groupCount + 1
+		end
+	end
+end
+
+local function FinalizeEffectUptimes(effectData, slotcount, groupSlotCount, combatStart, endTime)
+	if slotcount == 0 and effectData.firstStartTime then
+		local starttime = zo_max(effectData.firstStartTime, combatStart)
+		effectData.uptime = effectData.uptime + (endTime - starttime)
+		effectData.count = effectData.count + 1
+		effectData.firstStartTime = nil
+	end
+	if groupSlotCount == 0 and effectData.firstGroupStartTime then
+		local starttime = zo_max(effectData.firstGroupStartTime, combatStart)
+		effectData.groupUptime = effectData.groupUptime + (endTime - starttime)
+		effectData.groupCount = effectData.groupCount + 1
+		effectData.firstGroupStartTime = nil
+	end
 end
 
 ---@param slots table
@@ -362,44 +436,77 @@ function LogProcessorEffects:ProcessLogLine(
 			groupSlotCount = groupSlotCount - 1
 
 			local endTime = zo_min(timeMs, combatEnd)
-			local slotStartTime --TODO: review this!
 
-			for stacks = maxStacks, minStacks, -1 do
-				local stackData = GetStackData(effectData, stacks)
-				slotStartTime = slotdata[stacks] or slotStartTime
-
-				if slotStartTime then
-					local duration = endTime - slotStartTime
-
-					if slotdata.isPlayerSource then
-						stackData.uptime = stackData.uptime + duration
-						stackData.count = stackData.count + 1
-					end
-
-					stackData.groupUptime = stackData.groupUptime + duration
-					stackData.groupCount = stackData.groupCount + 1
-				end
-			end
-
-			if slotcount == 0 and effectData.firstStartTime then
-				local starttime = zo_max(effectData.firstStartTime, combatStart)
-				local duration = endTime - starttime
-				effectData.uptime = effectData.uptime + duration
-				effectData.count = effectData.count + 1
-				effectData.firstStartTime = nil
-			end
-
-			if groupSlotCount == 0 and effectData.firstGroupStartTime then
-				local starttime = zo_max(effectData.firstGroupStartTime, combatStart)
-				local duration = endTime - starttime
-				effectData.groupUptime = effectData.groupUptime + duration
-				effectData.groupCount = effectData.groupCount + 1
-				effectData.firstGroupStartTime = nil
-			end
+			FinalizeStackUptimes(effectData, slotdata, minStacks, maxStacks, endTime) --TODO: review slotStartTime carry-over logic
+			FinalizeEffectUptimes(effectData, slotcount, groupSlotCount, combatStart, endTime)
 		end
 	end
 
 	-- unit:UpdateStats(fight, effectData, abilityId, hitValue) -- TODO: Setup when stats module works
+end
+
+local function BuildSlotHandover(slots, maxStacks, unitId, abilityId)
+	local abilityEndTimes = buffEndTimes[unitId] and buffEndTimes[unitId][abilityId]
+	local slotHandover = {}
+	for slotId, slotdata in pairs(slots) do
+		slotHandover[slotId] = {
+			isPlayerSource = slotdata.isPlayerSource,
+			stacks = zo_max(maxStacks, 1),
+			endTime = abilityEndTimes and abilityEndTimes[slotId] or 0,
+		}
+	end
+	return slotHandover
+end
+
+local function FinalizeUnitEffect(handover, unitId, abilityId, effectData, playerId, combatStart, combatEnd)
+	local slots = effectData.slots
+	local minStacks = abilityId == abilityIdZen and 0 or 1
+	local maxStacks = effectData.maxStacks
+	local slotcount, groupSlotCount = CountSlots(slots)
+
+	for _, slotdata in pairs(slots) do
+		FinalizeStackUptimes(effectData, slotdata, minStacks, maxStacks, combatEnd)
+
+		if slotdata.isPlayerSource then
+			slotcount = slotcount - 1
+		end
+		groupSlotCount = groupSlotCount - 1
+
+		FinalizeEffectUptimes(effectData, slotcount, groupSlotCount, combatStart, combatEnd)
+	end
+
+	if unitId ~= playerId and next(slots) ~= nil then
+		if handover[unitId] == nil then
+			handover[unitId] = {}
+		end
+		handover[unitId][abilityId] = {
+			effectType = effectData.effectType,
+			slots = BuildSlotHandover(slots, maxStacks, unitId, abilityId),
+		}
+	end
+
+	effectData.slots = {}
+end
+
+function LogProcessorEffects:onCombatEnd(fight)
+	if not fight.effects then
+		return
+	end
+
+	local combatEnd = fight.info and fight.info.combatEnd or 0
+	local combatStart = fight.info and fight.info.combatStart or 0
+	local playerId = fight.unitIds.player or libunits.playerId
+	self.handover = {}
+
+	for unitId, unitEffects in pairs(fight.effects) do
+		for abilityId, effectData in pairs(unitEffects) do
+			FinalizeUnitEffect(self.handover, unitId, abilityId, effectData, playerId, combatStart, combatEnd)
+		end
+	end
+
+	-- unit:UpdateStats(fight, effectData, abilityId, hitValue) -- TODO: Setup when stats module works
+	localUnitData = {}
+	buffEndTimes = {}
 end
 
 -- TODO: implement Z'en and FoN tracking on analysis side
@@ -600,6 +707,20 @@ local function BuffEventHandler(
 	end
 	if libint.sourceBuggedBuffs[abilityId] then
 		sourceType = COMBAT_UNIT_TYPE_GROUP
+	end
+
+	if changeType == EFFECT_RESULT_GAINED or changeType == EFFECT_RESULT_UPDATED then
+		if buffEndTimes[unitId] == nil then
+			buffEndTimes[unitId] = {}
+		end
+		if buffEndTimes[unitId][abilityId] == nil then
+			buffEndTimes[unitId][abilityId] = {}
+		end
+		buffEndTimes[unitId][abilityId][effectSlot] = endTime
+	elseif changeType == EFFECT_RESULT_FADED then
+		if buffEndTimes[unitId] and buffEndTimes[unitId][abilityId] then
+			buffEndTimes[unitId][abilityId][effectSlot] = nil
+		end
 	end
 
 	local timeMs = GetGameTimeMilliseconds()
