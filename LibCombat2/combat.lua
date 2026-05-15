@@ -449,10 +449,10 @@ local function isGroupInvolved(hitValue, sourceUnitId, targetUnitId)
 	if hitValue == nil or hitValue <= 0 then
 		return false
 	end
-	if sourceUnitId and sourceUnitId > 0 and libunits[sourceUnitId] and libunits[sourceUnitId].isFriendly then
+	if sourceUnitId and sourceUnitId > 0 and libunits.unitData[sourceUnitId] and libunits.unitData[sourceUnitId].isFriendly then
 		return true
 	end
-	if targetUnitId and targetUnitId > 0 and libunits[targetUnitId] and libunits[targetUnitId].isFriendly then
+	if targetUnitId and targetUnitId > 0 and libunits.unitData[targetUnitId] and libunits.unitData[targetUnitId].isFriendly then
 		return true
 	end
 	return false

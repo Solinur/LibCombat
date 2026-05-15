@@ -479,21 +479,21 @@ end
 
 function UnitHandler:UpdateUnitTagData(unitTag)
 	-- General
-	UnitHandler:ValidateUnitTagUpdate("gender", GetUnitGender(unitTag))
-	UnitHandler:ValidateUnitTagUpdate("maxHealth", GetUnitPower(unitTag, COMBAT_MECHANIC_FLAGS_HEALTH))
+	self:ValidateUnitTagUpdate("gender", GetUnitGender(unitTag))
+	self:ValidateUnitTagUpdate("maxHealth", GetUnitPower(unitTag, COMBAT_MECHANIC_FLAGS_HEALTH))
 
 	-- Player characters	TODO: check classification
-	UnitHandler:ValidateUnitTagUpdate("displayName", GetUnitDisplayName(unitTag))
-	UnitHandler:ValidateUnitTagUpdate("class", GetUnitClass(unitTag))
-	UnitHandler:ValidateUnitTagUpdate("classId", GetUnitClassId(unitTag))
-	UnitHandler:ValidateUnitTagUpdate("CP", GetUnitChampionPoints(unitTag))
-	UnitHandler:ValidateUnitTagUpdate("effectiveCP", GetUnitEffectiveChampionPoints(unitTag))
-	UnitHandler:ValidateUnitTagUpdate("effectiveLevel", GetUnitEffectiveLevel(unitTag))
+	self:ValidateUnitTagUpdate("displayName", GetUnitDisplayName(unitTag))
+	self:ValidateUnitTagUpdate("class", GetUnitClass(unitTag))
+	self:ValidateUnitTagUpdate("classId", GetUnitClassId(unitTag))
+	self:ValidateUnitTagUpdate("CP", GetUnitChampionPoints(unitTag))
+	self:ValidateUnitTagUpdate("effectiveCP", GetUnitEffectiveChampionPoints(unitTag))
+	self:ValidateUnitTagUpdate("effectiveLevel", GetUnitEffectiveLevel(unitTag))
 
 	-- Status
-	UnitHandler:ValidateUnitTagUpdate("isDead", IsUnitDead(unitTag))
-	UnitHandler:ValidateUnitTagUpdate("isReincarnating", IsUnitReincarnating(unitTag))
-	UnitHandler:ValidateUnitTagUpdate("isAlive", not IsUnitDeadOrReincarnating(unitTag))
+	self:ValidateUnitTagUpdate("isDead", IsUnitDead(unitTag))
+	self:ValidateUnitTagUpdate("isReincarnating", IsUnitReincarnating(unitTag))
+	self:ValidateUnitTagUpdate("isAlive", not IsUnitDeadOrReincarnating(unitTag))
 
 	-- TODO: check limitations and only update necessary values
 	-- TODO: check not to overwrite data
