@@ -1,4 +1,4 @@
--- This file provides the framework to (de-)register the required set of events
+-- Dynamic ESO event (de-)registration framework.
 
 ---@class LibCombat2
 local lib = LibCombat2
@@ -16,31 +16,25 @@ libint.ActiveCallbackTypes = ActiveCallbackTypes
 
 local Events = {}
 libint.Events = Events
+libint.totalevents = 0
 
----@class EventHandler
+---@class EventHandler: ZO_InitializingObject
 ---@field New fun(self: EventHandler, callbacktypes: integer[], regfunc: fun(...: any)): EventHandler
-local EventHandler = ZO_Object:Subclass()
+local EventHandler = ZO_InitializingObject:Subclass()
 libint.EventHandler = EventHandler
-
-function EventHandler:New(...)
-	local object = ZO_Object.New(self)
-	object:Initialize(...)
-	return object
-end
 
 function EventHandler:Initialize(callbacktypes, regfunc)
 	self.data = {}
 	self.callbacktypes = callbacktypes
 	self.active = false
 	self.RegisterEvents = regfunc
+	self.resetIds = false
 end
 
 function EventHandler:RegisterEvent(event, callback, ...) -- convinience function
 	local filters = { ... }
 
-	libint.totalevents = (libint.totalevents or 0) + 1
-
-	local eventId = lib.name .. libint.totalevents
+	local eventId = lib.name .. libint.totalevents + 1
 
 	local active = EVENT_MANAGER:RegisterForEvent(eventId, event, callback)
 	local filtered = false

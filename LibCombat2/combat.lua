@@ -1,4 +1,4 @@
--- This file provides combat log entries regarding damage and heal events
+-- Damage and heal event logging and processing.
 
 ---@class LibCombat2
 local lib = LibCombat2

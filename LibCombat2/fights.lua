@@ -1,5 +1,4 @@
--- This file contains handling of collected fight data
-
+-- Fight lifecycle management: start/end detection, data aggregation, and fight record storage.
 ---@class LibCombat2
 local lib = LibCombat2
 ---@class LCint

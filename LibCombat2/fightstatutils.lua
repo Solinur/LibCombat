@@ -1,5 +1,4 @@
--- This file contains handling of collected fight data
-
+-- Stat query utilities on fight data.
 ---@class LibCombat2
 local lib = LibCombat2
 ---@class LCint

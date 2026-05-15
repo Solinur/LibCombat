@@ -1,3 +1,4 @@
+-- Utility functions (spairs, etc.) and classes (Queue, CallbackManager, LogString generation) used across the library.
 ---@class LibCombat2
 local lib = LibCombat2
 ---@class LCint
@@ -62,7 +63,6 @@ end
 function lf.CreateQueue()
 	return Queue:New()
 end
--- Cache formatted Ability Names and Icons. Makes sure they stay consistent, since some addons like to meddle with them.
 
 -- Callback Manager
 ---@class ZO_CallbackObjectMixin
@@ -89,7 +89,7 @@ function lf.UnregisterCallback(eventKey, callback)
 	cm:UnregisterCallback(CallbackKeys[eventKey], callback)
 end
 
-----
+-- Cache formatted Ability Names and Icons. Makes sure they stay consistent, since some addons like to meddle with them.
 
 local CustomAbilityName = {
 	[-1] = "Unknown", -- Whenever there is no known abilityId

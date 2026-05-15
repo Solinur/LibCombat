@@ -1,4 +1,4 @@
--- This file provides combat log entries regarding buffs and debuffs
+-- Buff and debuff event processing.
 
 ---@class LibCombat2
 local lib = LibCombat2

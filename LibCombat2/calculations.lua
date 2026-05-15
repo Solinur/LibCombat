@@ -1,5 +1,5 @@
+-- Processing base class to handle combat log events asynchronously.
 ---@diagnostic disable: undefined-field
--- contains the analysis of log events to calculate stats
 
 ---@class LibCombat2
 local lib = LibCombat2

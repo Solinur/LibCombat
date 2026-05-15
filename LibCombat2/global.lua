@@ -1,4 +1,4 @@
--- This file contains definitions of global variables
+-- Global definitions for library enums: Callback keys, event constants, type aliases.
 
 ---@class LibCombat2
 local lib = LibCombat2

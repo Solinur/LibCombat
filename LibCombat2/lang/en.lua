@@ -1,3 +1,4 @@
+-- Localization strings (SI_LIBCOMBAT_*) for combat log messages; English baseline.
 local strings = {
 
 	SI_LIBCOMBAT_LOG_CRITICAL = "critically ",  -- "critically"

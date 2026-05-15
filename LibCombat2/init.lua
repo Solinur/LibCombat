@@ -1,4 +1,4 @@
--- This file contains the initialziation code
+-- LibCombat2 and lib.internal namespace setup, version check, and logger initialization.
 
 ---@class LibCombat2
 LibCombat2 = LibCombat2 or {}

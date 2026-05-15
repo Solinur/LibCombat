@@ -1,6 +1,7 @@
+-- Unit handling: discovery, tracking and conversion by id, name and unit tag.
 local _
 ---@class LCUnits
-libunits = {}
+local libunits = {}
 
 ---@class LibCombat2
 local lib = LibCombat2
