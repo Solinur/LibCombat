@@ -161,7 +161,7 @@ local LogProcessorEffects = lf.LogProcessingHandler:New("effects", LIBCOMBAT_LOG
 
 function LogProcessorEffects:ApplyHandover(fight)
 	local handover = self.handover
-	if handover == nil or next(handover) == nil then
+	if ZO_IsTableEmpty(handover) then
 		return
 	end
 	self.handover = nil
