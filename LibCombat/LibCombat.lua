@@ -12,7 +12,7 @@ Add more debug Functions
 ]]
 
 local lib = {}
-lib.version = 87
+lib.version = 88
 LibCombat = lib
 
 -- Basic values
@@ -5312,6 +5312,7 @@ local statStrings = {
 	[LIBCOMBAT_STAT_PHYSICALRESISTANCE] = "|cffff88" .. GetString(SI_DERIVEDSTATS22) .. "|r ",
 	[LIBCOMBAT_STAT_SPELLRESISTANCE] = "|cffff88" .. GetString(SI_DERIVEDSTATS13) .. "|r ",
 	[LIBCOMBAT_STAT_CRITICALRESISTANCE] = "|cffff88" .. GetString(SI_DERIVEDSTATS24) .. "|r ",
+	[LIBCOMBAT_STAT_STATUS_EFFECT_CHANCE] = "|cdddddd" .. GetString(SI_LIBCOMBAT_LOG_STAT_STATUS_EFFECT_CHANCE) .. "|r ",
 }
 
 local logColors = {
@@ -5557,6 +5558,11 @@ function lib:GetCombatLogString(fight, logline, fontsize, showIds)
 		end
 
 		if statId == LIBCOMBAT_STAT_SPELLCRITBONUS or statId == LIBCOMBAT_STAT_WEAPONCRITBONUS then
+			value = stringformat("%.1f%%", newvalue)
+			change = stringformat("%.1f%%", statchange)
+		end
+
+		if statId == LIBCOMBAT_STAT_STATUS_EFFECT_CHANCE then
 			value = stringformat("%.1f%%", newvalue)
 			change = stringformat("%.1f%%", statchange)
 		end

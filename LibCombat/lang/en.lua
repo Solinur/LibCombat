@@ -23,6 +23,7 @@ local strings = {
 
 	SI_LIBCOMBAT_LOG_STAT_SPELL_CRIT_DONE = "Spell Critical Damage",  -- "Spell Critical Damage"
 	SI_LIBCOMBAT_LOG_STAT_WEAPON_CRIT_DONE = "Physical Critical Damage",  -- "Physical Critical Damage"
+	SI_LIBCOMBAT_LOG_STAT_STATUS_EFFECT_CHANCE = "Status Effect Chance",  -- "Status Effect Chance"
 
 	SI_LIBCOMBAT_LOG_MESSAGE1 = "Entering Combat",  -- "Entering Combat"
 	SI_LIBCOMBAT_LOG_MESSAGE2 = "Exiting Combat",  -- "Exiting Combat"
