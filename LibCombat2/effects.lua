@@ -445,13 +445,13 @@ function LogProcessorEffects:ProcessLogLine(
 	-- unit:UpdateStats(fight, effectData, abilityId, hitValue) -- TODO: Setup when stats module works
 end
 
-local function BuildSlotHandover(slots, maxStacks, unitId, abilityId)
+local function BuildSlotHandover(slots, currentStacksBySlot, unitId, abilityId)
 	local abilityEndTimes = buffEndTimes[unitId] and buffEndTimes[unitId][abilityId]
 	local slotHandover = {}
 	for slotId, slotdata in pairs(slots) do
 		slotHandover[slotId] = {
 			isPlayerSource = slotdata.isPlayerSource,
-			stacks = zo_max(maxStacks, 1),
+			stacks = zo_max(currentStacksBySlot[slotId] or 0, 1),
 			endTime = abilityEndTimes and abilityEndTimes[slotId] or 0,
 		}
 	end
@@ -464,7 +464,17 @@ local function FinalizeUnitEffect(handover, unitId, abilityId, effectData, playe
 	local maxStacks = effectData.maxStacks
 	local slotcount, groupSlotCount = CountSlots(slots)
 
-	for _, slotdata in pairs(slots) do
+	local currentStacksBySlot = {}
+	for slotId, slotdata in pairs(slots) do
+		local current = 0
+		for i = maxStacks, minStacks, -1 do
+			if slotdata[i] ~= nil then
+				current = i
+				break
+			end
+		end
+		currentStacksBySlot[slotId] = current
+
 		FinalizeStackUptimes(effectData, slotdata, minStacks, maxStacks, combatEnd)
 
 		if slotdata.isPlayerSource then
@@ -481,7 +491,7 @@ local function FinalizeUnitEffect(handover, unitId, abilityId, effectData, playe
 		end
 		handover[unitId][abilityId] = {
 			effectType = effectData.effectType,
-			slots = BuildSlotHandover(slots, maxStacks, unitId, abilityId),
+			slots = BuildSlotHandover(slots, currentStacksBySlot, unitId, abilityId),
 		}
 	end
 
@@ -661,14 +671,14 @@ local function isDuplicateUnit(unitTag)
 	return false
 end
 
-local function validateBuffEventValues(changeType, stackCount)
+local function validateBuffEventValues(changeType)
 	if changeType == EFFECT_RESULT_GAINED then
 		return true
 	end
 	if changeType == EFFECT_RESULT_FADED then
 		return true
 	end
-	if changeType == EFFECT_RESULT_UPDATED and stackCount > 1 then
+	if changeType == EFFECT_RESULT_UPDATED then -- TODO: This used to require stackCount > 1, check if this works.
 		return true
 	end
 	return false
@@ -696,7 +706,7 @@ local function BuffEventHandler(
 	if unitName == "Offline" or unitId == nil then
 		return
 	end -- TODO: Use unit module here?
-	if not validateBuffEventValues(changeType, stackCount) then
+	if not validateBuffEventValues(changeType) then
 		return
 	end
 	if libint.badAbility[abilityId] == true then
