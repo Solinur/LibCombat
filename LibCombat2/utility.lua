@@ -39,8 +39,8 @@ function Queue:Pop()
 end
 
 function Queue:Delete(index)
-	if self:IsEmpty() then
-		logger:Error("Queue is empty")
+	if self:IsEmpty() or type(index) ~= "number" or index < self.first or index > self.last then
+		return nil
 	end
 	if index == self.first then
 		return self:Pop()
