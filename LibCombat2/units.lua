@@ -1,6 +1,7 @@
+-- Unit handling: discovery, tracking and conversion by id, name and unit tag.
 local _
 ---@class LCUnits
-libunits = {}
+local libunits = {}
 
 ---@class LibCombat2
 local lib = LibCombat2
@@ -65,6 +66,9 @@ local function IsValidUnitData(rawName, unitId, unitType)
 end
 
 local function UpdatePlayerId(newPlayerId)
+	if not IsValidUnitId(newPlayerId) then
+		return
+	end
 	if libunits.playerId == newPlayerId then
 		return
 	end -- check if it changed
@@ -475,21 +479,21 @@ end
 
 function UnitHandler:UpdateUnitTagData(unitTag)
 	-- General
-	UnitHandler:ValidateUnitTagUpdate("gender", GetUnitGender(unitTag))
-	UnitHandler:ValidateUnitTagUpdate("maxHealth", GetUnitPower(unitTag, COMBAT_MECHANIC_FLAGS_HEALTH))
+	self:ValidateUnitTagUpdate("gender", GetUnitGender(unitTag))
+	self:ValidateUnitTagUpdate("maxHealth", GetUnitPower(unitTag, COMBAT_MECHANIC_FLAGS_HEALTH))
 
 	-- Player characters	TODO: check classification
-	UnitHandler:ValidateUnitTagUpdate("displayName", GetUnitDisplayName(unitTag))
-	UnitHandler:ValidateUnitTagUpdate("class", GetUnitClass(unitTag))
-	UnitHandler:ValidateUnitTagUpdate("classId", GetUnitClassId(unitTag))
-	UnitHandler:ValidateUnitTagUpdate("CP", GetUnitChampionPoints(unitTag))
-	UnitHandler:ValidateUnitTagUpdate("effectiveCP", GetUnitEffectiveChampionPoints(unitTag))
-	UnitHandler:ValidateUnitTagUpdate("effectiveLevel", GetUnitEffectiveLevel(unitTag))
+	self:ValidateUnitTagUpdate("displayName", GetUnitDisplayName(unitTag))
+	self:ValidateUnitTagUpdate("class", GetUnitClass(unitTag))
+	self:ValidateUnitTagUpdate("classId", GetUnitClassId(unitTag))
+	self:ValidateUnitTagUpdate("CP", GetUnitChampionPoints(unitTag))
+	self:ValidateUnitTagUpdate("effectiveCP", GetUnitEffectiveChampionPoints(unitTag))
+	self:ValidateUnitTagUpdate("effectiveLevel", GetUnitEffectiveLevel(unitTag))
 
 	-- Status
-	UnitHandler:ValidateUnitTagUpdate("isDead", IsUnitDead(unitTag))
-	UnitHandler:ValidateUnitTagUpdate("isReincarnating", IsUnitReincarnating(unitTag))
-	UnitHandler:ValidateUnitTagUpdate("isAlive", not IsUnitDeadOrReincarnating(unitTag))
+	self:ValidateUnitTagUpdate("isDead", IsUnitDead(unitTag))
+	self:ValidateUnitTagUpdate("isReincarnating", IsUnitReincarnating(unitTag))
+	self:ValidateUnitTagUpdate("isAlive", not IsUnitDeadOrReincarnating(unitTag))
 
 	-- TODO: check limitations and only update necessary values
 	-- TODO: check not to overwrite data
@@ -562,11 +566,29 @@ function UnitHandler:Delete()
 		end
 	end
 
-	for i, unitId in ipairs(libunits.unitIdsByRawName) do
-		if unitId == self.unitId then
-			table.remove(libunits.unitIdsByRawName, i)
-			table.remove(libunits.unitIdsByName, i)
-			break
+	local rawNameList = libunits.unitIdsByRawName[self.rawName]
+	if rawNameList then
+		for i, unitId in ipairs(rawNameList) do
+			if unitId == self.unitId then
+				table.remove(rawNameList, i)
+				break
+			end
+		end
+		if #rawNameList == 0 then
+			libunits.unitIdsByRawName[self.rawName] = nil
+		end
+	end
+
+	local nameList = libunits.unitIdsByName[self.name]
+	if nameList then
+		for i, unitId in ipairs(nameList) do
+			if unitId == self.unitId then
+				table.remove(nameList, i)
+				break
+			end
+		end
+		if #nameList == 0 then
+			libunits.unitIdsByName[self.name] = nil
 		end
 	end
 

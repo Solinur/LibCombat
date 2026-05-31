@@ -1,5 +1,4 @@
--- This file contains handling of collected fight data
-
+-- Fight lifecycle management: start/end detection, data aggregation, and fight record storage.
 ---@class LibCombat2
 local lib = LibCombat2
 ---@class LCint
@@ -368,6 +367,9 @@ local lastGetNewStatsCall = 0
 ---@param timeMs integer?
 function FightHandler:QueueStatUpdate(timeMs)
 	-- TODO: review when integrating stats module
+	do -- Stats module integration pending
+		return
+	end
 	if libint.Events.Stats.active ~= true then
 		return
 	end
