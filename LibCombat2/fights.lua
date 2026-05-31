@@ -367,7 +367,10 @@ local lastGetNewStatsCall = 0
 ---@param timeMs integer?
 function FightHandler:QueueStatUpdate(timeMs)
 	-- TODO: review when integrating stats module
-	if true or libint.Events.Stats.active ~= true then
+	do -- Stats module integration pending
+		return
+	end
+	if libint.Events.Stats.active ~= true then
 		return
 	end
 	EVENT_MANAGER:UnregisterForUpdate("LibCombat_Stats")
