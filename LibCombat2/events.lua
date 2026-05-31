@@ -16,7 +16,7 @@ libint.ActiveCallbackTypes = ActiveCallbackTypes
 
 local Events = {}
 libint.Events = Events
-local totalevents = 0
+local nextEventId = 1
 
 ---@class EventHandler: ZO_InitializingObject
 ---@field New fun(self: EventHandler, callbacktypes: integer[], regfunc: fun(...: any)): EventHandler
@@ -34,7 +34,7 @@ end
 function EventHandler:RegisterEvent(event, callback, ...) -- convinience function
 	local filters = { ... }
 
-	local eventId = lib.name .. totalevents + 1
+	local eventId = lib.name .. nextEventId
 
 	local active = EVENT_MANAGER:RegisterForEvent(eventId, event, callback)
 	local filtered = false
@@ -43,18 +43,16 @@ function EventHandler:RegisterEvent(event, callback, ...) -- convinience functio
 		filtered = EVENT_MANAGER:AddFilterForEvent(eventId, event, unpack(filters))
 	end
 
-	self.data[#self.data + 1] = {
-
-		["id"] = totalevents + 1,
-		["event"] = event,
-		["callback"] = callback,
-		["active"] = active,
-		["filtered"] = filtered,
-		["filters"] = filters,
-	} -- remove callbacks later, probably not necessary
-
 	if active then
-		totalevents = totalevents + 1
+		self.data[#self.data + 1] = {
+			["id"] = nextEventId,
+			["event"] = event,
+			["callback"] = callback,
+			["active"] = active,
+			["filtered"] = filtered,
+			["filters"] = filters,
+		}
+		nextEventId = nextEventId + 1
 	end
 
 	if ld.isUIActivated and event == EVENT_PLAYER_ACTIVATED then
