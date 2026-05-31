@@ -18,8 +18,15 @@ LibCombat2.UnregisterForLogableCombatEvents(name)
 
 `RegisterForLogableCombatEvents` registers for all log events (`LIBCOMBAT_LOG_EVENT_MIN` to `LIBCOMBAT_LOG_EVENT_MAX`) at once.
 
+For `RegisterForCombatEvent` / `UnregisterForCombatEvent`:
+
 - *string* `name` — addon name, used to identify the registering addon
 - *CallbackKey* `callbackKey` — one of the event or log event constants below
+- *function* `callback` — callback function
+
+For `RegisterForLogableCombatEvents` / `UnregisterForLogableCombatEvents`:
+
+- *string* `name` — addon name, used to identify the registering addon
 - *function* `callback` — callback function
 
 ## Fight Data
