@@ -81,8 +81,13 @@ end
 local function InitUnitData(fight, unitId)
 	fight:CheckUnit(unitId)
 
-	---@type table<integer, EffectData>
-	local unitData = {}
+	---@class UnitEffectData : table<integer, EffectData>
+	---@field startTime integer
+	---@field endTime integer
+	local unitData = {
+		startTime = math.huge,
+		endTime = 0,
+	}
 	fight.effects[unitId] = unitData
 
 	return unitData
@@ -90,9 +95,17 @@ end
 
 ---@param fight Fight
 ---@param unitId integer
----@return table<integer, EffectData>
+---@return UnitEffectData
 local function GetUnitData(fight, unitId)
 	return fight.effects[unitId] or InitUnitData(fight, unitId)
+end
+
+---@param unitData UnitEffectData
+---@param startMs integer?
+---@param endMs integer?
+local function UpdateUnitEffectTime(unitData, startMs, endMs)
+	if startMs and startMs < unitData.startTime then unitData.startTime = startMs end
+	if endMs and endMs > unitData.endTime then unitData.endTime = endMs end
 end
 
 ---@param unitData table<integer, EffectData>
@@ -207,7 +220,7 @@ function LogProcessorEffects:ApplyHandover(fight)
 end
 
 ---@class Fight
----@field effects table<integer, table<integer, EffectData>>  -- levels: [unitId][abilityId]
+---@field effects table<integer, UnitEffectData>  -- levels: [unitId][abilityId]
 ---@param fight Fight
 function LogProcessorEffects:onInitilizeFight(fight)
 	if self.active ~= true then
@@ -367,6 +380,7 @@ function LogProcessorEffects:ProcessLogLine(
 	-- TODO: handle processing before combatStart
 
 	local effectData = GetEffectData(fight, unitId, abilityId, effectType)
+	local unitData = fight.effects[unitId]
 
 	local minStacks = abilityId == abilityIdZen and 0 or 1
 	local currentstacks = stacks or minStacks
@@ -385,6 +399,7 @@ function LogProcessorEffects:ProcessLogLine(
 	-- logger:Info("[%.3f] %s -> U:%d, A:%d, %s %s, x%d, Slot: %d ", timeMs/1000, sourceTypeStr[sourceType], unitId, abilityId, changeTypeStr[changeType], effectTypeStr[effectType], stacks or 0, slotId or -1)
 
 	if (changeType == EFFECT_RESULT_GAINED or changeType == EFFECT_RESULT_UPDATED) and timeMs <= combatEnd then
+		UpdateUnitEffectTime(unitData, timeMs, nil)
 		if slotcount == 0 and isPlayerSource then
 			effectData.firstStartTime = timeMs
 		end
@@ -437,6 +452,7 @@ function LogProcessorEffects:ProcessLogLine(
 
 			local endTime = zo_min(timeMs, combatEnd)
 
+			UpdateUnitEffectTime(unitData, nil, endTime)
 			FinalizeStackUptimes(effectData, slotdata, minStacks, maxStacks, endTime) --TODO: review slotStartTime carry-over logic
 			FinalizeEffectUptimes(effectData, slotcount, groupSlotCount, combatStart, endTime)
 		end
@@ -508,9 +524,12 @@ function LogProcessorEffects:onCombatEnd(fight)
 	local playerId = fight.unitIds.player or libunits.playerId
 	self.handover = {}
 
-	for unitId, unitEffects in pairs(fight.effects) do
-		for abilityId, effectData in pairs(unitEffects) do
-			FinalizeUnitEffect(self.handover, unitId, abilityId, effectData, playerId, combatStart, combatEnd)
+	for unitId, unitData in pairs(fight.effects) do
+		UpdateUnitEffectTime(unitData, nil, combatEnd)
+		for abilityId, effectData in pairs(unitData) do
+			if type(abilityId) == "number" then
+				FinalizeUnitEffect(self.handover, unitId, abilityId, effectData, playerId, combatStart, combatEnd)
+			end
 		end
 	end
 
