@@ -204,6 +204,7 @@ function FightHandler:Initialize()
 	self.unitIds.player = libunits.playerId
 	self.CP = GetCurrentCP()
 	self.state = FIGHT_STATE_INITIALIZED
+	self.skills = {}
 end
 
 function FightHandler:IsOngoing()
@@ -262,6 +263,40 @@ end
 -- 	ld.resources[COMBAT_MECHANIC_FLAGS_ULTIMATE] = GetUnitPower("player", COMBAT_MECHANIC_FLAGS_ULTIMATE)
 -- end
 
+local function GetBarData(barData, scribedSkills)
+	if not barData.isInCycle then
+		return
+	end
+
+	local skillBar = {}
+	skillBar[1] = GetSlotBoundId(1, barData.hotbarCategory)
+	skillBar[2] = GetSlotBoundId(2, barData.hotbarCategory)
+
+	for slot, slotData in pairs(barData.slots) do
+		local abilityId = slotData:GetEffectiveAbilityId()
+		skillBar[slot] = abilityId
+
+		if slotData:GetActionType() == ACTION_TYPE_CRAFTED_ABILITY and GetCraftedAbilityActiveScriptIds then
+			local scribedAbilityId = slotData:GetActionId()
+			scribedSkills[abilityId] = { GetCraftedAbilityActiveScriptIds(scribedAbilityId) }
+			logger:Debug("ScribedSkill: ", scribedAbilityId, unpack(scribedSkills[abilityId]))
+		end
+	end
+	return skillBar
+end
+
+function FightHandler:GetSkillbars()
+	self.skills.skillBars = {}
+	self.skills.scribedSkills = {}
+
+	for barId, barData in pairs(ACTION_BAR_ASSIGNMENT_MANAGER.hotbars) do
+		local skillBar = GetBarData(barData, self.skills.scribedSkills)
+		if skillBar then
+			self.skills.skillBars[barId] = skillBar
+		end
+	end
+end
+
 function FightHandler:PrepareFight()
 	local timeMs = GetGameTimeMilliseconds()
 
@@ -288,7 +323,7 @@ function FightHandler:PrepareFight()
 		self.state = FIGHT_STATE_STARTED
 
 		-- self:QueueStatUpdate(timeMs) -- TODO: Move to stats processor
-		-- lf.GetCurrentSkillBars()  -- TODO: Move to skills processor
+		self:GetSkillbars()
 	end
 
 	EVENT_MANAGER:RegisterForUpdate("LibCombat_update", 500, function()
@@ -635,7 +670,6 @@ function lf.onPlayerActivated()
 	lf.ActivateProcessors()
 	libint.LogProcessingQueue:SetFight(libint.currentFight)
 
-	-- zo_callLater(lf.GetCurrentSkillBars, 100) -- TODO: Reactivate ?
 	libint.isInPortalWorld = false
 end
 
@@ -707,7 +741,6 @@ end
 libint.Events.General = libint.EventHandler:New(lf.GetAllCallbackTypes(), function(self)
 	self:RegisterEvent(EVENT_PLAYER_COMBAT_STATE, libint.onCombatState)
 
-	-- self:RegisterEvent(EVENT_HOTBAR_SLOT_CHANGE_REQUESTED, lf.GetCurrentSkillBars)  -- TODO: Reactivate ?
 	self:RegisterEvent(EVENT_PLAYER_ACTIVATED, lf.onPlayerActivated)
 	self:RegisterEvent(EVENT_EFFECT_CHANGED, onMageExplode, REGISTER_FILTER_ABILITY_ID, 50184)
 	self:RegisterEvent(EVENT_EFFECT_CHANGED, onPortalWorld, REGISTER_FILTER_ABILITY_ID, 108045)
