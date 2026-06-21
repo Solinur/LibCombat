@@ -1588,6 +1588,16 @@ function GetPassiveSkills()
 	return passiveSkills
 end
 
+local function HasCritBonusMasteryPassive()
+	if not SKILLS_DATA_MANAGER then
+		return
+	end
+	local progData = SKILLS_DATA_MANAGER:GetProgressionDataByAbilityId(263605)
+	if progData and progData.skillData and progData.skillData.isPurchased then
+		return true
+	end
+end
+
 function FightHandler:FinishFight()
 	Log("fight", LOG_LEVEL_DEBUG, "Finish fight")
 
@@ -1601,6 +1611,8 @@ function FightHandler:FinishFight()
 	charData.scribedSkills = ZO_DeepTableCopy(data.scribedSkills)
 	charData.passiveSkills = GetPassiveSkills()
 	charData.equip = GetEquip()
+
+	self.special.CritBonusMastery = HasCritBonusMasteryPassive()
 
 	local timems = GetGameTimeMilliseconds()
 	self.combatend = timems
@@ -5312,7 +5324,9 @@ local statStrings = {
 	[LIBCOMBAT_STAT_PHYSICALRESISTANCE] = "|cffff88" .. GetString(SI_DERIVEDSTATS22) .. "|r ",
 	[LIBCOMBAT_STAT_SPELLRESISTANCE] = "|cffff88" .. GetString(SI_DERIVEDSTATS13) .. "|r ",
 	[LIBCOMBAT_STAT_CRITICALRESISTANCE] = "|cffff88" .. GetString(SI_DERIVEDSTATS24) .. "|r ",
-	[LIBCOMBAT_STAT_STATUS_EFFECT_CHANCE] = "|cdddddd" .. GetString(SI_LIBCOMBAT_LOG_STAT_STATUS_EFFECT_CHANCE) .. "|r ",
+	[LIBCOMBAT_STAT_STATUS_EFFECT_CHANCE] = "|cdddddd"
+		.. GetString(SI_LIBCOMBAT_LOG_STAT_STATUS_EFFECT_CHANCE)
+		.. "|r ",
 }
 
 local logColors = {
