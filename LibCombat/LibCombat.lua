@@ -1590,12 +1590,10 @@ end
 
 local function HasCritBonusMasteryPassive()
 	if not SKILLS_DATA_MANAGER then
-		return
+		return false
 	end
 	local progData = SKILLS_DATA_MANAGER:GetProgressionDataByAbilityId(263605)
-	if progData and progData.skillData and progData.skillData.isPurchased then
-		return true
-	end
+	return (progData and progData.skillData and progData.skillData.isPurchased) == true
 end
 
 function FightHandler:FinishFight()
