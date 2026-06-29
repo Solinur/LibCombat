@@ -1,4 +1,4 @@
--- This file contains definitions of global variables
+-- Global definitions for library enums: Callback keys, event constants, type aliases.
 
 ---@class LibCombat2
 local lib = LibCombat2
@@ -83,7 +83,7 @@ LIBCOMBAT_SKILLSTATUS_BEGIN_CHANNEL = 3
 LIBCOMBAT_SKILLSTATUS_SUCCESS = 4
 LIBCOMBAT_SKILLSTATUS_REGISTERED = 5
 LIBCOMBAT_SKILLSTATUS_QUEUE = 6
-LIBCOMBAT_SKILLSTATUS_CANCELLED = 6
+LIBCOMBAT_SKILLSTATUS_CANCELLED = 7
 
 -- statId
 

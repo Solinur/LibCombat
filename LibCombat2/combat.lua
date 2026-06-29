@@ -1,4 +1,4 @@
--- This file provides combat log entries regarding damage and heal events
+-- Damage and heal event logging and processing.
 
 ---@class LibCombat2
 local lib = LibCombat2
@@ -449,10 +449,20 @@ local function isGroupInvolved(hitValue, sourceUnitId, targetUnitId)
 	if hitValue == nil or hitValue <= 0 then
 		return false
 	end
-	if sourceUnitId and sourceUnitId > 0 and libunits[sourceUnitId] and libunits[sourceUnitId].isFriendly then
+	if
+		sourceUnitId
+		and sourceUnitId > 0
+		and libunits.unitData[sourceUnitId]
+		and libunits.unitData[sourceUnitId].isFriendly
+	then
 		return true
 	end
-	if targetUnitId and targetUnitId > 0 and libunits[targetUnitId] and libunits[targetUnitId].isFriendly then
+	if
+		targetUnitId
+		and targetUnitId > 0
+		and libunits.unitData[targetUnitId]
+		and libunits.unitData[targetUnitId].isFriendly
+	then
 		return true
 	end
 	return false
@@ -512,7 +522,7 @@ local function onCombatEventDamage(
 			sourceUnitId,
 			targetUnitId,
 			abilityId,
-			hitValue,
+			absorb,
 			damageType,
 			0
 		)
@@ -554,7 +564,7 @@ local function onCombatEventHeal(
 	local absorb = CheckForAbsorb(HealAbsorbs, timeMs, sourceUnitId, targetUnitId) or 0
 	if (hitValue + overflow + absorb) <= 0 then
 		logger:Debug(
-			"Empty Damage Event %s (%d) -> %s",
+			"Empty Heal Event %s (%d) -> %s",
 			lib.GetFormattedAbilityName(abilityId),
 			abilityId,
 			tostring(targetName)
@@ -615,12 +625,12 @@ local function onCombatEventDamageAbsorbed(
 			overflow,
 			sourceUnitId,
 			targetUnitId,
-			#DamageShields
+			DamageShields:Size()
 		)
 	end
 	DamageShields:Push({ GetGameTimeMilliseconds(), sourceUnitId, targetUnitId, hitValue })
 
-	logger:Debug("Add %d Shield: %d -> %d  (%d)", hitValue, sourceUnitId, targetUnitId, #DamageShields)
+	logger:Debug("Add %d Shield: %d -> %d  (%d)", hitValue, sourceUnitId, targetUnitId, DamageShields:Size())
 end
 
 local function onCombatEventHealAbsorbed(
@@ -650,12 +660,12 @@ local function onCombatEventHealAbsorbed(
 			overflow,
 			sourceUnitId,
 			targetUnitId,
-			#HealAbsorbs
+			HealAbsorbs:Size()
 		)
 	end
 	HealAbsorbs:Push({ GetGameTimeMilliseconds(), sourceUnitId, targetUnitId, hitValue })
 
-	logger:Debug("Add %d Shield: %d -> %d  (%d)", hitValue, sourceUnitId, targetUnitId, #HealAbsorbs)
+	logger:Debug("Add %d Shield: %d -> %d  (%d)", hitValue, sourceUnitId, targetUnitId, HealAbsorbs:Size())
 end
 
 libint.Events.Damage = libint.EventHandler:New(

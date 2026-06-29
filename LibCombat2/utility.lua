@@ -1,3 +1,4 @@
+-- Utility functions (spairs, etc.) and classes (Queue, CallbackManager, LogString generation) used across the library.
 ---@class LibCombat2
 local lib = LibCombat2
 ---@class LCint
@@ -38,26 +39,34 @@ function Queue:Pop()
 end
 
 function Queue:Delete(index)
-	if self:IsEmpty() then
-		logger:Error("Queue is empty")
+	if self:IsEmpty() or type(index) ~= "number" or index < self.first or index > self.last then
+		return nil
 	end
 	if index == self.first then
 		return self:Pop()
 	end
 
+	local value = self[index]
+	for i = index, self.last - 1 do
+		self[i] = self[i + 1]
+	end
+	self[self.last] = nil
 	self.last = self.last - 1
-	return table.remove(self, index) -- TODO: This is a bit hacky. Maybe review
+	return value
 end
 
 function Queue:IsEmpty()
 	return self.first > self.last
 end
 
+function Queue:Size()
+	return self.last - self.first + 1
+end
+
 ---@return Queue
 function lf.CreateQueue()
 	return Queue:New()
 end
--- Cache formatted Ability Names and Icons. Makes sure they stay consistent, since some addons like to meddle with them.
 
 -- Callback Manager
 ---@class ZO_CallbackObjectMixin
@@ -84,7 +93,7 @@ function lf.UnregisterCallback(eventKey, callback)
 	cm:UnregisterCallback(CallbackKeys[eventKey], callback)
 end
 
-----
+-- Cache formatted Ability Names and Icons. Makes sure they stay consistent, since some addons like to meddle with them.
 
 local CustomAbilityName = {
 	[-1] = "Unknown", -- Whenever there is no known abilityId
@@ -294,7 +303,7 @@ function lib:GetCombatLogString(fight, logline, fontsize, showIds)
 
 	local units = fight.units
 
-	if logtype == LIBCOMBAT_LOG_EVENT_DAMAGE then
+	if logtype == LIBCOMBAT_LOG_EVENT_DAMAGE then -- TODO: Fix duplicate branches (due to new constants)
 		local _, _, result, _, targetUnitId, abilityId, hitValue, damageType, overflow = unpack(logline)
 		overflow = overflow or 0
 

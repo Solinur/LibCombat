@@ -19,9 +19,9 @@ lang/en.lua
 lang/$(language).lua
 
 init.lua
-global.lua
+constants.lua
 utility.lua
-calculations.lua
+processor.lua
 events.lua
 units.lua
 combat.lua
