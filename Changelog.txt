@@ -1,4 +1,7 @@
-﻿88 DL 4,972,255 (31.05.2026) 17:05
+﻿89 DL 5,035,729 (29.06.2026) 22:27
+[*] Add tracking for Nightblade class mastery to enable higher critical damage ceiling in stats.
+
+88 DL 4,972,255 (31.05.2026) 17:05
 [*] Fix a issue where status effect changes were not handled by the combat log. (Thx DakJaniels for providing the fix)
 
 87 DL 4,902,419 (21.04.2026) 22:57
