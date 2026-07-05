@@ -269,11 +269,11 @@ local function GetBarData(barData, scribedSkills)
 	end
 
 	local skillBar = {}
-	skillBar[1] = GetSlotBoundId(1, barData.hotbarCategory)
-	skillBar[2] = GetSlotBoundId(2, barData.hotbarCategory)
+	skillBar[1] = GetSlotBoundId(1, barData.hotbarCategory) -- TODO: This doesn't always work ..
+	skillBar[2] = GetSlotBoundId(2, barData.hotbarCategory) -- TODO: This doesn't always work ..
 
 	for slot, slotData in pairs(barData.slots) do
-		local abilityId = slotData:GetEffectiveAbilityId()
+		local abilityId = slotData.GetEffectiveAbilityId and slotData:GetEffectiveAbilityId() or slotData:GetActionId()
 		skillBar[slot] = abilityId
 
 		if slotData:GetActionType() == ACTION_TYPE_CRAFTED_ABILITY and GetCraftedAbilityActiveScriptIds then
