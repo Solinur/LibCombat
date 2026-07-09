@@ -605,11 +605,7 @@ end
 local function UpdateForceOfNatureData(timeMs, unitId, abilityId, changeType, _, _, _, _)
 	local unit = localUnitData[unitId] or InitLocalUnitData(unitId)
 	local fight = libint.currentFight
-	if
-		libint.StatusEffectIds[abilityId] == nil
-		or fight.CP[1]["slotted"] == nil
-		or fight.CP[1]["slotted"][276] ~= true
-	then
+	if libint.StatusEffectIds[abilityId] == nil or not lf.IsCPStarSlotted(fight.CP, 276) then
 		return
 	end
 

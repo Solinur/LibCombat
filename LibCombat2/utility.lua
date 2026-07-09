@@ -68,6 +68,25 @@ function lf.CreateQueue()
 	return Queue:New()
 end
 
+---@param CPdata CPdata
+---@param starId integer
+---@return boolean isSlotted
+function lf.IsCPStarSlotted(CPdata, starId)
+	if starId <= 0 then
+		return false
+	end
+
+	for _, disciplineData in ipairs(CPdata) do
+		for i = 1, CPdata.maxSlotIndex - 1, 2 do
+			if disciplineData[i] == starId then
+				return true
+			end
+		end
+	end
+
+	return false
+end
+
 -- Callback Manager
 ---@class ZO_CallbackObjectMixin
 local cm = ZO_CallbackObject:New()
