@@ -1,5 +1,4 @@
--- This file contains handling of collected fight data
-
+-- Stat query utilities on fight data.
 ---@class LibCombat2
 local lib = LibCombat2
 ---@class LCint
@@ -317,7 +316,7 @@ local function GetUnitHealingDoneToUnits(fight, sourceUnitId, targetUnitIds, abi
 
 	dataOut = dataOut or lf.InitHealAbilityData()
 
-	for _, unitId in ipairs(targetUnitIds) do
+	for _, unitId in pairs(targetUnitIds) do
 		-- TODO: Validate?
 
 		local unitData = data[unitId]
@@ -421,7 +420,7 @@ function lib.GetUnitHealingReceivedByUnits(fight, targetUnitId, sourceUnitIds, a
 
 	dataOut = dataOut or lf.InitHealAbilityData()
 
-	for _, unitId in ipairs(sourceUnitIds) do
+	for _, unitId in pairs(sourceUnitIds) do
 		-- TODO: Validate?
 
 		local unitData = data[unitId]

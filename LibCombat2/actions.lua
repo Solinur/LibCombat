@@ -317,34 +317,33 @@ local function GetSlottedAbilityId(actionSlotIndex, hotbarCategory)
 end
 lf.GetSlottedAbilityId = GetSlottedAbilityId
 
-function lf.GetCurrentSkillBars()
-	local skillBars = ld.skillBars
-	local scribedSkills = ld.scribedSkills
-	local bar = ld.bar
+-- function lf.GetCurrentSkillBars()
+-- 	local skillBars = ld.skillBars
+-- 	local scribedSkills = ld.scribedSkills
+-- 	local bar = ld.bar
 
-	skillBars[bar] = {}
-	local currentbar = skillBars[bar]
-	local hotbarCategory = GetActiveHotbarCategory()
+-- 	skillBars[bar] = {}
+-- 	local currentbar = skillBars[bar]
+-- 	local hotbarCategory = GetActiveHotbarCategory()
 
-	for i = 1, 8 do
-		local id, scribedAbilityId = GetSlottedAbilityId(i, hotbarCategory)
-		currentbar[i] = id
-		local reducedslot = (bar - 1) * 10 + i
-		local conversion = libint.abilityConversions[id]
-		local convertedId = conversion and conversion[1] or id
+-- 	for i = 1, 8 do
+-- 		local id, scribedAbilityId = GetSlottedAbilityId(i, hotbarCategory)
+-- 		currentbar[i] = id
+-- 		local reducedslot = (bar - 1) * 10 + i
+-- 		local conversion = libint.abilityConversions[id]
+-- 		local convertedId = conversion and conversion[1] or id
 
-		IdToReducedSlot[convertedId] = reducedslot
+-- 		IdToReducedSlot[convertedId] = reducedslot
 
-		if conversion and conversion[3] then
-			IdToReducedSlot[conversion[3]] = reducedslot
-		end
-		if scribedAbilityId and scribedSkills[id] == nil then
-			scribedSkills[id] = { GetCraftedAbilityActiveScriptIds(scribedAbilityId) }
-			logger:Debug("ScribedSkill: ", scribedAbilityId, unpack(scribedSkills[id]))
-		end
-	end
-	UpdateSlotSkillEvents()
-end
+-- 		if conversion and conversion[3] then
+-- 			IdToReducedSlot[conversion[3]] = reducedslot
+-- 		end
+-- 		if scribedAbilityId and scribedSkills[id] == nil then
+-- 			scribedSkills[id] = { GetCraftedAbilityActiveScriptIds(scribedAbilityId) }
+-- 			logger:Debug("ScribedSkill: ", scribedAbilityId, unpack(scribedSkills[id]))
+-- 		end
+-- 	end
+-- end
 
 local function GetReducedSlotId(reducedslot)
 	local bar = zo_floor(reducedslot / 10) + 1

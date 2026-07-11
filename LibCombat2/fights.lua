@@ -1,5 +1,4 @@
--- This file contains handling of collected fight data
-
+-- Fight lifecycle management: start/end detection, data aggregation, and fight record storage.
 ---@class LibCombat2
 local lib = LibCombat2
 ---@class LCint
@@ -25,56 +24,63 @@ local FIGHT_STATE_TERMINATED = 2
 --- | `FIGHT_STATE_STARTED` # 1
 --- | `FIGHT_STATE_TERMINATED` # 2
 
+local CP_SLOTS_PER_DISCIPLINE = 4
+local CP_MAX_SLOT_INDEX = CP_SLOTS_PER_DISCIPLINE * 2
+
+---@return CPdata
 local function GetCurrentCP()
-	local CP = {}
-	CP.version = 2
-
-	-- collect slotted stars
-	local slotsById = {}
-	for slotIndex = 1, 12 do
-		local starId = GetSlotBoundId(slotIndex, HOTBAR_CATEGORY_CHAMPION)
-		if starId > 0 then
-			slotsById[starId] = slotIndex
-		end
-	end
-
-	--  collect CP data
+	-- CPdata uses a flat array layout: [..., abilityId, spentPoints, ...]
+	---@class CPdata
+	local CPdata = { version = 2, maxSlotIndex = CP_MAX_SLOT_INDEX }
 	local disciplines = CHAMPION_DATA_MANAGER.disciplineDatas
 
-	for _, discipline in pairs(disciplines) do
-		local disciplineId = discipline.disciplineId
-		local stars = discipline.championSkillDatas
-
+	for _, discipline in ipairs(disciplines) do
 		local disciplineData = {}
-		CP[disciplineId] = disciplineData
 
-		disciplineData.total = discipline:GetNumSavedSpentPoints()
-		disciplineData.stars = {}
-		disciplineData.slotted = {}
+		for i = 1, CP_MAX_SLOT_INDEX do
+			disciplineData[i] = 0
+		end
 
-		local discStarData = disciplineData.stars
-		local discSlotData = disciplineData.slotted
+		CPdata[discipline.disciplineId] = disciplineData
+	end
 
-		for _, star in pairs(stars) do
-			local savedPoints = star:GetNumSavedPoints()
+	-- slotted stars
+	local startSlot, endSlot = GetAssignableChampionBarStartAndEndSlots()
 
-			if savedPoints > 0 then
-				local starId = star.championSkillId
-				local slotable = star:IsTypeSlottable()
-				local slotted = slotsById[starId] ~= nil
-				local starType = (slotted and LIBCOMBAT_CPTYPE_SLOTTED)
-					or (slotable and LIBCOMBAT_CPTYPE_UNSLOTTED)
-					or LIBCOMBAT_CPTYPE_PASSIVE
+	for slotIndex = startSlot, endSlot do
+		local starId = GetSlotBoundId(slotIndex, HOTBAR_CATEGORY_CHAMPION)
 
-				discStarData[starId] = { savedPoints, starType }
-				if slotted then
-					discSlotData[starId] = true
-				end
+		if starId > 0 then
+			local disciplineId = GetRequiredChampionDisciplineIdForSlot(slotIndex, HOTBAR_CATEGORY_CHAMPION)
+			local disciplineData = CPdata[disciplineId]
+
+			if disciplineData then
+				local star = CHAMPION_DATA_MANAGER:GetChampionSkillData(starId)
+				local index = ((slotIndex - startSlot) % CP_SLOTS_PER_DISCIPLINE) * 2 + 1
+
+				disciplineData[index] = starId
+				disciplineData[index + 1] = star and star:GetNumSavedPoints() or 0
 			end
 		end
 	end
 
-	return CP
+	-- passive stars
+	for _, discipline in ipairs(disciplines) do
+		local disciplineData = CPdata[discipline.disciplineId]
+		local n = CP_MAX_SLOT_INDEX
+
+		for _, star in ipairs(discipline.championSkillDatas) do
+			local savedPoints = star:GetNumSavedPoints()
+
+			if savedPoints > 0 and not star:IsTypeSlottable() then
+				disciplineData[n + 1] = star.championSkillId
+				disciplineData[n + 2] = savedPoints
+				n = n + 2
+			end
+		end
+	end
+
+	return CPdata
 end
 
 local function get_per_second_value(x, y)
@@ -205,6 +211,7 @@ function FightHandler:Initialize()
 	self.unitIds.player = libunits.playerId
 	self.CP = GetCurrentCP()
 	self.state = FIGHT_STATE_INITIALIZED
+	self.skills = {}
 end
 
 function FightHandler:IsOngoing()
@@ -263,6 +270,40 @@ end
 -- 	ld.resources[COMBAT_MECHANIC_FLAGS_ULTIMATE] = GetUnitPower("player", COMBAT_MECHANIC_FLAGS_ULTIMATE)
 -- end
 
+local function GetBarData(barData, scribedSkills)
+	if not barData.isInCycle then
+		return
+	end
+
+	local skillBar = {}
+	skillBar[1] = GetSlotBoundId(1, barData.hotbarCategory) -- TODO: This doesn't always work ..
+	skillBar[2] = GetSlotBoundId(2, barData.hotbarCategory) -- TODO: This doesn't always work ..
+
+	for slot, slotData in pairs(barData.slots) do
+		local abilityId = slotData.GetEffectiveAbilityId and slotData:GetEffectiveAbilityId() or slotData:GetActionId()
+		skillBar[slot] = abilityId
+
+		if slotData:GetActionType() == ACTION_TYPE_CRAFTED_ABILITY and GetCraftedAbilityActiveScriptIds then
+			local scribedAbilityId = slotData:GetActionId()
+			scribedSkills[abilityId] = { GetCraftedAbilityActiveScriptIds(scribedAbilityId) }
+			logger:Debug("ScribedSkill: ", scribedAbilityId, unpack(scribedSkills[abilityId]))
+		end
+	end
+	return skillBar
+end
+
+function FightHandler:GetSkillbars()
+	self.skills.skillBars = {}
+	self.skills.scribedSkills = {}
+
+	for barId, barData in pairs(ACTION_BAR_ASSIGNMENT_MANAGER.hotbars) do
+		local skillBar = GetBarData(barData, self.skills.scribedSkills)
+		if skillBar then
+			self.skills.skillBars[barId] = skillBar
+		end
+	end
+end
+
 function FightHandler:PrepareFight()
 	local timeMs = GetGameTimeMilliseconds()
 
@@ -289,7 +330,7 @@ function FightHandler:PrepareFight()
 		self.state = FIGHT_STATE_STARTED
 
 		-- self:QueueStatUpdate(timeMs) -- TODO: Move to stats processor
-		-- lf.GetCurrentSkillBars()  -- TODO: Move to skills processor
+		self:GetSkillbars()
 	end
 
 	EVENT_MANAGER:RegisterForUpdate("LibCombat_update", 500, function()
@@ -368,6 +409,9 @@ local lastGetNewStatsCall = 0
 ---@param timeMs integer?
 function FightHandler:QueueStatUpdate(timeMs)
 	-- TODO: review when integrating stats module
+	do -- Stats module integration pending
+		return
+	end
 	if libint.Events.Stats.active ~= true then
 		return
 	end
@@ -633,7 +677,6 @@ function lf.onPlayerActivated()
 	lf.ActivateProcessors()
 	libint.LogProcessingQueue:SetFight(libint.currentFight)
 
-	-- zo_callLater(lf.GetCurrentSkillBars, 100) -- TODO: Reactivate ?
 	libint.isInPortalWorld = false
 end
 
@@ -705,7 +748,6 @@ end
 libint.Events.General = libint.EventHandler:New(lf.GetAllCallbackTypes(), function(self)
 	self:RegisterEvent(EVENT_PLAYER_COMBAT_STATE, libint.onCombatState)
 
-	-- self:RegisterEvent(EVENT_HOTBAR_SLOT_CHANGE_REQUESTED, lf.GetCurrentSkillBars)  -- TODO: Reactivate ?
 	self:RegisterEvent(EVENT_PLAYER_ACTIVATED, lf.onPlayerActivated)
 	self:RegisterEvent(EVENT_EFFECT_CHANGED, onMageExplode, REGISTER_FILTER_ABILITY_ID, 50184)
 	self:RegisterEvent(EVENT_EFFECT_CHANGED, onPortalWorld, REGISTER_FILTER_ABILITY_ID, 108045)

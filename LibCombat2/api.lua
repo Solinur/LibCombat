@@ -1,4 +1,4 @@
--- This file contains handling of the api
+-- Public LibCombat2 API: fight access, unit queries, and consumer callback registration.
 
 ---@class LibCombat2
 local lib = LibCombat2

@@ -1,3 +1,4 @@
+-- Localization strings (SI_LIBCOMBAT_*) for combat log messages; English baseline.
 local strings = {
 
 	SI_LIBCOMBAT_LOG_CRITICAL = "critically ",  -- "critically"
@@ -65,6 +66,7 @@ local strings = {
 	SI_LIBCOMBAT_LOG_FORMATSTRING_SKILLS4 = "<<1>> You finished casting <<2>>.", 					-- skill used, i.e. "[0.0s] You finished casting Blazing Spear. 				<<1>> = timestring, <<2>> = Ability
 	SI_LIBCOMBAT_LOG_FORMATSTRING_SKILLS5 = "<<1>> Your cast of <<2>> was registered.", 			-- skill used, i.e. "[0.0s] You finished casting Blazing Spear. 				<<1>> = timestring, <<2>> = Ability
 	SI_LIBCOMBAT_LOG_FORMATSTRING_SKILLS6 = "<<1>> Your cast of <<2>> was activated from queue.", 	-- skill used, i.e. "[0.0s] You finished casting Blazing Spear. 				<<1>> = timestring, <<2>> = Ability
+	SI_LIBCOMBAT_LOG_FORMATSTRING_SKILLS7 = "<<1>> Your cast of <<2>> was cancelled.", 				-- skill cancelled, i.e. "[0.0s] Your cast of Blazing Spear was cancelled."	<<1>> = timestring, <<2>> = Ability
 
     SI_LIBCOMBAT_LOG_FORMATSTRING_DEATH1 = "<<1>> |cffffff<<2>>|r |cff3333died|r.<<4>>",
     SI_LIBCOMBAT_LOG_FORMATSTRING_DEATH2 = "<<1>> |cffffff<<2>>|r |c00cc00ressurected|r.",
