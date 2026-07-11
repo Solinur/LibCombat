@@ -108,6 +108,17 @@ local function UpdateUnitEffectTime(unitData, startMs, endMs)
 	if endMs and endMs > unitData.endTime then unitData.endTime = endMs end
 end
 
+-- Effect events are seen before the pull, so the raw window can start earlier than combatStart, while
+-- uptimes are only ever counted from combatStart on. Consumers divide uptime by this window, so an
+-- unclamped window makes every uptime ratio too small.
+---@param unitData UnitEffectData
+---@param combatStart integer
+---@param combatEnd integer
+local function ClampUnitEffectTime(unitData, combatStart, combatEnd)
+	unitData.startTime = zo_clamp(unitData.startTime, combatStart, combatEnd)
+	unitData.endTime = zo_clamp(unitData.endTime, combatStart, combatEnd)
+end
+
 ---@param unitData table<integer, EffectData>
 ---@param abilityId integer
 ---@param effectType BuffEffectType
@@ -292,13 +303,13 @@ function LogProcessorEffects:onCombatStart(fight)
 	self:GetPlayerBuffs(fight)
 end
 
-local function FinalizeStackUptimes(effectData, slotdata, minStacks, maxStacks, endTime)
+local function FinalizeStackUptimes(effectData, slotdata, minStacks, maxStacks, combatStart, endTime)
 	local slotStartTime
 	for i = maxStacks, minStacks, -1 do
 		local stackData = GetStackData(effectData, i)
 		slotStartTime = slotdata[i] or slotStartTime
 		if slotStartTime then
-			local duration = endTime - slotStartTime
+			local duration = endTime - zo_max(slotStartTime, combatStart)
 			if slotdata.isPlayerSource then
 				stackData.uptime = stackData.uptime + duration
 				stackData.count = stackData.count + 1
@@ -453,7 +464,7 @@ function LogProcessorEffects:ProcessLogLine(
 			local endTime = zo_min(timeMs, combatEnd)
 
 			UpdateUnitEffectTime(unitData, nil, endTime)
-			FinalizeStackUptimes(effectData, slotdata, minStacks, maxStacks, endTime) --TODO: review slotStartTime carry-over logic
+			FinalizeStackUptimes(effectData, slotdata, minStacks, maxStacks, combatStart, endTime) --TODO: review slotStartTime carry-over logic
 			FinalizeEffectUptimes(effectData, slotcount, groupSlotCount, combatStart, endTime)
 		end
 	end
@@ -491,7 +502,7 @@ local function FinalizeUnitEffect(handover, unitId, abilityId, effectData, playe
 		end
 		currentStacksBySlot[slotId] = current
 
-		FinalizeStackUptimes(effectData, slotdata, minStacks, maxStacks, combatEnd)
+		FinalizeStackUptimes(effectData, slotdata, minStacks, maxStacks, combatStart, combatEnd)
 
 		if slotdata.isPlayerSource then
 			slotcount = slotcount - 1
@@ -526,6 +537,7 @@ function LogProcessorEffects:onCombatEnd(fight)
 
 	for unitId, unitData in pairs(fight.effects) do
 		UpdateUnitEffectTime(unitData, nil, combatEnd)
+		ClampUnitEffectTime(unitData, combatStart, combatEnd)
 		for abilityId, effectData in pairs(unitData) do
 			if type(abilityId) == "number" then
 				FinalizeUnitEffect(self.handover, unitId, abilityId, effectData, playerId, combatStart, combatEnd)
