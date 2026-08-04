@@ -14,10 +14,11 @@ end
 -- library layer, but none of the game's enum constants. Rather than hand-maintain them, merge in the
 -- generated globals dump. Only fills gaps, so ESOLua's real objects always win.
 -- Override the location with the ESO_LUA_DEFS environment variable.
-local DEFAULT_DEFS = "C:/Users/dk-mi/Documents/ESOdev/Tools/esolua/lua_defs/globals.lua"
+local DEFAULT_DEFS = "/Documents/ESOdev/Tools/esolua/lua_defs/globals.lua"
 
 local function MergeGeneratedGlobals()
-	local path = os.getenv("ESO_LUA_DEFS") or DEFAULT_DEFS
+	local home = os.getenv("USERPROFILE") or os.getenv("HOME") or "."
+	local path = os.getenv("ESO_LUA_DEFS") or (home .. DEFAULT_DEFS)
 	local chunk = loadfile(path)
 	if not chunk then
 		error(string.format("no globals dump at '%s'; set ESO_LUA_DEFS", path))
