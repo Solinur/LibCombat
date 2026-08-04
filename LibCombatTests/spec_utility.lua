@@ -1,4 +1,7 @@
-if not Taneth then return end
+-- TODO: check unit tests in this file (sanity check)
+if not Taneth then
+	return
+end
 
 LC2Test.RequireLibCombat("utility.lua")
 
@@ -38,9 +41,11 @@ Taneth("LibCombat2", function()
 		it("honours a custom comparator", function()
 			local t = { a = 3, b = 1, c = 2 }
 			local seen = {}
-			for key in lf.spairs(t, function(source, a, b)
-				return source[a] < source[b]
-			end) do
+			for key in
+				lf.spairs(t, function(source, a, b)
+					return source[a] < source[b]
+				end)
+			do
 				seen[#seen + 1] = key
 			end
 			assert.same({ "b", "c", "a" }, seen)
@@ -277,6 +282,22 @@ Taneth("LibCombat2", function()
 
 		it("accepts empty tables", function()
 			lib.AddCustomAbilityData({}, {})
+		end)
+
+		it("accepts both arguments nil", function()
+			lib.AddCustomAbilityData(nil, nil)
+		end)
+
+		it("applies the icons when the names are nil", function()
+			lib.AddCustomAbilityData(nil, { [990102] = "only/icon.dds" })
+			assert.equals("only/icon.dds", lib.GetFormattedAbilityIcon(990102))
+			assert.equals(GetAbilityName(990102), lib.GetFormattedAbilityName(990102))
+		end)
+
+		it("applies the names when the icons are nil", function()
+			lib.AddCustomAbilityData({ [990103] = "Only Name" }, nil)
+			assert.equals("Only Name", lib.GetFormattedAbilityName(990103))
+			assert.equals(GetAbilityIcon(990103), lib.GetFormattedAbilityIcon(990103))
 		end)
 	end)
 
