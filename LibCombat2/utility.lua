@@ -162,18 +162,24 @@ local CustomAbilityIcon = {
 	[libint.abilityIdForceOfNature] = "esoui/art/icons/ability_healer_018.dds",
 }
 
-function lib.AddCustomAbilityData(names, icons)
-	for id, name in names do
-		CustomAbilityName[id] = zo_strformat(SI_ABILITY_NAME, name)
-	end
-
-	for id, icon in icons do
-		CustomAbilityIcon[id] = icon
-	end
-end
-
 local AbilityNameCache = {}
 local ScriptNameCache = {}
+local AbilityIconCache = {}
+local ScriptIconCache = {}
+
+-- Drops the cached entries for the overridden ids, so custom data still applies when it is added
+-- after something already looked the ability up.
+function lib.AddCustomAbilityData(names, icons)
+	for id, name in pairs(names or {}) do
+		CustomAbilityName[id] = zo_strformat(SI_ABILITY_NAME, name)
+		AbilityNameCache[id] = nil
+	end
+
+	for id, icon in pairs(icons or {}) do
+		CustomAbilityIcon[id] = icon
+		AbilityIconCache[id] = nil
+	end
+end
 
 ---Function to return cached and formatted ability and script names.
 ---@param id any
@@ -202,8 +208,6 @@ local function GetFormattedAbilityName(id, isScript)
 end
 lib.GetFormattedAbilityName = GetFormattedAbilityName
 
-local AbilityIconCache = {}
-local ScriptIconCache = {}
 local noIcon = "/esoui/art/icons/icon_missing.dds"
 local noScriptIcon = "EsoUI/Art/crafting/gamepad/crafting_alchemy_trait_unknown.dds"
 
