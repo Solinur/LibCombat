@@ -6,12 +6,9 @@ local lib = LibCombat2
 local libint = lib.internal
 local lf = libint.functions
 
--- Queue:Pop logs through the file's sublogger, so the file has to be initialized before a test can
--- pop an empty queue. In the game client this already ran and returns false.
 libint.InitializeUtility()
 
---- Swaps a global for the duration of fn and restores it even if fn throws. Used instead of editing
---- mocks.lua so the suite stays safe in-game, where the globals are the real API.
+--- Swaps a global for the duration of fn, so the suite stays safe in-game where it is the real API.
 local function WithGlobal(name, value, fn)
 	local original = _G[name]
 	_G[name] = value
@@ -140,8 +137,7 @@ Taneth("LibCombat2", function()
 			assert.equals(nil, lf.CreateQueue():Pop())
 		end)
 
-		-- Delete takes the absolute internal index, not a 1-based position: the first element sits at
-		-- index 0 and every Pop moves that origin up by one.
+		-- Delete takes the absolute internal index: the first element sits at 0 and Pop moves it up.
 		it("deletes from the middle and shifts the tail down", function()
 			local queue = FilledQueue("a", "b", "c")
 			assert.equals("b", queue:Delete(1))
@@ -300,8 +296,7 @@ Taneth("LibCombat2", function()
 	end)
 
 	describe("callbacks", function()
-		-- Registered against a synthetic key rather than a real LIBCOMBAT_EVENT_*: in-game those have
-		-- live listeners that would receive this test's payload.
+		-- Synthetic rather than a real LIBCOMBAT_EVENT_*, which in-game has live listeners.
 		local TEST_KEY = 9999
 
 		it("delivers the event key and payload, and stops after unregistering", function()

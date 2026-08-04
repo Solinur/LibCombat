@@ -70,10 +70,8 @@ function ZO_CreateStringId(stringId, stringToAdd)
 	nextCustomId = nextCustomId + 1
 end
 
--- ESOLua's own GetString is a stub that always returns "", and its string table cannot be written to
--- from Lua, so everything lang/en.lua registers would be invisible. Serve EsoStrings instead, which
--- is where ZO_CreateStringId above puts it. Supports the game's second form, GetString(prefix,
--- index), which resolves the SI_FOO<index> global.
+-- ESOLua's own GetString always returns "" and its string table is not writable from Lua, so
+-- everything lang/en.lua registers would be invisible.
 function GetString(stringId, index)
 	if type(stringId) == "string" then
 		stringId = _G[stringId .. tostring(index)]
@@ -81,9 +79,7 @@ function GetString(stringId, index)
 	return EsoStrings[stringId] or ""
 end
 
--- The globals dump supplies the client's own SI_* ids but not their text. Only the ones the library
--- formats with need an entry. Keeping the game's format string here: the LocalizeString mock ignores
--- the case modifier, but it documents what the real one applies.
+-- The globals dump has the client's SI_* ids but not their text; only what the library formats with.
 EsoStrings[SI_ABILITY_NAME] = "<<t:1>>"
 
 function SafeAddVersion() end
