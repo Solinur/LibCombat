@@ -52,7 +52,16 @@ function GetAbilityIcon(abilityId)
 	return "icon/ability" .. abilityId .. ".dds"
 end
 
+function GetCraftedAbilityScriptDisplayName(scriptId)
+	return "Script" .. scriptId
+end
+
+function GetCraftedAbilityScriptIcon(scriptId)
+	return "icon/script" .. scriptId .. ".dds"
+end
+
 EsoStrings = EsoStrings or {}
+
 local nextCustomId = 200000
 
 function ZO_CreateStringId(stringId, stringToAdd)
@@ -60,6 +69,22 @@ function ZO_CreateStringId(stringId, stringToAdd)
 	EsoStrings[nextCustomId] = stringToAdd
 	nextCustomId = nextCustomId + 1
 end
+
+-- ESOLua's own GetString is a stub that always returns "", and its string table cannot be written to
+-- from Lua, so everything lang/en.lua registers would be invisible. Serve EsoStrings instead, which
+-- is where ZO_CreateStringId above puts it. Supports the game's second form, GetString(prefix,
+-- index), which resolves the SI_FOO<index> global.
+function GetString(stringId, index)
+	if type(stringId) == "string" then
+		stringId = _G[stringId .. tostring(index)]
+	end
+	return EsoStrings[stringId] or ""
+end
+
+-- The globals dump supplies the client's own SI_* ids but not their text. Only the ones the library
+-- formats with need an entry. Keeping the game's format string here: the LocalizeString mock ignores
+-- the case modifier, but it documents what the real one applies.
+EsoStrings[SI_ABILITY_NAME] = "<<t:1>>"
 
 function SafeAddVersion() end
 
