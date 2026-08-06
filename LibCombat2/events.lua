@@ -154,7 +154,7 @@ local isFileInitialized = false
 
 function libint.InitializeEvents()
 	if isFileInitialized == true then
-		return false
+		return true
 	end
 	logger = lf.initSublogger("events")
 

@@ -966,7 +966,7 @@ local isFileInitialized = false
 
 function libint.InitializeEffects()
 	if isFileInitialized == true then
-		return false
+		return true
 	end
 	logger = lf.initSublogger("effects")
 

@@ -260,7 +260,7 @@ end
 
 function libint.InitializeCalculations()
 	if isFileInitialized == true then
-		return false
+		return true
 	end
 	logger = lf.initSublogger("calc")
 	libint.LogProcessingQueue = LogProcessingQueue

@@ -779,7 +779,7 @@ local isFileInitialized = false
 
 function libint.InitializeActions()
 	if isFileInitialized == true then
-		return false
+		return true
 	end
 	logger = lf.initSublogger("skillcasting")
 

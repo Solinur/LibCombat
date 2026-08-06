@@ -743,7 +743,7 @@ local isFileInitialized = false
 
 function libint.InitializeCombat()
 	if isFileInitialized == true then
-		return false
+		return true
 	end
 	logger = lf.initSublogger("combat")
 

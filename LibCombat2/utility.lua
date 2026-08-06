@@ -598,7 +598,7 @@ local isFileInitialized = false
 
 function libint.InitializeUtility()
 	if isFileInitialized == true then
-		return false
+		return true
 	end
 	logger = lf.initSublogger("util")
 

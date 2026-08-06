@@ -541,7 +541,7 @@ end)
 local isFileInitialized = false
 function libint.InitializeDeaths()
 	if isFileInitialized == true then
-		return false
+		return true
 	end
 	logger = lf.initSublogger("death")
 

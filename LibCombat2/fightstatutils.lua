@@ -543,7 +543,7 @@ end
 
 function libint.InitializeFightStatUtils()
 	if isFileInitialized == true then
-		return false
+		return true
 	end
 	logger = lf.initSublogger("fightStatUtils")
 

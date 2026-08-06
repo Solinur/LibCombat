@@ -941,7 +941,7 @@ local isFileInitialized = false
 
 function libint.InitializeUnits()
 	if isFileInitialized == true then
-		return false
+		return true
 	end
 	logger = lf.initSublogger("units")
 

@@ -229,7 +229,7 @@ end
 
 function libint.InitializeAPI()
 	if isFileInitialized == true then
-		return false
+		return true
 	end
 	logger = lf.initSublogger("api")
 

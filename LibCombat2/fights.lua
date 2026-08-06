@@ -758,7 +758,7 @@ end)
 
 function libint.InitializeFights()
 	if isFileInitialized == true then
-		return false
+		return true
 	end
 	logger = lf.initSublogger("fights")
 

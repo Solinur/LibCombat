@@ -73,7 +73,7 @@ local isFileInitialized = false
 
 function libint.InitializePerformance()
 	if isFileInitialized == true then
-		return false
+		return true
 	end
 	logger = lf.initSublogger("performance")
 

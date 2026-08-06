@@ -175,7 +175,7 @@ libint.abilityIdForceOfNature = 174250
 local isFileInitialized = false
 function libint.InitializeGlobals()
 	if isFileInitialized == true then
-		return false
+		return true
 	end
 
 	isFileInitialized = true
